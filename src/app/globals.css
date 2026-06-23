@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-main-bg: #111111;
+  --color-surface-deep: #120B09;
+  --color-card-bg: #1A1A1A;
+  --color-surface-sec: #211512;
+  --color-primary-coral: #FF8A75;
+  --color-accent-orange: #FF5226;
+  --color-success-green: #10D981;
+  --color-soft-text: #D8C9C3;
+  --color-muted-text: #8D7B73;
+  --color-border-color: #2A1E1A;
+  
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+:root {
+  --background: #111111;
+  --foreground: #FFFFFF;
+}
+
+body {
+  background-color: #111111;
+  color: #FFFFFF;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar to keep layout premium */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111111;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2A1E1A;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF8A75;
+}
+
+/* Glassmorphism panel styling */
+.glass-panel {
+  background: rgba(26, 26, 26, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(42, 30, 26, 0.6);
+}
+
+.glass-panel-deep {
+  background: rgba(18, 11, 9, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(42, 30, 26, 0.7);
+}
+
+/* Soft coral glow effects */
+.glow-coral-sm {
+  box-shadow: 0 0 15px rgba(255, 138, 117, 0.15);
+}
+
+.glow-coral-md {
+  box-shadow: 0 0 30px rgba(255, 138, 117, 0.25);
+}
+
+.glow-coral-lg {
+  box-shadow: 0 0 50px rgba(255, 138, 117, 0.35);
+}
+
+.text-glow {
+  text-shadow: 0 0 10px rgba(255, 138, 117, 0.4);
+}
+
+/* Custom transitions and animations */
+.transition-luxury {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 8s infinite ease-in-out;
+}
+
