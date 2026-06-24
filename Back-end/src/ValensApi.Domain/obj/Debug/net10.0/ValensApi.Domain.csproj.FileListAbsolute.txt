@@ -1,0 +1,11 @@
+D:\Valens Project\Back-end\src\ValensApi.Domain\bin\Debug\net10.0\ValensApi.Domain.deps.json
+D:\Valens Project\Back-end\src\ValensApi.Domain\bin\Debug\net10.0\ValensApi.Domain.dll
+D:\Valens Project\Back-end\src\ValensApi.Domain\bin\Debug\net10.0\ValensApi.Domain.pdb
+D:\Valens Project\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\Valens Project\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.AssemblyInfoInputs.cache
+D:\Valens Project\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.AssemblyInfo.cs
+D:\Valens Project\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.csproj.CoreCompileInputs.cache
+D:\Valens Project\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.dll
+D:\Valens Project\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\refint\ValensApi.Domain.dll
+D:\Valens Project\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.pdb
+D:\Valens Project\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ref\ValensApi.Domain.dll

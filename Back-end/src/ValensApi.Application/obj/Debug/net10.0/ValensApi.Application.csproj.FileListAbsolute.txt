@@ -1,0 +1,15 @@
+D:\Valens Project\Back-end\src\ValensApi.Application\bin\Debug\net10.0\ValensApi.Application.deps.json
+D:\Valens Project\Back-end\src\ValensApi.Application\bin\Debug\net10.0\ValensApi.Application.dll
+D:\Valens Project\Back-end\src\ValensApi.Application\bin\Debug\net10.0\ValensApi.Application.pdb
+D:\Valens Project\Back-end\src\ValensApi.Application\bin\Debug\net10.0\ValensApi.Domain.dll
+D:\Valens Project\Back-end\src\ValensApi.Application\bin\Debug\net10.0\ValensApi.Domain.pdb
+D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.csproj.AssemblyReference.cache
+D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.AssemblyInfoInputs.cache
+D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.AssemblyInfo.cs
+D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.csproj.CoreCompileInputs.cache
+D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensAp.15073C0A.Up2Date
+D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.dll
+D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\refint\ValensApi.Application.dll
+D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.pdb
+D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ref\ValensApi.Application.dll

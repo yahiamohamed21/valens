@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ValensApi.API/ValensApi.API.csproj" />
+    <Project Path="src/ValensApi.Application/ValensApi.Application.csproj" />
+    <Project Path="src/ValensApi.Domain/ValensApi.Domain.csproj" />
+    <Project Path="src/ValensApi.Infrastructure/ValensApi.Infrastructure.csproj" />
+  </Folder>
+</Solution>
