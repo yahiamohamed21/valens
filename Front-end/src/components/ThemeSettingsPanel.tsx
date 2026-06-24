@@ -1,0 +1,163 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useTheme, PRESET_THEMES } from "@/context/ThemeContext";
+import { Icon } from "@/components/SvgIcons";
+
+export const ThemeSettingsPanel = () => {
+  const { theme, setMode, setPrimaryColor, setAccentColor, applyPreset, resetToDefault } = useTheme();
+  const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return (
+    <>
+      {/* Floating Button */}
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-6 right-6 z-[9998] flex h-14 w-14 items-center justify-center rounded-full bg-card-bg/80 border border-border-color backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgb(var(--rt-primary)/0.3)] group"
+        aria-label="Theme Settings"
+      >
+        <div className="text-primary-coral transition-transform duration-500 group-hover:rotate-90">
+          <Icon name="settings" size={24} />
+        </div>
+      </button>
+
+      {/* Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm transition-opacity"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Slide-out Drawer */}
+      <div
+        className={`fixed top-0 right-0 z-[9999] h-full w-[320px] transform border-l border-border-color bg-surface-deep/95 backdrop-blur-xl transition-transform duration-500 ease-out flex flex-col ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border-color px-6 py-5">
+          <h2 className="text-sm font-black uppercase tracking-widest text-white">Theme Settings</h2>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-muted-text hover:text-primary-coral transition-colors"
+          >
+            <Icon name="close" size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+          
+          {/* Mode Toggle */}
+          <div className="space-y-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">Display Mode</span>
+            <div className="flex rounded-xl border border-border-color bg-card-bg p-1">
+              <button
+                onClick={() => setMode("dark")}
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all ${
+                  theme.mode === "dark"
+                    ? "bg-surface-deep text-primary-coral shadow-sm"
+                    : "text-muted-text hover:text-white"
+                }`}
+              >
+                Dark
+              </button>
+              <button
+                onClick={() => setMode("light")}
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all ${
+                  theme.mode === "light"
+                    ? "bg-surface-deep text-primary-coral shadow-sm"
+                    : "text-muted-text hover:text-white"
+                }`}
+              >
+                Light
+              </button>
+            </div>
+          </div>
+
+          {/* Presets */}
+          <div className="space-y-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">Color Presets</span>
+            <div className="grid grid-cols-4 gap-3">
+              {PRESET_THEMES.map((preset) => (
+                <button
+                  key={preset.name}
+                  onClick={() => applyPreset(preset)}
+                  title={preset.name}
+                  className="group relative flex aspect-square items-center justify-center rounded-xl border border-border-color bg-card-bg transition-all hover:scale-105 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br" style={{ backgroundImage: `linear-gradient(to bottom right, ${preset.primaryColor}, ${preset.accentColor})`, opacity: 0.2 }} />
+                  <div
+                    className="h-6 w-6 rounded-full shadow-inner"
+                    style={{ background: `linear-gradient(135deg, ${preset.primaryColor}, ${preset.accentColor})` }}
+                  />
+                  {theme.primaryColor.toUpperCase() === preset.primaryColor.toUpperCase() && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white backdrop-blur-[2px]">
+                      <Icon name="check" size={16} />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Colors */}
+          <div className="space-y-4">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">Custom Palette</span>
+            
+            <div className="flex items-center justify-between rounded-xl border border-border-color bg-card-bg p-3">
+              <span className="text-xs font-bold text-white">Primary</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-mono text-muted-text">{theme.primaryColor.toUpperCase()}</span>
+                <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-border-color cursor-pointer">
+                  <input
+                    type="color"
+                    value={theme.primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="absolute -top-2 -left-2 h-12 w-12 cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl border border-border-color bg-card-bg p-3">
+              <span className="text-xs font-bold text-white">Accent</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-mono text-muted-text">{theme.accentColor.toUpperCase()}</span>
+                <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-border-color cursor-pointer">
+                  <input
+                    type="color"
+                    value={theme.accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className="absolute -top-2 -left-2 h-12 w-12 cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div className="border-t border-border-color p-6 space-y-4">
+          <p className="text-center text-[10px] text-muted-text">Changes apply instantly</p>
+          <button
+            onClick={resetToDefault}
+            className="w-full rounded-xl border border-border-color bg-surface-sec py-3 text-xs font-bold uppercase tracking-widest text-soft-text transition-all hover:border-primary-coral hover:text-white"
+          >
+            Reset to Default
+          </button>
+        </div>
+
+      </div>
+    </>
+  );
+};

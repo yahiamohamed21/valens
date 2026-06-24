@@ -1,0 +1,45 @@
+export type CarouselItem = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  imageAlt: string;
+  description?: string;
+};
+
+export const mockCarouselData: CarouselItem[] = [
+  {
+    id: "performance-lab",
+    title: "Performance Lab",
+    imageUrl: "https://picsum.photos/id/1048/1200/900",
+    imageAlt: "Athlete training in a modern performance lab",
+    description: "Clinical-grade formulas built for measurable strength, endurance, and recovery.",
+  },
+  {
+    id: "daily-recovery",
+    title: "Daily Recovery",
+    imageUrl: "https://picsum.photos/id/1060/1200/900",
+    imageAlt: "Clean recovery setup with water and wellness essentials",
+    description: "Support the reset phase with transparent ingredients and consistent routines.",
+  },
+  {
+    id: "clean-energy",
+    title: "Clean Energy",
+    imageUrl: "https://picsum.photos/id/1076/1200/900",
+    imageAlt: "Runner moving through a sunlit urban training route",
+    description: "Focused, smooth output without relying on hidden proprietary blends.",
+  },
+  {
+    id: "strength-stack",
+    title: "Strength Stack",
+    imageUrl: "https://picsum.photos/id/1084/1200/900",
+    imageAlt: "Strength training equipment arranged in a premium gym",
+    description: "Temporary product imagery while the final backend media API is prepared.",
+  },
+  {
+    id: "sleep-reset",
+    title: "Sleep Reset",
+    imageUrl: "https://picsum.photos/id/1025/1200/900",
+    imageAlt: "Calm evening recovery environment with soft natural light",
+    description: "A calmer end-of-day ritual designed around better readiness tomorrow.",
+  },
+];

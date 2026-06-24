@@ -49,7 +49,7 @@ export const Navbar: React.FC = () => {
               Science
             </Link>
             <Link
-              href="/#about"
+              href="/about"
               className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral transition-luxury"
             >
               About
@@ -165,7 +165,7 @@ export const Navbar: React.FC = () => {
               Science
             </Link>
             <Link
-              href="/#about"
+              href="/about"
               onClick={() => setMobileMenuOpen(false)}
               className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral"
             >

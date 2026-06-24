@@ -1,18 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppContextProvider } from "@/context/AppContext";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+import { ThemeProvider } from "@/context/ThemeContext";
+import { ThemeSettingsPanel } from "@/components/ThemeSettingsPanel";
+import { Toaster } from "sonner";
 export const metadata: Metadata = {
   title: "Valens | Premium Performance Supplements",
   description: "Formulated in science, unleashed in performance. High-end fitness and health supplements with clinical dosages and complete label transparency.",
@@ -24,16 +15,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-main-bg text-white">
-        <AppContextProvider>
-          {children}
-        </AppContextProvider>
+    <html lang="en" className="h-full antialiased">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-main-bg text-white">
+        <ThemeProvider>
+          <AppContextProvider>
+            {children}
+            <Toaster richColors position="bottom-right" theme="system" />
+          </AppContextProvider>
+          <ThemeSettingsPanel />
+        </ThemeProvider>
       </body>
     </html>
   );
 }
-

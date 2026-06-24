@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { showToast } from "@/lib/toast";
 import { useApp } from "@/context/AppContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -32,12 +33,12 @@ export default function LoginPage() {
   const handleSignupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !confirmPassword || !firstName || !lastName) {
-      alert("All fields are required.");
+      showToast("All fields are required.", "error");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match.");
+      showToast("Passwords do not match.", "error");
       return;
     }
 

@@ -1,29 +1,56 @@
 @import "tailwindcss";
 
-@theme {
-  --color-main-bg: #111111;
-  --color-surface-deep: #120B09;
-  --color-card-bg: #1A1A1A;
-  --color-surface-sec: #211512;
-  --color-primary-coral: #FF8A75;
-  --color-accent-orange: #FF5226;
-  --color-success-green: #10D981;
-  --color-soft-text: #D8C9C3;
-  --color-muted-text: #8D7B73;
-  --color-border-color: #2A1E1A;
-  
-  --font-sans: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
+:root {
+  --rt-primary: 255 138 117;        /* #FF8A75 as RGB triplet */
+  --rt-accent: 255 82 38;           /* #FF5226 */
+  --rt-bg: 17 17 17;               /* #111111 */
+  --rt-surface-deep: 18 11 9;      /* #120B09 */
+  --rt-card-bg: 26 26 26;          /* #1A1A1A */
+  --rt-surface-sec: 33 21 18;      /* #211512 */
+  --rt-success: 16 217 129;        /* #10D981 */
+  --rt-soft-text: 216 201 195;     /* #D8C9C3 */
+  --rt-muted-text: 141 123 115;    /* #8D7B73 */
+  --rt-border: 42 30 26;           /* #2A1E1A */
+  --rt-foreground: 255 255 255;    /* White */
+  /* mode: dark (default) */
 }
 
-:root {
-  --background: #111111;
-  --foreground: #FFFFFF;
+[data-theme="light"] {
+  --rt-bg: 250 249 248;
+  --rt-surface-deep: 240 237 235;
+  --rt-card-bg: 255 255 255;
+  --rt-surface-sec: 245 242 240;
+  --rt-soft-text: 60 50 45;
+  --rt-muted-text: 120 110 105;
+  --rt-border: 220 215 210;
+  --rt-foreground: 15 15 15;
+}
+
+/* Light mode text-white override */
+[data-theme="light"] .text-white {
+  color: rgb(var(--rt-foreground));
+}
+
+@theme {
+  --color-main-bg: rgb(var(--rt-bg));
+  --color-surface-deep: rgb(var(--rt-surface-deep));
+  --color-card-bg: rgb(var(--rt-card-bg));
+  --color-surface-sec: rgb(var(--rt-surface-sec));
+  --color-primary-coral: rgb(var(--rt-primary));
+  --color-accent-orange: rgb(var(--rt-accent));
+  --color-success-green: rgb(var(--rt-success));
+  --color-soft-text: rgb(var(--rt-soft-text));
+  --color-muted-text: rgb(var(--rt-muted-text));
+  --color-border-color: rgb(var(--rt-border));
+  --color-foreground: rgb(var(--rt-foreground));
+  
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
 }
 
 body {
-  background-color: #111111;
-  color: #FFFFFF;
+  background-color: rgb(var(--rt-bg));
+  color: rgb(var(--rt-foreground));
   font-family: var(--font-sans);
   overflow-x: hidden;
 }
@@ -35,46 +62,88 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #111111;
+  background: rgb(var(--rt-bg));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2A1E1A;
+  background: rgb(var(--rt-border));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #FF8A75;
+  background: rgb(var(--rt-primary));
 }
 
 /* Glassmorphism panel styling */
 .glass-panel {
-  background: rgba(26, 26, 26, 0.7);
+  background: rgb(var(--rt-card-bg) / 0.7);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(42, 30, 26, 0.6);
+  border: 1px solid rgb(var(--rt-border) / 0.6);
 }
 
 .glass-panel-deep {
-  background: rgba(18, 11, 9, 0.85);
+  background: rgb(var(--rt-surface-deep) / 0.85);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(42, 30, 26, 0.7);
+  border: 1px solid rgb(var(--rt-border) / 0.7);
 }
 
 /* Soft coral glow effects */
 .glow-coral-sm {
-  box-shadow: 0 0 15px rgba(255, 138, 117, 0.15);
+  box-shadow: 0 0 15px rgb(var(--rt-primary) / 0.15);
 }
 
 .glow-coral-md {
-  box-shadow: 0 0 30px rgba(255, 138, 117, 0.25);
+  box-shadow: 0 0 30px rgb(var(--rt-primary) / 0.25);
 }
 
 .glow-coral-lg {
-  box-shadow: 0 0 50px rgba(255, 138, 117, 0.35);
+  box-shadow: 0 0 50px rgb(var(--rt-primary) / 0.35);
 }
 
 .text-glow {
-  text-shadow: 0 0 10px rgba(255, 138, 117, 0.4);
+  text-shadow: 0 0 10px rgb(var(--rt-primary) / 0.4);
+}
+
+.font-display {
+  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+
+.font-body {
+  font-family: "Hanken Grotesk", var(--font-sans);
+}
+
+.sci-fi-frame {
+  position: relative;
+  overflow: hidden;
+  padding: 1px; /* Border thickness */
+  background: rgb(var(--rt-border) / 0.92);
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 20px, 100% 100%, 0 100%);
+  transition: background 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+
+.sci-fi-frame:hover {
+  background: linear-gradient(135deg, rgb(var(--rt-primary) / 0.8) 0%, rgb(var(--rt-accent) / 0.6) 100%);
+  box-shadow: 0 10px 30px rgb(var(--rt-primary) / 0.15);
+}
+
+.sci-fi-frame-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-card-bg);
+  clip-path: polygon(0 0, calc(100% - 19.5px) 0, 100% 19.5px, 100% 100%, 0 100%);
+  transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sci-fi-frame:hover .sci-fi-frame-inner {
+  background-color: rgb(var(--rt-surface-sec)); /* Match product card hover background */
+}
+
+.sci-fi-frame-inner > * {
+  position: relative;
+  z-index: 2;
 }
 
 /* Custom transitions and animations */
@@ -95,5 +164,22 @@ body {
 
 .animate-pulse-glow {
   animation: pulse-glow 8s infinite ease-in-out;
+}
+
+@keyframes valens-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.valens-marquee {
+  animation: valens-marquee 28s linear infinite;
+}
+
+.valens-marquee:hover {
+  animation-play-state: paused;
 }
 

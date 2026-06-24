@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { Navbar } from "@/components/Navbar";
+import { showToast } from "@/lib/toast";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
 import { ProductImage } from "@/components/ProductCard";
@@ -67,12 +68,12 @@ export default function CheckoutPage() {
     e.preventDefault();
 
     if (!firstName || !lastName || !phone || !email || !address || !city) {
-      alert("Please fill in all required shipping details.");
+      showToast("Please fill in all required shipping details.", "error");
       return;
     }
 
     if (paymentMethod === "Credit Card" && (!cardNumber || !cardExpiry || !cardCvc)) {
-      alert("Please enter credit card credentials.");
+      showToast("Please enter credit card credentials.", "error");
       return;
     }
 

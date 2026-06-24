@@ -25,11 +25,11 @@ export const ProductImage: React.FC<{
           style={{ backgroundColor: color }}
         />
       )}
-      
+
       {/* Supplement Bottle SVG */}
       <svg
         viewBox="0 0 200 280"
-        className="h-full w-auto drop-shadow-[0_15px_15px_rgba(0,0,0,0.6)] transition-luxury group-hover:-translate-y-2 group-hover:rotate-1"
+        className="h-full w-auto drop-shadow-[0_15px_15px_rgba(0,0,0,0.6)] transition-all duration-500 ease-out group-hover:-translate-y-2 group-hover:rotate-1"
       >
         <defs>
           {/* Bottle body gradient (dark obsidian glass) */}
@@ -40,13 +40,13 @@ export const ProductImage: React.FC<{
             <stop offset="75%" stopColor="#120806" />
             <stop offset="100%" stopColor="#030100" />
           </linearGradient>
-          
+
           {/* Label texture gradient */}
           <linearGradient id="labelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#151515" />
             <stop offset="100%" stopColor="#080808" />
           </linearGradient>
-          
+
           {/* Metallic highlight */}
           <linearGradient id="metalHighlight" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(255,255,255,0)" />
@@ -55,7 +55,7 @@ export const ProductImage: React.FC<{
             <stop offset="65%" stopColor="rgba(255,255,255,0.02)" />
             <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </linearGradient>
-          
+
           {/* Cap gradient using the dynamic color input */}
           <linearGradient id={`capGrad-${color.replace("#", "")}`} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#0B0605" />
@@ -71,7 +71,7 @@ export const ProductImage: React.FC<{
 
         {/* Bottle Body */}
         <rect x="50" y="70" width="100" height="180" rx="16" fill="url(#bottleGrad)" stroke="#2A1E1A" strokeWidth="1" />
-        
+
         {/* Bottle Neck */}
         <rect x="75" y="46" width="50" height="25" rx="4" fill="#0B0605" />
         <rect x="70" y="60" width="60" height="12" rx="3" fill="#1A0F0D" />
@@ -175,7 +175,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.preventDefault();
     e.stopPropagation();
     if (product.stockStatus === "Out of Stock") return;
-    
+
     // Choose default variant/size
     const defaultSize = product.size;
     const defaultVariant = product.variants[0] || "Standard";
@@ -187,100 +187,130 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     : 0;
 
   return (
-    <Link href={`/products/${product.id}`} className="group relative flex flex-col rounded-2xl border border-border-color bg-card-bg p-4 transition-luxury hover:border-primary-coral/40 hover:bg-[#1f1614] hover:shadow-[0_10px_30px_rgba(255,138,117,0.05)]">
-      
-      {/* Badges container */}
-      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-        {discount > 0 && (
-          <span className="rounded-full bg-accent-orange px-2.5 py-0.5 text-2xs font-extrabold tracking-wide text-white uppercase">
-            SAVE {discount}%
-          </span>
-        )}
-        {product.bestSeller && (
-          <span className="rounded-full bg-primary-coral px-2.5 py-0.5 text-2xs font-extrabold tracking-wide text-main-bg uppercase">
-            Best Seller
-          </span>
-        )}
-        {product.newArrival && (
-          <span className="rounded-full border border-primary-coral/40 bg-surface-deep px-2.5 py-0.5 text-2xs font-extrabold tracking-wide text-primary-coral uppercase">
-            New
-          </span>
-        )}
-      </div>
+    <Link href={`/products/${product.id}`} className="group block">
+      {/* Sci-Fi Frame Container — cut-corner card matching reference design exactly */}
+      <div
+        className="relative overflow-hidden bg-card-bg/60 backdrop-blur-sm transition-all duration-500 ease-out hover:shadow-[0_0_40px_rgb(var(--rt-primary)/0.15)]"
+        style={{
+          borderRadius: "20px",
+          clipPath:
+            "polygon(18px 0%, calc(100% - 18px) 0%, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0% calc(100% - 18px), 0% 18px)",
+        }}
+      >
+        {/* Solid coral border drawn as an inset box-shadow so it follows the cut-corner clip path exactly */}
+        <div
+          className="absolute inset-0 pointer-events-none z-10"
+          style={{
+            boxShadow: "inset 0 0 0 1.5px rgb(var(--rt-primary) / 0.6)",
+          }}
+        />
 
-      {/* Stock status indicator badge */}
-      <div className="absolute top-4 right-4 z-10">
-        <span
-          className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-2xs font-bold uppercase tracking-wider ${
-            product.stockStatus === "In Stock"
-              ? "bg-success-green/10 text-success-green border border-success-green/20"
-              : product.stockStatus === "Low Stock"
-              ? "bg-primary-coral/10 text-primary-coral border border-primary-coral/20"
-              : "bg-red-500/10 text-red-500 border border-red-500/20"
-          }`}
-        >
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              product.stockStatus === "In Stock"
-                ? "bg-success-green"
-                : product.stockStatus === "Low Stock"
-                ? "bg-primary-coral"
-                : "bg-red-500"
-            }`}
-          />
-          {product.stockStatus}
-        </span>
-      </div>
+        {/* Top center tick mark */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] bg-primary-coral/80 rounded-full pointer-events-none z-20" />
 
-      {/* Supplement Bottle Image (Pure SVG) */}
-      <div className="mb-4 mt-2 overflow-visible">
-        <ProductImage color={product.imageColor} type={product.imageType} glow={true} />
-      </div>
+        {/* Bottom center tick mark */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-[3px] bg-primary-coral/80 rounded-full pointer-events-none z-20" />
 
-      {/* Ratings */}
-      <div className="mb-1.5 flex items-center gap-1">
-        <Icon name="star" size={12} className="text-primary-coral" />
-        <span className="text-xs font-bold text-white">{product.rating.toFixed(1)}</span>
-        <span className="text-2xs text-muted-text">({product.reviews.length || 3} reviews)</span>
-      </div>
+        {/* Diagonal accent strokes sitting right on the cut corners */}
+        <div className="absolute top-[3px] left-[-2px] w-[24px] h-[1.5px] bg-primary-coral/80 rotate-45 pointer-events-none z-20" />
+        <div className="absolute top-[3px] right-[-2px] w-[24px] h-[1.5px] bg-primary-coral/80 -rotate-45 pointer-events-none z-20" />
+        <div className="absolute bottom-[3px] left-[-2px] w-[24px] h-[1.5px] bg-primary-coral/80 -rotate-45 pointer-events-none z-20" />
+        <div className="absolute bottom-[3px] right-[-2px] w-[24px] h-[1.5px] bg-primary-coral/80 rotate-45 pointer-events-none z-20" />
 
-      {/* Title & category */}
-      <div className="flex-1">
-        <span className="text-2xs font-bold uppercase tracking-widest text-muted-text">{product.category}</span>
-        <h3 className="mt-0.5 text-base font-semibold leading-tight tracking-wide text-white group-hover:text-primary-coral transition-luxury">
-          {product.name}
-        </h3>
-        <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-soft-text">
-          {product.description}
-        </p>
-      </div>
+        {/* Card Content */}
+        <div className="relative p-4 flex flex-col">
 
-      {/* Bottom price + quick add button */}
-      <div className="mt-4 flex items-center justify-between pt-3 border-t border-border-color">
-        <div className="flex flex-col">
-          {product.discountPrice ? (
-            <>
-              <span className="text-2xs text-muted-text line-through">${product.price.toFixed(2)}</span>
-              <span className="text-lg font-black text-primary-coral">${product.discountPrice.toFixed(2)}</span>
-            </>
-          ) : (
-            <span className="text-lg font-black text-white">${product.price.toFixed(2)}</span>
-          )}
-          <span className="text-3xs text-muted-text uppercase tracking-wider">{product.size}</span>
+          {/* Badges container */}
+          <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+            {discount > 0 && (
+              <span className="rounded-full bg-accent-orange/80 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-white uppercase">
+                SAVE {discount}%
+              </span>
+            )}
+            {product.bestSeller && (
+              <span className="rounded-full bg-primary-coral px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-main-bg uppercase">
+                Best Seller
+              </span>
+            )}
+            {product.newArrival && (
+              <span className="rounded-full border border-primary-coral/40 bg-card-bg/80 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-primary-coral uppercase">
+                New
+              </span>
+            )}
+          </div>
+
+          {/* Stock status indicator badge */}
+          <div className="absolute top-4 right-4 z-10">
+            <span
+              className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${product.stockStatus === "In Stock"
+                  ? "bg-success-green/10 text-success-green border border-success-green/20"
+                  : product.stockStatus === "Low Stock"
+                    ? "bg-primary-coral/10 text-primary-coral border border-primary-coral/20"
+                    : "bg-red-500/10 text-red-500 border border-red-500/20"
+                }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${product.stockStatus === "In Stock"
+                    ? "bg-success-green"
+                    : product.stockStatus === "Low Stock"
+                      ? "bg-primary-coral"
+                      : "bg-red-500"
+                  }`}
+              />
+              {product.stockStatus}
+            </span>
+          </div>
+
+          {/* Supplement Bottle Image (Pure SVG) */}
+          <div className="mb-4 mt-2 overflow-visible">
+            <ProductImage color={product.imageColor} type={product.imageType} glow={true} />
+          </div>
+
+          {/* Ratings */}
+          <div className="mb-1.5 flex items-center gap-1">
+            <Icon name="star" size={12} className="text-primary-coral" />
+            <span className="text-xs font-bold text-white">{product.rating.toFixed(1)}</span>
+            <span className="text-[10px] text-muted-text">({product.reviews.length || 3} reviews)</span>
+          </div>
+
+          {/* Title & category */}
+          <div className="flex-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-text">{product.category}</span>
+            <h3 className="mt-0.5 text-base font-semibold leading-tight tracking-wide text-white group-hover:text-primary-coral transition-all duration-500 ease-out">
+              {product.name}
+            </h3>
+            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-soft-text">
+              {product.description}
+            </p>
+          </div>
+
+          {/* Bottom price + quick add button */}
+          <div className="mt-4 flex items-center justify-between pt-3 border-t border-border-color">
+            <div className="flex flex-col">
+              {product.discountPrice ? (
+                <>
+                  <span className="text-[10px] text-muted-text line-through">${product.price.toFixed(2)}</span>
+                  <span className="text-lg font-black text-primary-coral">${product.discountPrice.toFixed(2)}</span>
+                </>
+              ) : (
+                <span className="text-lg font-black text-white">${product.price.toFixed(2)}</span>
+              )}
+              <span className="text-[8px] text-muted-text uppercase tracking-wider">{product.size}</span>
+            </div>
+
+            <button
+              onClick={handleQuickAdd}
+              disabled={product.stockStatus === "Out of Stock"}
+              className={`flex items-center justify-center rounded-xl p-2.5 transition-all duration-500 ease-out ${product.stockStatus === "Out of Stock"
+                  ? "bg-border-color text-muted-text cursor-not-allowed"
+                  : "bg-border-color border border-border-color text-primary-coral hover:bg-primary-coral hover:text-main-bg hover:border-transparent"
+                }`}
+              title="Quick add to cart"
+            >
+              <Icon name="plus" size={16} />
+            </button>
+          </div>
         </div>
-
-        <button
-          onClick={handleQuickAdd}
-          disabled={product.stockStatus === "Out of Stock"}
-          className={`flex items-center justify-center rounded-xl p-2.5 transition-luxury ${
-            product.stockStatus === "Out of Stock"
-              ? "bg-border-color text-muted-text cursor-not-allowed"
-              : "bg-surface-sec border border-border-color text-primary-coral hover:bg-primary-coral hover:text-main-bg hover:border-transparent"
-          }`}
-          title="Quick add to cart"
-        >
-          <Icon name="plus" size={16} />
-        </button>
       </div>
     </Link>
   );

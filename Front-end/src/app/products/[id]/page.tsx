@@ -21,18 +21,15 @@ export default function ProductDetailsPage() {
   const [activeTab, setActiveTab] = useState<"front" | "label" | "facts">("front");
   
   // Selection states
-  const [selectedVariant, setSelectedVariant] = useState("");
+  const [selectedVariant, setSelectedVariant] = useState(() => {
+    // derive initial selected variant from available products to avoid setting state inside an effect
+    const initialProduct = products?.find((p: Product) => p.id === id);
+    return initialProduct && initialProduct.variants.length > 0 ? initialProduct.variants[0] : "";
+  });
   const [quantity, setQuantity] = useState(1);
   const [activeAccordion, setActiveAccordion] = useState<string>("benefits");
 
-  // Initialize selections once product is loaded
-  React.useEffect(() => {
-    if (product) {
-      if (product.variants.length > 0) {
-        setSelectedVariant(product.variants[0]);
-      }
-    }
-  }, [product]);
+  // NOTE: selectedVariant is initialized from products above to avoid synchronous setState in effect
 
   if (!product) {
     return (

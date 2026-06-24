@@ -7,6 +7,9 @@ import { ProductCard, ProductImage } from "@/components/ProductCard";
 import { Icon } from "@/components/SvgIcons";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { ValensBrandCarousel } from "@/components/ValensBrandCarousel";
+import { Carousel } from "@/components/Carousel/Carousel";
+import { mockCarouselData } from "@/data/mockCarouselData";
 
 export default function Home() {
   const { products, categories, homePageSettings } = useApp();
@@ -95,6 +98,8 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <ValensBrandCarousel />
 
         {/* 2. Categories Grid */}
         <section className="bg-surface-deep/40 py-16 border-t border-b border-border-color">
@@ -214,7 +219,7 @@ export default function Home() {
                 </p>
                 <div className="mt-8">
                   <blockquote className="border-l-2 border-primary-coral pl-4 text-xs italic text-muted-text">
-                    \"We created Valens because we were tired of under-dosed formulas, synthetic dyes, and sketchy claims. Every gram we formulate serves a biological purpose.\"
+                    "We created Valens because we were tired of under-dosed formulas, synthetic dyes, and sketchy claims. Every gram we formulate serves a biological purpose."
                     <span className="block mt-2 font-bold not-italic text-soft-text">— Dr. Marcus Vance, Chief Science Officer</span>
                   </blockquote>
                 </div>
@@ -233,6 +238,14 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Brand Stories Swiper Carousel */}
+        <Carousel
+          items={mockCarouselData}
+          title="Performance Stories & Lab Notes"
+          eyebrow="Inside Valens"
+          description="Explore clinical progress, athletic journals, and batch release logs direct from our development team."
+        />
+
         {/* 5. Best Sellers Section */}
         <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
@@ -249,79 +262,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 6. Testimonials */}
-        <section id="about" className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
-          <div className="rounded-3xl border border-border-color bg-surface-deep p-8 md:p-12 relative overflow-hidden">
-            <div className="absolute top-0 right-0 h-40 w-40 rounded-full bg-primary-coral/5 blur-[50px] pointer-events-none" />
-
-            <div className="text-center">
-              <span className="text-2xs font-extrabold uppercase tracking-widest text-primary-coral font-bold">Community Feedback</span>
-              <h2 className="mt-1 text-2xl font-extrabold text-white uppercase">TRUSTED BY ELITE ATHLETES</h2>
-            </div>
-
-            <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-              <div className="rounded-xl bg-card-bg border border-border-color p-6">
-                <div className="flex text-primary-coral gap-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Icon key={i} name="star" size={12} />
-                  ))}
-                </div>
-                <p className="text-xs italic leading-relaxed text-soft-text font-bold">
-                  \"ISO-WHEY mixes completely clear with no chalkiness. My muscle recovery has improved noticeably and there is absolutely no stomach bloat. Highly recommend the Chocolate flavor!\"
-                </p>
-                <div className="mt-4 flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary-coral/10 border border-primary-coral/30 flex items-center justify-center font-bold text-primary-coral text-xs">
-                    C
-                  </div>
-                  <div>
-                    <span className="block text-xs font-bold text-white">Chris E., IFBB Pro</span>
-                    <span className="text-3xs text-muted-text uppercase font-bold">Bodybuilder</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-card-bg border border-border-color p-6">
-                <div className="flex text-primary-coral gap-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Icon key={i} name="star" size={12} />
-                  ))}
-                </div>
-                <p className="text-xs italic leading-relaxed text-soft-text font-bold">
-                  \"The PRE-CHARGE Elite provides the cleanest surge of power I've ever felt. No jittery skin, just total, locked-in concentration for my three-hour training blocks. Unrivaled.\"
-                </p>
-                <div className="mt-4 flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary-coral/10 border border-primary-coral/30 flex items-center justify-center font-bold text-primary-coral text-xs">
-                    A
-                  </div>
-                  <div>
-                    <span className="block text-xs font-bold text-white">Amanda L.</span>
-                    <span className="text-3xs text-muted-text uppercase font-bold">CrossFit Competitor</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-card-bg border border-border-color p-6">
-                <div className="flex text-primary-coral gap-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Icon key={i} name="star" size={12} />
-                  ))}
-                </div>
-                <p className="text-xs italic leading-relaxed text-soft-text font-bold">
-                  \"Deep Sleep & Recover has changed the game for me. I sleep deeper, track more REM on my watch, and wake up without that heavy groggy feeling. An absolute staple.\"
-                </p>
-                <div className="mt-4 flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary-coral/10 border border-primary-coral/30 flex items-center justify-center font-bold text-primary-coral text-xs">
-                    M
-                  </div>
-                  <div>
-                    <span className="block text-xs font-bold text-white">Marcus P.</span>
-                    <span className="text-3xs text-muted-text uppercase font-bold">Marathon Runner</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
       <Footer />
     </div>
