@@ -72,7 +72,26 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const storedSettings = getStorageItem<StoreSettings>(STORAGE_KEYS.SETTINGS);
 
     if (storedProducts !== undefined) setProducts(storedProducts);
-    if (storedCategories !== undefined) setCategories(storedCategories);
+    if (storedCategories !== undefined) {
+      const updated = storedCategories.map(cat => {
+        if (cat.id === "cat-4" || cat.slug === "recovery") {
+          return { ...cat, visible: true };
+        }
+        return cat;
+      });
+      if (!updated.some(c => c.id === "cat-4")) {
+        const recoveryCat = initialCategories.find(c => c.id === "cat-4");
+        if (recoveryCat) updated.push(recoveryCat);
+      }
+      setCategories(updated);
+      try {
+        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(updated));
+      } catch (e) {
+        console.error("Failed to sync category visible state", e);
+      }
+    } else {
+      setCategories(initialCategories);
+    }
     if (storedCart !== undefined) setCart(storedCart);
     if (storedOrders !== undefined) setOrders(storedOrders);
     if (storedCustomers !== undefined) setCustomers(storedCustomers);

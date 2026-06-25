@@ -129,24 +129,7 @@ export const Footer: React.FC = () => {
             &copy; {new Date().getFullYear()} VALENS ELITE PERFORMANCE NUTRITION INC. ALL RIGHTS RESERVED.
           </div>
           <div className="flex items-center gap-6">
-            <span className="hover:text-white transition-luxury cursor-pointer">Terms of Service</span>
-            <span className="hover:text-white transition-luxury cursor-pointer">Privacy Policy</span>
-            <span className="hover:text-white transition-luxury cursor-pointer">Cookie Settings</span>
-          </div>
-          {/* Payment Badges Mock */}
-          <div className="flex items-center gap-2.5">
-            <div className="rounded border border-border-color bg-main-bg px-2 py-0.5 font-sans font-semibold tracking-normal text-white text-3xs">
-              VISA
-            </div>
-            <div className="rounded border border-border-color bg-main-bg px-2 py-0.5 font-sans font-semibold tracking-normal text-white text-3xs">
-              MC
-            </div>
-            <div className="rounded border border-border-color bg-main-bg px-2 py-0.5 font-sans font-semibold tracking-normal text-white text-3xs">
-              PAYPAL
-            </div>
-            <div className="rounded border border-border-color bg-main-bg px-2 py-0.5 font-sans font-semibold tracking-normal text-white text-3xs">
-              COD
-            </div>
+            <span className="hover:text-white transition-luxury cursor-pointer">Created By Yahia Mohamed </span>
           </div>
         </div>
       </div>

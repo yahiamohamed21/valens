@@ -287,7 +287,7 @@ export default function CheckoutPage() {
               
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row gap-3">
-                  {["Credit Card", "PayPal", "Cash on Delivery"].map((method) => (
+                  {["Cash on Delivery"].map((method) => (
                     <label
                       key={method}
                       className={`flex-1 flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition-luxury uppercase ${

@@ -116,7 +116,7 @@ export default function Home() {
                 <Link
                   key={cat.id}
                   href={`/products?category=${cat.slug}`}
-                  className="group relative flex flex-col items-center rounded-2xl border border-border-color bg-card-bg p-6 text-center transition-luxury hover:border-primary-coral/30 hover:bg-[#1a110f]"
+                  className="group relative flex flex-col items-center rounded-2xl border border-border-color bg-card-bg p-6 text-center transition-luxury hover:border-primary-coral/30 hover:bg-surface-sec"
                 >
                   <div
                     className="absolute -top-1 left-1/2 h-1 w-8 -translate-x-1/2 rounded-full opacity-0 transition-luxury group-hover:opacity-100 blur-[1px]"
@@ -155,7 +155,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:gap-8">
             {featuredProducts.map((prod) => (
               <ProductCard key={prod.id} product={prod} />
             ))}
@@ -255,7 +255,7 @@ export default function Home() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:gap-8">
             {bestSellers.map((prod) => (
               <ProductCard key={prod.id} product={prod} />
             ))}

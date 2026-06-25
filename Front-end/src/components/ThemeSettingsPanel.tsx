@@ -5,8 +5,7 @@ import { useTheme, PRESET_THEMES } from "@/context/ThemeContext";
 import { Icon } from "@/components/SvgIcons";
 
 export const ThemeSettingsPanel = () => {
-  const { theme, setMode, setPrimaryColor, setAccentColor, applyPreset, resetToDefault } = useTheme();
-  const [isOpen, setIsOpen] = useState(false);
+  const { theme, setMode, setPrimaryColor, setAccentColor, applyPreset, resetToDefault, isPanelOpen, setIsPanelOpen } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -17,43 +16,42 @@ export const ThemeSettingsPanel = () => {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button - Tab sticking out from the far-right edge */}
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-[9998] flex h-14 w-14 items-center justify-center rounded-full bg-card-bg/80 border border-border-color backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 hover:shadow-[0_0_30px_rgb(var(--rt-primary)/0.3)] group"
+        onClick={() => setIsPanelOpen(true)}
+        className="fixed right-0 top-1/2 -translate-y-1/2 z-[9998] flex h-12 w-10 items-center justify-center rounded-l-xl bg-[#130d0b]/95 border-y border-l border-primary-coral/50 backdrop-blur-md shadow-[-5px_0_20px_rgba(255,138,117,0.15)] transition-all duration-300 hover:w-12 hover:border-primary-coral hover:shadow-[-5px_0_25px_rgba(255,138,117,0.35)] group cursor-pointer"
         aria-label="Theme Settings"
       >
         <div className="text-primary-coral transition-transform duration-500 group-hover:rotate-90">
-          <Icon name="settings" size={24} />
+          <Icon name="settings" size={20} />
         </div>
       </button>
 
       {/* Backdrop */}
-      {isOpen && (
+      {isPanelOpen && (
         <div
-          className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm transition-opacity"
-          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm transition-opacity cursor-pointer"
+          onClick={() => setIsPanelOpen(false)}
         />
       )}
 
       {/* Slide-out Drawer */}
       <div
         className={`fixed top-0 right-0 z-[9999] h-full w-[320px] transform border-l border-border-color bg-surface-deep/95 backdrop-blur-xl transition-transform duration-500 ease-out flex flex-col ${
-          isOpen ? "translate-x-0" : "translate-x-full"
+          isPanelOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border-color px-6 py-5">
           <h2 className="text-sm font-black uppercase tracking-widest text-white">Theme Settings</h2>
           <button
-            onClick={() => setIsOpen(false)}
-            className="text-muted-text hover:text-primary-coral transition-colors"
+            onClick={() => setIsPanelOpen(false)}
+            className="text-muted-text hover:text-primary-coral transition-colors cursor-pointer"
           >
             <Icon name="close" size={20} />
           </button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           
           {/* Mode Toggle */}

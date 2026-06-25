@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { useApp, Product } from "@/context/AppContext";
 import { Icon } from "./SvgIcons";
@@ -170,6 +170,26 @@ export const ProductImage: React.FC<{
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useApp();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.offsetWidth,
+          height: containerRef.current.offsetHeight,
+        });
+      }
+    };
+    
+    updateDimensions();
+    
+    const resizeObserver = new ResizeObserver(updateDimensions);
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -186,128 +206,248 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : 0;
 
+  const w = dimensions.width || 280;
+  const h = dimensions.height || 470;
+
+  // Custom sci-fi panel path with corner chamfers and side notch steps
+  const pathData = `M 16,0 
+    L ${w - 16},0 
+    L ${w},16 
+    L ${w},${h / 2 - 12} 
+    L ${w - 4},${h / 2 - 8} 
+    L ${w - 4},${h / 2 + 8} 
+    L ${w},${h / 2 + 12} 
+    L ${w},${h - 16} 
+    L ${w - 16},${h} 
+    L 16,${h} 
+    L 0,${h - 16} 
+    L 0,${h / 2 + 12} 
+    L 4,${h / 2 + 8} 
+    L 4,${h / 2 - 8} 
+    L 0,${h / 2 - 12} 
+    L 0,16 
+    Z`;
+
+  // Bracket highlight lines
+  const topLeftBracket = `M 0,28 L 0,16 L 16,0 L 28,0`;
+  const topLeftBracketInner = `M 4,28 L 4,18 L 18,4 L 28,4`;
+
+  const topRightBracket = `M ${w - 28},0 L ${w - 16},0 L ${w},16 L ${w},28`;
+  const topRightBracketInner = `M ${w - 28},4 L ${w - 18},4 L ${w - 4},18 L ${w - 4},28`;
+
+  const bottomRightBracket = `M ${w},${h - 28} L ${w},${h - 16} L ${w - 16},${h} L ${w - 28},${h}`;
+  const bottomRightBracketInner = `M ${w - 4},${h - 28} L ${w - 4},${h - 18} L ${w - 18},${h - 4} L ${w - 28},${h - 4}`;
+
+  const bottomLeftBracket = `M 28,${h} L 16,${h} L 0,${h - 16} L 0,${h - 28}`;
+  const bottomLeftBracketInner = `M 28,${h - 4} L 18,${h - 4} L 4,${h - 18} L 4,${h - 28}`;
+
   return (
-    <Link href={`/products/${product.id}`} className="group block">
-      {/* Sci-Fi Frame Container — cut-corner card matching reference design exactly */}
+    <Link href={`/products/${product.id}`} className="group block relative">
       <div
-        className="relative overflow-hidden bg-card-bg/60 backdrop-blur-sm transition-all duration-500 ease-out hover:shadow-[0_0_40px_rgb(var(--rt-primary)/0.15)]"
-        style={{
-          borderRadius: "20px",
-          clipPath:
-            "polygon(18px 0%, calc(100% - 18px) 0%, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0% calc(100% - 18px), 0% 18px)",
-        }}
+        ref={containerRef}
+        className="relative overflow-visible p-5 flex flex-col h-full min-h-[470px] transition-all duration-500"
       >
-        {/* Solid coral border drawn as an inset box-shadow so it follows the cut-corner clip path exactly */}
-        <div
-          className="absolute inset-0 pointer-events-none z-10"
-          style={{
-            boxShadow: "inset 0 0 0 1.5px rgb(var(--rt-primary) / 0.6)",
-          }}
-        />
+        {/* Cyberpunk SVG Frame Background */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <linearGradient id={`cardGrad-${product.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="rgb(var(--rt-card-bg))" stopOpacity="0.95" />
+              <stop offset="100%" stopColor="rgb(var(--rt-surface-sec))" stopOpacity="0.98" />
+            </linearGradient>
+            <filter id="neon-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
 
-        {/* Top center tick mark */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] bg-primary-coral/80 rounded-full pointer-events-none z-20" />
+          {/* Main Card Shape Fill & Border */}
+          <path
+            d={pathData}
+            fill={`url(#cardGrad-${product.id})`}
+            className="stroke-border-color group-hover:stroke-primary-coral/45 transition-all duration-500"
+            strokeWidth="1.5"
+          />
 
-        {/* Bottom center tick mark */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-[3px] bg-primary-coral/80 rounded-full pointer-events-none z-20" />
+          {/* Glowing Corner Brackets */}
+          {/* Top-Left */}
+          <path
+            d={topLeftBracket}
+            fill="none"
+            className="stroke-primary-coral/55 group-hover:stroke-primary-coral transition-all duration-500"
+            strokeWidth="2"
+            filter="url(#neon-glow)"
+          />
+          <path
+            d={topLeftBracketInner}
+            fill="none"
+            className="stroke-accent-orange/25 group-hover:stroke-accent-orange/55 transition-all duration-500"
+            strokeWidth="1"
+          />
 
-        {/* Diagonal accent strokes sitting right on the cut corners */}
-        <div className="absolute top-[3px] left-[-2px] w-[24px] h-[1.5px] bg-primary-coral/80 rotate-45 pointer-events-none z-20" />
-        <div className="absolute top-[3px] right-[-2px] w-[24px] h-[1.5px] bg-primary-coral/80 -rotate-45 pointer-events-none z-20" />
-        <div className="absolute bottom-[3px] left-[-2px] w-[24px] h-[1.5px] bg-primary-coral/80 -rotate-45 pointer-events-none z-20" />
-        <div className="absolute bottom-[3px] right-[-2px] w-[24px] h-[1.5px] bg-primary-coral/80 rotate-45 pointer-events-none z-20" />
+          {/* Top-Right */}
+          <path
+            d={topRightBracket}
+            fill="none"
+            className="stroke-primary-coral/55 group-hover:stroke-primary-coral transition-all duration-500"
+            strokeWidth="2"
+            filter="url(#neon-glow)"
+          />
+          <path
+            d={topRightBracketInner}
+            fill="none"
+            className="stroke-accent-orange/25 group-hover:stroke-accent-orange/55 transition-all duration-500"
+            strokeWidth="1"
+          />
 
-        {/* Card Content */}
-        <div className="relative p-4 flex flex-col">
+          {/* Bottom-Right */}
+          <path
+            d={bottomRightBracket}
+            fill="none"
+            className="stroke-primary-coral/55 group-hover:stroke-primary-coral transition-all duration-500"
+            strokeWidth="2"
+            filter="url(#neon-glow)"
+          />
+          <path
+            d={bottomRightBracketInner}
+            fill="none"
+            className="stroke-accent-orange/25 group-hover:stroke-accent-orange/55 transition-all duration-500"
+            strokeWidth="1"
+          />
 
-          {/* Badges container */}
-          <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-            {discount > 0 && (
-              <span className="rounded-full bg-accent-orange/80 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-white uppercase">
-                SAVE {discount}%
-              </span>
-            )}
-            {product.bestSeller && (
-              <span className="rounded-full bg-primary-coral px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-main-bg uppercase">
-                Best Seller
-              </span>
-            )}
-            {product.newArrival && (
-              <span className="rounded-full border border-primary-coral/40 bg-card-bg/80 px-2.5 py-0.5 text-[10px] font-extrabold tracking-wide text-primary-coral uppercase">
-                New
-              </span>
-            )}
-          </div>
+          {/* Bottom-Left */}
+          <path
+            d={bottomLeftBracket}
+            fill="none"
+            className="stroke-primary-coral/55 group-hover:stroke-primary-coral transition-all duration-500"
+            strokeWidth="2"
+            filter="url(#neon-glow)"
+          />
+          <path
+            d={bottomLeftBracketInner}
+            fill="none"
+            className="stroke-accent-orange/25 group-hover:stroke-accent-orange/55 transition-all duration-500"
+            strokeWidth="1"
+          />
 
-          {/* Stock status indicator badge */}
-          <div className="absolute top-4 right-4 z-10">
+          {/* Additional visual accents on corners */}
+          {/* Top-Left ticks */}
+          <line x1="0" y1="16" x2="-4" y2="16" className="stroke-primary-coral/40 group-hover:stroke-primary-coral transition-all duration-500" strokeWidth="1.5" />
+          <line x1="16" y1="0" x2="16" y2="-4" className="stroke-primary-coral/40 group-hover:stroke-primary-coral transition-all duration-500" strokeWidth="1.5" />
+          
+          {/* Top-Right ticks */}
+          <line x1={w} y1="16" x2={w + 4} y2="16" className="stroke-primary-coral/40 group-hover:stroke-primary-coral transition-all duration-500" strokeWidth="1.5" />
+          <line x1={w - 16} y1="0" x2={w - 16} y2="-4" className="stroke-primary-coral/40 group-hover:stroke-primary-coral transition-all duration-500" strokeWidth="1.5" />
+
+          {/* Bottom-Right ticks */}
+          <line x1={w} y1={h - 16} x2={w + 4} y2={h - 16} className="stroke-primary-coral/40 group-hover:stroke-primary-coral transition-all duration-500" strokeWidth="1.5" />
+          <line x1={w - 16} y1={h} x2={w - 16} y2={h + 4} className="stroke-primary-coral/40 group-hover:stroke-primary-coral transition-all duration-500" strokeWidth="1.5" />
+
+          {/* Bottom-Left ticks */}
+          <line x1="0" y1={h - 16} x2="-4" y2={h - 16} className="stroke-primary-coral/40 group-hover:stroke-primary-coral transition-all duration-500" strokeWidth="1.5" />
+          <line x1="16" y1={h} x2="16" y2={h + 4} className="stroke-primary-coral/40 group-hover:stroke-primary-coral transition-all duration-500" strokeWidth="1.5" />
+        </svg>
+
+        {/* Content Container (relative z-10 for layout stack) */}
+        <div className="relative z-10 flex flex-col justify-between h-full flex-1">
+          {/* Top Badges & Status */}
+          <div className="flex justify-between items-start w-full">
+            {/* Promo tags */}
+            <div className="flex flex-col gap-1.5">
+              {discount > 0 && (
+                <span className="self-start rounded bg-accent-orange/90 px-2 py-0.5 text-[9px] font-extrabold tracking-wide text-white uppercase shadow-sm">
+                  SAVE {discount}%
+                </span>
+              )}
+              {product.bestSeller && (
+                <span className="self-start rounded bg-primary-coral px-2 py-0.5 text-[9px] font-extrabold tracking-wide text-main-bg uppercase shadow-sm">
+                  HOT
+                </span>
+              )}
+              {product.newArrival && (
+                <span className="self-start rounded border border-primary-coral/30 bg-card-bg/95 px-2 py-0.5 text-[9px] font-extrabold tracking-wide text-primary-coral uppercase shadow-sm">
+                  NEW
+                </span>
+              )}
+            </div>
+
+            {/* Stock indicator */}
             <span
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${product.stockStatus === "In Stock"
+              className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                product.stockStatus === "In Stock"
                   ? "bg-success-green/10 text-success-green border border-success-green/20"
                   : product.stockStatus === "Low Stock"
                     ? "bg-primary-coral/10 text-primary-coral border border-primary-coral/20"
                     : "bg-red-500/10 text-red-500 border border-red-500/20"
-                }`}
+              }`}
             >
               <span
-                className={`h-1.5 w-1.5 rounded-full ${product.stockStatus === "In Stock"
+                className={`h-1 w-1 rounded-full ${
+                  product.stockStatus === "In Stock"
                     ? "bg-success-green"
                     : product.stockStatus === "Low Stock"
                       ? "bg-primary-coral"
                       : "bg-red-500"
-                  }`}
+                }`}
               />
               {product.stockStatus}
             </span>
           </div>
 
           {/* Supplement Bottle Image (Pure SVG) */}
-          <div className="mb-4 mt-2 overflow-visible">
-            <ProductImage color={product.imageColor} type={product.imageType} glow={true} />
+          <div className="my-2 overflow-visible flex items-center justify-center flex-1 min-h-[170px]">
+            <ProductImage color={product.imageColor} type={product.imageType} glow={true} className="h-44 w-full" />
           </div>
 
-          {/* Ratings */}
-          <div className="mb-1.5 flex items-center gap-1">
-            <Icon name="star" size={12} className="text-primary-coral" />
-            <span className="text-xs font-bold text-white">{product.rating.toFixed(1)}</span>
-            <span className="text-[10px] text-muted-text">({product.reviews.length || 3} reviews)</span>
-          </div>
-
-          {/* Title & category */}
-          <div className="flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-text">{product.category}</span>
-            <h3 className="mt-0.5 text-base font-semibold leading-tight tracking-wide text-white group-hover:text-primary-coral transition-all duration-500 ease-out">
-              {product.name}
-            </h3>
-            <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-soft-text">
-              {product.description}
-            </p>
-          </div>
-
-          {/* Bottom price + quick add button */}
-          <div className="mt-4 flex items-center justify-between pt-3 border-t border-border-color">
-            <div className="flex flex-col">
-              {product.discountPrice ? (
-                <>
-                  <span className="text-[10px] text-muted-text line-through">${product.price.toFixed(2)}</span>
-                  <span className="text-lg font-black text-primary-coral">${product.discountPrice.toFixed(2)}</span>
-                </>
-              ) : (
-                <span className="text-lg font-black text-white">${product.price.toFixed(2)}</span>
-              )}
-              <span className="text-[8px] text-muted-text uppercase tracking-wider">{product.size}</span>
+          {/* Product Details Section */}
+          <div className="flex flex-col gap-1.5 mt-auto">
+            {/* Title and Price Row */}
+            <div className="flex justify-between items-start gap-2">
+              <h3 className="text-base font-extrabold tracking-wide uppercase text-white group-hover:text-primary-coral transition-colors duration-300 line-clamp-2">
+                {product.name}
+              </h3>
+              <span className="text-base font-extrabold text-primary-coral whitespace-nowrap">
+                ${(product.discountPrice || product.price).toFixed(2)}
+              </span>
             </div>
 
+            {/* Ratings and Reviews */}
+            <div className="flex items-center gap-1">
+              <div className="flex text-primary-coral">
+                {Array.from({ length: 5 }).map((_, idx) => (
+                  <Icon
+                    key={idx}
+                    name="star"
+                    size={10}
+                    className={idx < Math.floor(product.rating) ? "text-primary-coral fill-primary-coral" : "text-muted-text"}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] font-bold text-soft-text ml-1">({product.reviews.length || 120} Reviews)</span>
+            </div>
+
+            {/* Description */}
+            <p className="text-xs text-muted-text line-clamp-2 leading-relaxed min-h-[32px]">
+              {product.description}
+            </p>
+
+            {/* Quick Add Button */}
             <button
               onClick={handleQuickAdd}
               disabled={product.stockStatus === "Out of Stock"}
-              className={`flex items-center justify-center rounded-xl p-2.5 transition-all duration-500 ease-out ${product.stockStatus === "Out of Stock"
+              className={`w-full flex items-center justify-center gap-2 rounded-lg py-2.5 px-4 mt-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-500 ${
+                product.stockStatus === "Out of Stock"
                   ? "bg-border-color text-muted-text cursor-not-allowed"
-                  : "bg-border-color border border-border-color text-primary-coral hover:bg-primary-coral hover:text-main-bg hover:border-transparent"
-                }`}
-              title="Quick add to cart"
+                  : "bg-primary-coral text-main-bg hover:bg-white hover:text-main-bg shadow-[0_0_15px_rgba(255,138,117,0.2)] hover:shadow-[0_0_25px_rgba(255,255,255,0.5)] cursor-pointer"
+              }`}
             >
-              <Icon name="plus" size={16} />
+              <Icon name="cart" size={14} />
+              Quick Add
             </button>
           </div>
         </div>

@@ -379,7 +379,7 @@ export default function ProductDetailsPage() {
             <h3 className="text-xl font-black uppercase tracking-wider text-white mb-8">Related Formulations</h3>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {relatedProducts.map((prod: Product) => (
-                <div key={prod.id} className="group relative flex flex-col rounded-2xl border border-border-color bg-card-bg p-4 transition-luxury hover:border-primary-coral/40 hover:bg-[#1f1614]">
+                <div key={prod.id} className="group relative flex flex-col rounded-2xl border border-border-color bg-card-bg p-4 transition-luxury hover:border-primary-coral/40 hover:bg-surface-sec">
                   <div className="mb-4 mt-2">
                     <ProductImage color={prod.imageColor} type={prod.imageType} glow={false} className="h-44 w-full" />
                   </div>

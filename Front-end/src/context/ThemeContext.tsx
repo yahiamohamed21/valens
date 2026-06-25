@@ -41,6 +41,8 @@ interface ThemeContextType {
   setAccentColor: (hex: string) => void;
   applyPreset: (preset: ThemePreset) => void;
   resetToDefault: () => void;
+  isPanelOpen: boolean;
+  setIsPanelOpen: (open: boolean) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -58,9 +60,31 @@ const hexToRgbStr = (hex: string) => {
   return `${r} ${g} ${b}`;
 };
 
+// Darken a hex color by a percentage (0-100)
+const darkenHex = (hex: string, percent: number) => {
+  hex = hex.replace(/^#/, "");
+  if (hex.length === 3) {
+    hex = hex.split("").map(x => x + x).join("");
+  }
+  let r = parseInt(hex.substring(0, 2), 16);
+  let g = parseInt(hex.substring(2, 4), 16);
+  let b = parseInt(hex.substring(4, 6), 16);
+
+  r = Math.max(0, Math.floor(r * (1 - percent / 100)));
+  g = Math.max(0, Math.floor(g * (1 - percent / 100)));
+  b = Math.max(0, Math.floor(b * (1 - percent / 100)));
+
+  const rHex = r.toString(16).padStart(2, "0");
+  const gHex = g.toString(16).padStart(2, "0");
+  const bHex = b.toString(16).padStart(2, "0");
+
+  return `#${rHex}${gHex}${bHex}`;
+};
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeConfig>(DEFAULT_THEME);
   const [mounted, setMounted] = useState(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.THEME);
@@ -86,8 +110,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     document.documentElement.setAttribute("data-theme", theme.mode);
     
     // Inject CSS variables
-    document.documentElement.style.setProperty("--rt-primary", hexToRgbStr(theme.primaryColor));
-    document.documentElement.style.setProperty("--rt-accent", hexToRgbStr(theme.accentColor));
+    if (theme.mode === "light") {
+      // Darken colors dynamically in light mode to keep layouts legible and high-contrast
+      document.documentElement.style.setProperty("--rt-primary", hexToRgbStr(darkenHex(theme.primaryColor, 25)));
+      document.documentElement.style.setProperty("--rt-accent", hexToRgbStr(darkenHex(theme.accentColor, 20)));
+    } else {
+      document.documentElement.style.setProperty("--rt-primary", hexToRgbStr(theme.primaryColor));
+      document.documentElement.style.setProperty("--rt-accent", hexToRgbStr(theme.accentColor));
+    }
     
   }, [theme, mounted]);
 
@@ -108,7 +138,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setMode, setPrimaryColor, setAccentColor, applyPreset, resetToDefault }}>
+    <ThemeContext.Provider value={{ theme, setMode, setPrimaryColor, setAccentColor, applyPreset, resetToDefault, isPanelOpen, setIsPanelOpen }}>
       {children}
     </ThemeContext.Provider>
   );

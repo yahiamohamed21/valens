@@ -4,10 +4,13 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useApp, CartItem } from "@/context/AppContext";
+import { useTheme } from "@/context/ThemeContext";
 import { Icon } from "./SvgIcons";
 
 export const Navbar: React.FC = () => {
   const { cart, homePageSettings } = useApp();
+  const { setIsPanelOpen } = useTheme();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
@@ -109,10 +112,12 @@ export const Navbar: React.FC = () => {
               </span>
             )}
           </Link>
+
         </div>
 
         {/* Mobile controls */}
         <div className="flex items-center gap-4 md:hidden">
+
           <Link href="/cart" className="relative flex items-center justify-center text-soft-text">
             <Icon name="cart" size={20} />
             {totalItems > 0 && (

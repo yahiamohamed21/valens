@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useApp } from "@/context/AppContext";
 import { ProductCard, ProductImage } from "@/components/ProductCard";
 import { Icon } from "@/components/SvgIcons";
+import { ValensBrandCarousel } from "@/components/ValensBrandCarousel";
+import { Carousel } from "@/components/Carousel/Carousel";
+import { mockCarouselData } from "@/data/mockCarouselData";
 
 export default function HomePage() {
   const { products, categories, homePageSettings } = useApp();
@@ -92,6 +95,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <ValensBrandCarousel />
+
       {/* 2. Categories Grid */}
       <section className="bg-surface-deep/40 py-16 border-t border-b border-border-color">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -107,7 +112,7 @@ export default function HomePage() {
               <Link
                 key={cat.id}
                 href={`/products?category=${cat.slug}`}
-                className="group relative flex flex-col items-center rounded-2xl border border-border-color bg-card-bg p-6 text-center transition-luxury hover:border-primary-coral/30 hover:bg-[#1a110f]"
+                className="group relative flex flex-col items-center rounded-2xl border border-border-color bg-card-bg p-6 text-center transition-luxury hover:border-primary-coral/30 hover:bg-surface-sec"
               >
                 {/* Glow dot in hover */}
                 <div
@@ -217,7 +222,7 @@ export default function HomePage() {
               </p>
               <div className="mt-8">
                 <blockquote className="border-l-2 border-primary-coral pl-4 text-xs italic text-muted-text">
-                  \"We created Valens because we were tired of under-dosed formulas, synthetic dyes, and sketchy claims. Every gram we formulate serves a biological purpose.\"
+                  "We created Valens because we were tired of under-dosed formulas, synthetic dyes, and sketchy claims. Every gram we formulate serves a biological purpose."
                   <span className="block mt-2 font-bold not-italic text-soft-text">— Dr. Marcus Vance, Chief Science Officer</span>
                 </blockquote>
               </div>
@@ -235,6 +240,14 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Brand Stories Swiper Carousel */}
+      <Carousel
+        items={mockCarouselData}
+        title="Performance Stories & Lab Notes"
+        eyebrow="Inside Valens"
+        description="Explore clinical progress, athletic journals, and batch release logs direct from our development team."
+      />
 
       {/* 5. Best Sellers Section */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
@@ -270,7 +283,7 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-xs italic leading-relaxed text-soft-text">
-                \"ISO-WHEY mixes completely clear with no chalkiness. My muscle recovery has improved noticeably and there is absolutely no stomach bloat. Highly recommend the Chocolate flavor!\"
+                "ISO-WHEY mixes completely clear with no chalkiness. My muscle recovery has improved noticeably and there is absolutely no stomach bloat. Highly recommend the Chocolate flavor!"
               </p>
               <div className="mt-4 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-primary-coral/10 border border-primary-coral/30 flex items-center justify-center font-bold text-primary-coral text-xs">
@@ -290,7 +303,7 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-xs italic leading-relaxed text-soft-text">
-                \"The PRE-CHARGE Elite provides the cleanest surge of power I've ever felt. No jittery skin, just total, locked-in concentration for my three-hour training blocks. Unrivaled.\"
+                "The PRE-CHARGE Elite provides the cleanest surge of power I've ever felt. No jittery skin, just total, locked-in concentration for my three-hour training blocks. Unrivaled."
               </p>
               <div className="mt-4 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-primary-coral/10 border border-primary-coral/30 flex items-center justify-center font-bold text-primary-coral text-xs">
@@ -310,7 +323,7 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-xs italic leading-relaxed text-soft-text">
-                \"Deep Sleep & Recover has changed the game for me. I sleep deeper, track more REM on my watch, and wake up without that heavy groggy feeling. An absolute staple.\"
+                "Deep Sleep & Recover has changed the game for me. I sleep deeper, track more REM on my watch, and wake up without that heavy groggy feeling. An absolute staple."
               </p>
               <div className="mt-4 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-primary-coral/10 border border-primary-coral/30 flex items-center justify-center font-bold text-primary-coral text-xs">

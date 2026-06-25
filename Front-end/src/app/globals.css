@@ -26,9 +26,44 @@
   --rt-foreground: 15 15 15;
 }
 
+/* Force dark theme rules on elements with data-theme="dark" even inside light pages */
+[data-theme="dark"],
+[data-theme="light"] [data-theme="dark"] {
+  --rt-bg: 17 17 17;
+  --rt-surface-deep: 18 11 9;
+  --rt-card-bg: 26 26 26;
+  --rt-surface-sec: 33 21 18;
+  --rt-soft-text: 216 201 195;
+  --rt-muted-text: 141 123 115;
+  --rt-border: 42 30 26;
+  --rt-foreground: 255 255 255;
+}
+
 /* Light mode text-white override */
 [data-theme="light"] .text-white {
   color: rgb(var(--rt-foreground));
+}
+
+/* Ensure white text inside colored badges/buttons/labels remains white in light mode */
+[data-theme="light"] .bg-accent-orange .text-white,
+[data-theme="light"] .bg-accent-orange\/90 .text-white,
+[data-theme="light"] .bg-primary-coral .text-white,
+[data-theme="light"] .bg-success-green .text-white,
+[data-theme="light"] .bg-red-500 .text-white,
+[data-theme="light"] .bg-black .text-white,
+[data-theme="light"] .bg-black\/40 .text-white,
+[data-theme="light"] .bg-black\/50 .text-white,
+[data-theme="light"] .bg-\[\#090504\] .text-white,
+[data-theme="light"] .bg-\[\#130d0b\] .text-white,
+[data-theme="light"] .bg-\[\#130d0b\]\/95 .text-white,
+[data-theme="light"] .text-white-always,
+/* Support parent text-white overriding classes inside colored blocks */
+[data-theme="light"] .bg-accent-orange.text-white,
+[data-theme="light"] .bg-accent-orange\/90.text-white,
+[data-theme="light"] .bg-primary-coral.text-white,
+[data-theme="light"] .bg-success-green.text-white,
+[data-theme="light"] .bg-red-500.text-white {
+  color: #ffffff !important;
 }
 
 @theme {
