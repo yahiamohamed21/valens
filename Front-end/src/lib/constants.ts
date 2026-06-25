@@ -9,4 +9,5 @@ export const STORAGE_KEYS = {
   SETTINGS: "valens_settings",
   HOMEPAGE: "valens_homepage",
   THEME: "valens_theme",
+  CURRENT_USER: "valens_current_user",
 } as const;

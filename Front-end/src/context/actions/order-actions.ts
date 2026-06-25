@@ -18,6 +18,7 @@ interface OrderActionDeps {
   activeCoupon: Coupon | null;
   setActiveCoupon: Dispatch<SetStateAction<Coupon | null>>;
   clearCart: () => void;
+  setCurrentUserEmail: Dispatch<SetStateAction<string | null>>;
 }
 
 export const useOrderActions = ({
@@ -32,6 +33,7 @@ export const useOrderActions = ({
   activeCoupon,
   setActiveCoupon,
   clearCart,
+  setCurrentUserEmail,
 }: OrderActionDeps) => {
   const placeOrder = useCallback((orderData: Omit<Order, "id" | "orderDate" | "status">) => {
     const newId = `VL-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -98,6 +100,8 @@ export const useOrderActions = ({
     }
 
     clearCart();
+    setCurrentUserEmail(orderData.customerEmail);
+    setStorageItem(STORAGE_KEYS.CURRENT_USER, orderData.customerEmail);
     showToast(`Order ${newId} placed successfully!`, "success");
     return newOrder;
   }, [
@@ -112,6 +116,7 @@ export const useOrderActions = ({
     setCustomers,
     setOrders,
     setProducts,
+    setCurrentUserEmail,
   ]);
 
   const updateOrderStatus = useCallback((orderId: string, status: Order["status"]) => {

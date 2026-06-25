@@ -162,8 +162,13 @@ export interface AppContextType {
   homePageSettings: HomePageSettings;
   storeSettings: StoreSettings;
   activeCoupon: Coupon | null;
+  currentUserEmail: string | null;
   toast: (msg: string, type?: "success" | "error" | "info") => void;
   showToast: (message: string, type?: "success" | "error" | "info") => void;
+
+  loginUser: (email: string, name?: string) => void;
+  logoutUser: () => void;
+  updateCustomer: (email: string, updatedDetails: Partial<Customer>) => void;
 
   // Cart operations
   addToCart: (product: Product, quantity: number, size: string, variant: string) => void;

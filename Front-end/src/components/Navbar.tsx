@@ -8,7 +8,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { Icon } from "./SvgIcons";
 
 export const Navbar: React.FC = () => {
-  const { cart, homePageSettings } = useApp();
+  const { cart, homePageSettings, currentUserEmail } = useApp();
   const { setIsPanelOpen } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,9 +92,11 @@ export const Navbar: React.FC = () => {
 
           {/* Account */}
           <Link
-            href="/login"
-            className="flex items-center justify-center text-soft-text hover:text-primary-coral transition-luxury"
-            title="Account"
+            href={currentUserEmail ? "/dashboard" : "/login"}
+            className={`flex items-center justify-center hover:text-primary-coral transition-luxury ${
+              currentUserEmail ? "text-primary-coral" : "text-soft-text"
+            }`}
+            title={currentUserEmail ? "Athlete Dashboard" : "Account"}
           >
             <Icon name="user" size={20} />
           </Link>
@@ -184,11 +186,13 @@ export const Navbar: React.FC = () => {
               Contact
             </Link>
             <Link
-              href="/login"
+              href={currentUserEmail ? "/dashboard" : "/login"}
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral"
+              className={`text-sm font-semibold tracking-wide hover:text-primary-coral ${
+                currentUserEmail ? "text-primary-coral" : "text-soft-text"
+              }`}
             >
-              Account / Profile
+              {currentUserEmail ? "Athlete Dashboard" : "Account / Profile"}
             </Link>
             <Link
               href="/admin"

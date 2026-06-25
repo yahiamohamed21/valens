@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
@@ -11,7 +11,14 @@ import { Icon } from "@/components/SvgIcons";
 import { ProductImage } from "@/components/ProductCard";
 
 export default function CheckoutPage() {
-  const { cart, activeCoupon, storeSettings, placeOrder } = useApp();
+  const {
+    cart,
+    activeCoupon,
+    storeSettings,
+    placeOrder,
+    currentUserEmail,
+    customers,
+  } = useApp();
   const router = useRouter();
 
   // Form Fields
@@ -22,6 +29,28 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Get logged-in user profile if exists
+  const currentCustomer = useMemo(() => {
+    return customers.find(
+      (c) => c.email.toLowerCase() === (currentUserEmail || "").toLowerCase()
+    );
+  }, [customers, currentUserEmail]);
+
+  // Autofill fields if customer is logged in
+  useEffect(() => {
+    if (currentCustomer) {
+      if (currentCustomer.name) {
+        const parts = currentCustomer.name.split(" ");
+        setFirstName(parts[0] || "");
+        setLastName(parts.slice(1).join(" ") || "");
+      }
+      if (currentCustomer.phone) setPhone(currentCustomer.phone);
+      if (currentCustomer.email) setEmail(currentCustomer.email);
+      if (currentCustomer.address) setAddress(currentCustomer.address);
+      if (currentCustomer.city) setCity(currentCustomer.city);
+    }
+  }, [currentCustomer]);
 
   // Options
   const [shippingMethod, setShippingMethod] = useState("Standard Express");
@@ -472,9 +501,18 @@ export default function CheckoutPage() {
                 <button
                   onClick={() => {
                     setPlacedOrder(null);
+                    router.push("/dashboard");
+                  }}
+                  className="rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury cursor-pointer"
+                >
+                  GO TO MY DASHBOARD
+                </button>
+                <button
+                  onClick={() => {
+                    setPlacedOrder(null);
                     router.push("/products");
                   }}
-                  className="rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury"
+                  className="rounded-full border border-border-color bg-surface-deep/60 px-8 py-3.5 text-xs font-black tracking-widest text-white hover:border-primary-coral transition-luxury cursor-pointer"
                 >
                   CONTINUE SHOPPING
                 </button>
@@ -483,7 +521,7 @@ export default function CheckoutPage() {
                     setPlacedOrder(null);
                     router.push("/admin"); // Redirects to admin to see the order immediately!
                   }}
-                  className="rounded-full border border-border-color bg-surface-deep/60 px-8 py-3.5 text-xs font-black tracking-widest text-white hover:border-primary-coral transition-luxury"
+                  className="rounded-full border border-border-color bg-surface-deep/30 px-8 py-3.5 text-xs font-black tracking-widest text-soft-text hover:text-white hover:border-primary-coral transition-luxury cursor-pointer"
                 >
                   VIEW ADMIN PANEL
                 </button>

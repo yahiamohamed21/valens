@@ -16,7 +16,7 @@ import { initialOrders } from "@/data/orders";
 import { initialProducts } from "@/data/products";
 import { defaultHomePageSettings, defaultStoreSettings } from "@/data/settings";
 import { STORAGE_KEYS } from "@/lib/constants";
-import { getStorageItem } from "@/lib/storage";
+import { getStorageItem, setStorageItem } from "@/lib/storage";
 import { showToast } from "@/lib/toast";
 import type {
   AppContextType,
@@ -58,6 +58,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [homePageSettings, setHomePageSettings] = useState<HomePageSettings>(defaultHomePageSettings);
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(defaultStoreSettings);
   const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -99,6 +100,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (storedExpenses !== undefined) setExpenses(storedExpenses);
     if (storedHomePage !== undefined) setHomePageSettings(storedHomePage);
     if (storedSettings !== undefined) setStoreSettings(storedSettings);
+    const storedUser = getStorageItem<string>(STORAGE_KEYS.CURRENT_USER);
+    if (storedUser !== undefined) setCurrentUserEmail(storedUser);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -119,7 +122,50 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     activeCoupon,
     setActiveCoupon,
     clearCart: cartActions.clearCart,
+    setCurrentUserEmail,
   });
+
+  const loginUser = useCallback((email: string, name?: string) => {
+    setCurrentUserEmail(email);
+    setStorageItem(STORAGE_KEYS.CURRENT_USER, email);
+
+    // If the customer doesn't exist, create one
+    const exists = customers.some(c => c.email.toLowerCase() === email.toLowerCase());
+    if (!exists) {
+      const newCustomer: Customer = {
+        id: `cust-${Date.now()}`,
+        name: name || email.split("@")[0],
+        email: email,
+        phone: "",
+        address: "",
+        city: "",
+        orderCount: 0,
+        totalSpent: 0,
+        joinDate: new Date().toISOString().split("T")[0]
+      };
+      const updated = [...customers, newCustomer];
+      setCustomers(updated);
+      setStorageItem(STORAGE_KEYS.CUSTOMERS, updated);
+    }
+  }, [customers]);
+
+  const logoutUser = useCallback(() => {
+    setCurrentUserEmail(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+    }
+  }, []);
+
+  const updateCustomer = useCallback((email: string, updatedDetails: Partial<Customer>) => {
+    const updated = customers.map(c => {
+      if (c.email.toLowerCase() === email.toLowerCase()) {
+        return { ...c, ...updatedDetails };
+      }
+      return c;
+    });
+    setCustomers(updated);
+    setStorageItem(STORAGE_KEYS.CUSTOMERS, updated);
+  }, [customers]);
   const productActions = useProductActions({ products, setProducts });
   const categoryActions = useCategoryActions({ categories, setCategories });
   const couponActions = useCouponActions({ coupons, setCoupons });
@@ -137,8 +183,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     homePageSettings,
     storeSettings,
     activeCoupon,
+    currentUserEmail,
     toast: appToast,
     showToast: appToast,
+    loginUser,
+    logoutUser,
+    updateCustomer,
     ...cartActions,
     ...orderActions,
     ...productActions,
@@ -148,6 +198,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     ...settingsActions,
   }), [
     activeCoupon,
+    currentUserEmail,
     appToast,
     cart,
     cartActions,
@@ -165,6 +216,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     products,
     settingsActions,
     storeSettings,
+    loginUser,
+    logoutUser,
+    updateCustomer,
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

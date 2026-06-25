@@ -2,13 +2,15 @@
 
 import React, { useState } from "react";
 import { showToast } from "@/lib/toast";
+import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
 
 export default function LoginPage() {
-  const { showToast } = useApp();
+  const { showToast, loginUser } = useApp();
+  const router = useRouter();
 
   // Active view: "login" | "signup" | "forgot"
   const [activeTab, setActiveTab] = useState<"login" | "signup" | "forgot">("login");
@@ -24,10 +26,12 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email || !password) return;
 
+    loginUser(email);
     showToast(`Logged in successfully as ${email}`, "success");
     // Reset fields
     setEmail("");
     setPassword("");
+    router.push("/dashboard");
   };
 
   const handleSignupSubmit = (e: React.FormEvent) => {
@@ -42,6 +46,7 @@ export default function LoginPage() {
       return;
     }
 
+    loginUser(email, `${firstName} ${lastName}`);
     showToast("Account registered successfully! Welcome to Valens.", "success");
     // Reset fields
     setEmail("");
@@ -49,7 +54,7 @@ export default function LoginPage() {
     setConfirmPassword("");
     setFirstName("");
     setLastName("");
-    setActiveTab("login");
+    router.push("/dashboard");
   };
 
   const handleForgotSubmit = (e: React.FormEvent) => {
