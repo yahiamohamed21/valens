@@ -9,4 +9,5 @@ public interface ISettingService
     Task<object> GetHomepageSettingsAsync();
     Task<bool> UpdateStoreSettingsAsync(UpdateStoreSettingsDto dto);
     Task<bool> UpdateHomepageSettingsAsync(UpdateHomepageSettingsDto dto);
+    Task<object> GetHomepageOverviewAsync();
 }

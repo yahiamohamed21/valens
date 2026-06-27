@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using ValensApi.Application.DTOs.Settings;
 using ValensApi.Application.Interfaces;
 using ValensApi.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace ValensApi.Application.Services;
 
@@ -145,5 +146,30 @@ public class SettingService : ISettingService
         {
             return base64String;
         }
+    }
+
+    public async Task<object> GetHomepageOverviewAsync()
+    {
+        var settings = await GetHomepageSettingsAsync();
+        
+        var categories = await _unitOfWork.Categories.FindAsync(c => c.IsActive);
+        
+        var products = await _unitOfWork.Products.GetQueryable()
+            .Include(p => p.Variants)
+            .Where(p => p.Visible)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return new
+        {
+            Settings = settings,
+            Categories = categories,
+            Products = new
+            {
+                Featured = products.Where(p => p.Featured).ToList(),
+                BestSellers = products.Where(p => p.BestSeller).ToList(),
+                NewArrivals = products.Where(p => p.NewArrival).ToList()
+            }
+        };
     }
 }

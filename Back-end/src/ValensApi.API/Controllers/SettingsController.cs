@@ -44,4 +44,11 @@ public class SettingsController : BaseApiController
         await _settingService.UpdateHomepageSettingsAsync(dto);
         return NoContent();
     }
+
+    [HttpPost("homepage-overview")]
+    public async Task<IActionResult> GetHomepageOverview()
+    {
+        var overview = await _settingService.GetHomepageOverviewAsync();
+        return Ok(overview);
+    }
 }
