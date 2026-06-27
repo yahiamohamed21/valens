@@ -15,4 +15,5 @@ public interface IGenericRepository<T> where T : BaseEntity
     void Update(T entity);
     void Delete(T entity);
     void SoftDelete(T entity);
+    System.Linq.IQueryable<T> GetQueryable();
 }

@@ -1,7 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using ValensApi.Application.DTOs.Common;
+using ValensApi.Application.DTOs.Products;
 using ValensApi.Application.Interfaces;
 using ValensApi.Domain.Entities;
 
@@ -9,82 +12,75 @@ namespace ValensApi.API.Controllers;
 
 public class ProductsController : BaseApiController
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IProductService _productService;
 
-    public ProductsController(IUnitOfWork unitOfWork)
+    public ProductsController(IProductService productService)
     {
-        _unitOfWork = unitOfWork;
+        _productService = productService;
     }
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Product>>> GetAll()
+    [HttpPost("list-products")]
+    public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromBody] ProductFilterDto dto)
     {
-        var products = await _unitOfWork.Products.GetAllAsync();
+        bool isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole("Admin");
+        var products = await _productService.GetAllAsync(
+            dto.Category, 
+            dto.Search, 
+            dto.MinPrice, 
+            dto.MaxPrice, 
+            dto.SortBy, 
+            isAdmin
+        );
         return Ok(products);
     }
 
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<Product>> GetById(Guid id)
+    [HttpPost("detail-product")]
+    public async Task<ActionResult<Product>> GetProductById([FromBody] IdRequestDto dto)
     {
-        var product = await _unitOfWork.Products.GetByIdAsync(id);
+        var product = await _productService.GetByIdAsync(dto.Id);
         if (product == null)
         {
-            return NotFound();
+            return NotFound("Product not found.");
         }
+
         return Ok(product);
     }
 
-    [HttpGet("low-stock/{threshold:int}")]
-    public async Task<ActionResult<IEnumerable<Product>>> GetLowStock(int threshold)
+    [HttpPost("create-product")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<Product>> CreateProduct([FromBody] ProductUpsertDto dto)
     {
-        var products = await _unitOfWork.Products.GetProductsWithLowStockAsync(threshold);
-        return Ok(products);
+        var product = await _productService.CreateAsync(dto);
+        return Ok(product);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<Product>> Create(Product product)
+    [HttpPost("update-product")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateProduct([FromBody] ProductUpsertDto dto)
     {
-        await _unitOfWork.Products.AddAsync(product);
-        await _unitOfWork.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
-    }
-
-    [HttpPut("{id:guid}")]
-    public async Task<IActionResult> Update(Guid id, Product product)
-    {
-        if (id != product.Id)
+        if (!dto.Id.HasValue)
         {
-            return BadRequest("ID mismatch");
+            return BadRequest("Product Id is required for updates.");
         }
 
-        var existingProduct = await _unitOfWork.Products.GetByIdAsync(id);
-        if (existingProduct == null)
+        var success = await _productService.UpdateAsync(dto.Id.Value, dto);
+        if (!success)
         {
-            return NotFound();
+            return NotFound("Product not found.");
         }
-
-        existingProduct.Name = product.Name;
-        existingProduct.Description = product.Description;
-        existingProduct.Price = product.Price;
-        existingProduct.StockQuantity = product.StockQuantity;
-
-        _unitOfWork.Products.Update(existingProduct);
-        await _unitOfWork.SaveChangesAsync();
 
         return NoContent();
     }
 
-    [HttpDelete("{id:guid}")]
-    public async Task<IActionResult> Delete(Guid id)
+    [HttpPost("delete-product")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> DeleteProduct([FromBody] IdRequestDto dto)
     {
-        var product = await _unitOfWork.Products.GetByIdAsync(id);
-        if (product == null)
+        var success = await _productService.DeleteAsync(dto.Id);
+        if (!success)
         {
-            return NotFound();
+            return NotFound("Product not found.");
         }
-
-        _unitOfWork.Products.SoftDelete(product);
-        await _unitOfWork.SaveChangesAsync();
 
         return NoContent();
     }

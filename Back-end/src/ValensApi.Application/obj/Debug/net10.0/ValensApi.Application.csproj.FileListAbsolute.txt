@@ -13,3 +13,19 @@ D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi
 D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\refint\ValensApi.Application.dll
 D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.pdb
 D:\Valens Project\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ref\ValensApi.Application.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\bin\Debug\net10.0\ValensApi.Application.deps.json
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\bin\Debug\net10.0\ValensApi.Application.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\bin\Debug\net10.0\ValensApi.Application.pdb
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\bin\Debug\net10.0\ValensApi.Domain.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\bin\Debug\net10.0\ValensApi.Domain.pdb
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.csproj.AssemblyReference.cache
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.AssemblyInfoInputs.cache
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.AssemblyInfo.cs
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.csproj.CoreCompileInputs.cache
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.sourcelink.json
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensAp.15073C0A.Up2Date
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\refint\ValensApi.Application.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ValensApi.Application.pdb
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Application\obj\Debug\net10.0\ref\ValensApi.Application.dll

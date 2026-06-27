@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using ValensApi.Domain.Common;
@@ -15,6 +18,16 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<Coupon> Coupons => Set<Coupon>();
+    public DbSet<Expense> Expenses => Set<Expense>();
+    public DbSet<StoreSetting> StoreSettings => Set<StoreSetting>();
+    public DbSet<UserOtp> UserOtps => Set<UserOtp>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +47,17 @@ public class ApplicationDbContext : DbContext
                 modelBuilder.Entity(entityType.ClrType).HasQueryFilter(lambda);
             }
         }
+
+        // Configure all decimal properties to use decimal(18,2) to avoid truncation warnings
+        foreach (var property in modelBuilder.Model.GetEntityTypes()
+            .SelectMany(t => t.GetProperties())
+            .Where(p => p.ClrType == typeof(decimal) || p.ClrType == typeof(decimal?)))
+        {
+            property.SetColumnType("decimal(18,2)");
+        }
+
+        // JSON serializer options and converter for List<string> (referenced in configurations)
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -71,7 +95,6 @@ public class ApplicationDbContext : DbContext
                     case EntityState.Deleted:
                         if (entry.Entity is SoftDeletableEntity softDeletable)
                         {
-                            // Intercept deletion and turn it into a soft delete update
                             entry.State = EntityState.Modified;
                             softDeletable.IsDeleted = true;
                             softDeletable.DeletedAt = now;

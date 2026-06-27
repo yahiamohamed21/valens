@@ -1,0 +1,22 @@
+# Build and output directories
+bin/
+obj/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / IntelliJ
+.idea/
+
+# OS-generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# AppSettings secrets (optional but standard)
+appsettings.Development.json
+wwwroot/emails/*.html

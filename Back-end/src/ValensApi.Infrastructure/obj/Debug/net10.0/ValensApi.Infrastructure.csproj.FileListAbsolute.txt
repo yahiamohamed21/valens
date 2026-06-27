@@ -17,3 +17,23 @@ D:\Valens Project\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\refint
 D:\Valens Project\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.pdb
 D:\Valens Project\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.genruntimeconfig.cache
 D:\Valens Project\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ref\ValensApi.Infrastructure.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\bin\Debug\net10.0\ValensApi.Infrastructure.deps.json
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\bin\Debug\net10.0\ValensApi.Infrastructure.runtimeconfig.json
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\bin\Debug\net10.0\ValensApi.Infrastructure.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\bin\Debug\net10.0\ValensApi.Infrastructure.pdb
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\bin\Debug\net10.0\ValensApi.Application.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\bin\Debug\net10.0\ValensApi.Domain.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\bin\Debug\net10.0\ValensApi.Application.pdb
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\bin\Debug\net10.0\ValensApi.Domain.pdb
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.AssemblyInfo.cs
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.sourcelink.json
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensAp.045E4873.Up2Date
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\refint\ValensApi.Infrastructure.dll
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.pdb
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ValensApi.Infrastructure.genruntimeconfig.cache
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Infrastructure\obj\Debug\net10.0\ref\ValensApi.Infrastructure.dll

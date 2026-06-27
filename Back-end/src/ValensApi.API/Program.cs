@@ -53,7 +53,11 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 // Enable CORS
 app.UseCors("DefaultCorsPolicy");
 
+app.UseAuthentication();
 app.UseAuthorization();
+
+// Serve static files for uploaded images
+app.UseStaticFiles();
 
 // Map Endpoints
 app.MapControllers();
