@@ -42,35 +42,41 @@ public class CouponService : ICouponService
             throw new InvalidOperationException("Maximum usage count reached for this coupon code.");
         }
 
-        if (dto.OrderAmount < coupon.MinOrderAmount)
+        if (dto.OrderAmount.HasValue && dto.OrderAmount.Value < coupon.MinOrderAmount)
         {
             throw new InvalidOperationException($"Minimum order amount required to apply this coupon is {coupon.MinOrderAmount} EGP.");
         }
 
         decimal discountAmount = 0;
-        if (coupon.DiscountType.ToLower() == "percentage")
-        {
-            discountAmount = Math.Round(dto.OrderAmount * (coupon.DiscountValue / 100), 2);
-        }
-        else
-        {
-            discountAmount = coupon.DiscountValue;
-        }
+        decimal newTotal = dto.OrderAmount ?? 0;
 
-        if (discountAmount > dto.OrderAmount)
+        if (dto.OrderAmount.HasValue)
         {
-            discountAmount = dto.OrderAmount;
-        }
+            if (coupon.DiscountType.ToLower() == "percentage")
+            {
+                discountAmount = Math.Round(dto.OrderAmount.Value * (coupon.DiscountValue / 100), 2);
+            }
+            else
+            {
+                discountAmount = coupon.DiscountValue;
+            }
 
-        decimal newTotal = dto.OrderAmount - discountAmount;
+            if (discountAmount > dto.OrderAmount.Value)
+            {
+                discountAmount = dto.OrderAmount.Value;
+            }
+
+            newTotal = dto.OrderAmount.Value - discountAmount;
+        }
 
         return new
         {
             Code = coupon.Code,
             DiscountType = coupon.DiscountType,
             DiscountValue = coupon.DiscountValue,
-            DiscountAmount = discountAmount,
-            NewTotal = newTotal
+            MinOrderAmount = coupon.MinOrderAmount,
+            DiscountAmount = dto.OrderAmount.HasValue ? discountAmount : (decimal?)null,
+            NewTotal = dto.OrderAmount.HasValue ? newTotal : (decimal?)null
         };
     }
 
