@@ -250,6 +250,22 @@ public class ProductService : IProductService
         return true;
     }
 
+    public async Task<HomepageSectionsDto> GetHomepageSectionsAsync()
+    {
+        var visibleProducts = await _unitOfWork.Products.GetQueryable()
+            .Include(p => p.Variants)
+            .Where(p => p.Visible)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return new HomepageSectionsDto
+        {
+            Featured = visibleProducts.Where(p => p.Featured).ToList(),
+            BestSellers = visibleProducts.Where(p => p.BestSeller).ToList(),
+            NewArrivals = visibleProducts.Where(p => p.NewArrival).ToList()
+        };
+    }
+
     private string SaveBase64Image(string base64String)
     {
         if (string.IsNullOrEmpty(base64String)) return string.Empty;

@@ -34,6 +34,13 @@ public class ProductsController : BaseApiController
         return Ok(products);
     }
 
+    [HttpPost("list-homepage-sections")]
+    public async Task<ActionResult<HomepageSectionsDto>> GetHomepageSections()
+    {
+        var sections = await _productService.GetHomepageSectionsAsync();
+        return Ok(sections);
+    }
+
     [HttpPost("detail-product")]
     public async Task<ActionResult<Product>> GetProductById([FromBody] IdRequestDto dto)
     {
