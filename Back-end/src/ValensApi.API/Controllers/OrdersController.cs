@@ -81,4 +81,16 @@ public class OrdersController : BaseApiController
 
         return NoContent();
     }
+
+    [HttpPost("update-order-details")]
+    public async Task<IActionResult> UpdateOrderDetails([FromBody] UpdateOrderDto dto)
+    {
+        var success = await _orderService.UpdateOrderDetailsAsync(dto);
+        if (!success)
+        {
+            return NotFound("Order not found.");
+        }
+
+        return NoContent();
+    }
 }

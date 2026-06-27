@@ -359,4 +359,22 @@ public class OrderService : IOrderService
 
         return true;
     }
+
+    public async Task<bool> UpdateOrderDetailsAsync(UpdateOrderDto dto)
+    {
+        var order = await _unitOfWork.Orders.GetByIdAsync(dto.Id);
+        if (order == null)
+        {
+            return false;
+        }
+
+        order.CustomerName = dto.CustomerName;
+        order.CustomerPhone = dto.CustomerPhone;
+        order.ShippingAddress = dto.ShippingAddress;
+        order.ShippingCity = dto.ShippingCity;
+
+        _unitOfWork.Orders.Update(order);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
 }

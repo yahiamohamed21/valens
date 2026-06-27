@@ -12,4 +12,5 @@ public interface IOrderService
     Task<IEnumerable<Order>> GetMyOrdersAsync(Guid userId);
     Task<IEnumerable<Order>> GetAllOrdersAsync(string? search, string? category);
     Task<bool> UpdateStatusAsync(Guid id, string status);
+    Task<bool> UpdateOrderDetailsAsync(UpdateOrderDto dto);
 }
