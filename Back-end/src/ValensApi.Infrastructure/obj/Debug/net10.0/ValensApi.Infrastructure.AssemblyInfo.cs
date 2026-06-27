@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ValensApi.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1e2aa5cfb4dc83833924d2dbc6522d53ac72e16a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4090fc2a0aeae282674a027018bc7ca9fd87c4f0")]
 [assembly: System.Reflection.AssemblyProductAttribute("ValensApi.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ValensApi.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

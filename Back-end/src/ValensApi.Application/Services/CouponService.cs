@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ValensApi.Application.DTOs.Coupons;
+using ValensApi.Application.DTOs.Orders;
 using ValensApi.Application.Interfaces;
 using ValensApi.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace ValensApi.Application.Services;
 
@@ -42,32 +44,63 @@ public class CouponService : ICouponService
             throw new InvalidOperationException("Maximum usage count reached for this coupon code.");
         }
 
-        if (dto.OrderAmount.HasValue && dto.OrderAmount.Value < coupon.MinOrderAmount)
+        decimal subtotal = 0;
+        if (dto.Items != null && dto.Items.Any())
         {
-            throw new InvalidOperationException($"Minimum order amount required to apply this coupon is {coupon.MinOrderAmount} EGP.");
+            foreach (var cartItem in dto.Items)
+            {
+                var product = await _unitOfWork.Products.GetQueryable()
+                    .Include(p => p.Variants)
+                    .FirstOrDefaultAsync(p => p.Id == cartItem.ProductId);
+
+                if (product == null)
+                {
+                    throw new KeyNotFoundException($"Product with ID {cartItem.ProductId} was not found.");
+                }
+
+                decimal price = 0;
+                if (product.VariantType != "none" && !string.IsNullOrEmpty(cartItem.VariantId))
+                {
+                    var variant = product.Variants.FirstOrDefault(v => v.VariantId == cartItem.VariantId);
+                    if (variant != null)
+                    {
+                        price = variant.DiscountPrice > 0 ? variant.DiscountPrice : variant.Price;
+                    }
+                    else
+                    {
+                        price = product.DiscountPrice > 0 ? product.DiscountPrice : product.Price;
+                    }
+                }
+                else
+                {
+                    price = product.DiscountPrice > 0 ? product.DiscountPrice : product.Price;
+                }
+
+                subtotal += price * cartItem.Quantity;
+            }
+        }
+
+        if (subtotal < coupon.MinOrderAmount)
+        {
+            throw new InvalidOperationException($"Minimum order amount required to apply this coupon is {coupon.MinOrderAmount} EGP. Current total is {subtotal} EGP.");
         }
 
         decimal discountAmount = 0;
-        decimal newTotal = dto.OrderAmount ?? 0;
-
-        if (dto.OrderAmount.HasValue)
+        if (coupon.DiscountType.ToLower() == "percentage")
         {
-            if (coupon.DiscountType.ToLower() == "percentage")
-            {
-                discountAmount = Math.Round(dto.OrderAmount.Value * (coupon.DiscountValue / 100), 2);
-            }
-            else
-            {
-                discountAmount = coupon.DiscountValue;
-            }
-
-            if (discountAmount > dto.OrderAmount.Value)
-            {
-                discountAmount = dto.OrderAmount.Value;
-            }
-
-            newTotal = dto.OrderAmount.Value - discountAmount;
+            discountAmount = Math.Round(subtotal * (coupon.DiscountValue / 100), 2);
         }
+        else
+        {
+            discountAmount = coupon.DiscountValue;
+        }
+
+        if (discountAmount > subtotal)
+        {
+            discountAmount = subtotal;
+        }
+
+        decimal newTotal = subtotal - discountAmount;
 
         return new
         {
@@ -75,8 +108,9 @@ public class CouponService : ICouponService
             DiscountType = coupon.DiscountType,
             DiscountValue = coupon.DiscountValue,
             MinOrderAmount = coupon.MinOrderAmount,
-            DiscountAmount = dto.OrderAmount.HasValue ? discountAmount : (decimal?)null,
-            NewTotal = dto.OrderAmount.HasValue ? newTotal : (decimal?)null
+            Subtotal = subtotal,
+            DiscountAmount = discountAmount,
+            NewTotal = newTotal
         };
     }
 
