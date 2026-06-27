@@ -92,4 +92,17 @@ public class CouponsController : BaseApiController
 
         return NoContent();
     }
+
+    [HttpPost("toggle-coupon")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ToggleCoupon([FromBody] IdRequestDto dto)
+    {
+        var success = await _couponService.ToggleActiveAsync(dto.Id);
+        if (!success)
+        {
+            return NotFound("Coupon code not found.");
+        }
+
+        return NoContent();
+    }
 }

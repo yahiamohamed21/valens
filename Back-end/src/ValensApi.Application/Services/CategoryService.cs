@@ -76,4 +76,18 @@ public class CategoryService : ICategoryService
         await _unitOfWork.SaveChangesAsync();
         return true;
     }
+
+    public async Task<bool> ToggleActiveAsync(Guid id)
+    {
+        var category = await _unitOfWork.Categories.GetByIdAsync(id);
+        if (category == null)
+        {
+            return false;
+        }
+
+        category.IsActive = !category.IsActive;
+        _unitOfWork.Categories.Update(category);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
 }

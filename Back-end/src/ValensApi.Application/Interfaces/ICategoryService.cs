@@ -13,4 +13,5 @@ public interface ICategoryService
     Task<Category?> CreateAsync(CategoryDto dto);
     Task<bool> UpdateAsync(Guid id, CategoryDto dto);
     Task<bool> DeleteAsync(Guid id);
+    Task<bool> ToggleActiveAsync(Guid id);
 }

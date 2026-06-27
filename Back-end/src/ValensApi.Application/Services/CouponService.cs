@@ -62,12 +62,15 @@ public class CouponService : ICouponService
             discountAmount = dto.OrderAmount;
         }
 
+        decimal newTotal = dto.OrderAmount - discountAmount;
+
         return new
         {
             Code = coupon.Code,
             DiscountType = coupon.DiscountType,
             DiscountValue = coupon.DiscountValue,
-            DiscountAmount = discountAmount
+            DiscountAmount = discountAmount,
+            NewTotal = newTotal
         };
     }
 
@@ -132,6 +135,20 @@ public class CouponService : ICouponService
         }
 
         _unitOfWork.Coupons.Delete(coupon);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> ToggleActiveAsync(Guid id)
+    {
+        var coupon = await _unitOfWork.Coupons.GetByIdAsync(id);
+        if (coupon == null)
+        {
+            return false;
+        }
+
+        coupon.IsActive = !coupon.IsActive;
+        _unitOfWork.Coupons.Update(coupon);
         await _unitOfWork.SaveChangesAsync();
         return true;
     }

@@ -77,4 +77,17 @@ public class CategoriesController : BaseApiController
 
         return NoContent();
     }
+
+    [HttpPost("toggle-product-category")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ToggleCategory([FromBody] IdRequestDto dto)
+    {
+        var success = await _categoryService.ToggleActiveAsync(dto.Id);
+        if (!success)
+        {
+            return NotFound("Category not found.");
+        }
+
+        return NoContent();
+    }
 }

@@ -236,6 +236,20 @@ public class ProductService : IProductService
         return true;
     }
 
+    public async Task<bool> ToggleVisibilityAsync(Guid id)
+    {
+        var product = await _unitOfWork.Products.GetByIdAsync(id);
+        if (product == null)
+        {
+            return false;
+        }
+
+        product.Visible = !product.Visible;
+        _unitOfWork.Products.Update(product);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
+
     private string SaveBase64Image(string base64String)
     {
         if (string.IsNullOrEmpty(base64String)) return string.Empty;

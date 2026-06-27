@@ -13,4 +13,5 @@ public interface ICouponService
     Task<Coupon?> CreateCouponAsync(CouponDto dto);
     Task<bool> UpdateCouponAsync(Guid id, CouponDto dto);
     Task<bool> DeleteCouponAsync(Guid id);
+    Task<bool> ToggleActiveAsync(Guid id);
 }

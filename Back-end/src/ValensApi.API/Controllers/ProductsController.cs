@@ -84,4 +84,17 @@ public class ProductsController : BaseApiController
 
         return NoContent();
     }
+
+    [HttpPost("toggle-product")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> ToggleProduct([FromBody] IdRequestDto dto)
+    {
+        var success = await _productService.ToggleVisibilityAsync(dto.Id);
+        if (!success)
+        {
+            return NotFound("Product not found.");
+        }
+
+        return NoContent();
+    }
 }

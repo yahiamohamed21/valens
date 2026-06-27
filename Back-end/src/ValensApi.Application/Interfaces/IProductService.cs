@@ -13,4 +13,5 @@ public interface IProductService
     Task<Product> CreateAsync(ProductUpsertDto dto);
     Task<bool> UpdateAsync(Guid id, ProductUpsertDto dto);
     Task<bool> DeleteAsync(Guid id);
+    Task<bool> ToggleVisibilityAsync(Guid id);
 }
