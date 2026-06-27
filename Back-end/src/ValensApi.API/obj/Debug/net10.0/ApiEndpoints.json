@@ -1,15 +1,169 @@
 [
   {
-    "ContainingType": "ValensApi.API.Controllers.ProductsController",
-    "Method": "GetAll",
-    "RelativePath": "api/Products",
+    "ContainingType": "ValensApi.API.Controllers.AuthController",
+    "Method": "ChangeAdminPassword",
+    "RelativePath": "api/Auth/change-admin-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Auth.ChangePasswordDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.AuthController",
+    "Method": "ChangeCustomerPassword",
+    "RelativePath": "api/Auth/change-customer-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Auth.ChangePasswordDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.AuthController",
+    "Method": "ForgotPassword",
+    "RelativePath": "api/Auth/forgot-password",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Auth.ForgotPasswordRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.AuthController",
+    "Method": "LoginUser",
+    "RelativePath": "api/Auth/login-user",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Auth.LoginDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.AuthController",
+    "Method": "RegisterCustomer",
+    "RelativePath": "api/Auth/register-customer",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Auth.RegisterDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.AuthController",
+    "Method": "RegisterNewAdmin",
+    "RelativePath": "api/Auth/register-new-admin",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Auth.RegisterDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.AuthController",
+    "Method": "ResetPasswordOtp",
+    "RelativePath": "api/Auth/reset-password-otp",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Auth.ResetPasswordWithOtpDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CategoriesController",
+    "Method": "CreateCategory",
+    "RelativePath": "api/Categories/create-product-category",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Categories.CategoryDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "ValensApi.Domain.Entities.Category",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CategoriesController",
+    "Method": "DeleteCategory",
+    "RelativePath": "api/Categories/delete-product-category",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Common.IdRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CategoriesController",
+    "Method": "GetActiveCategories",
+    "RelativePath": "api/Categories/list-active-product-categories",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
     "Parameters": [],
     "ReturnTypes": [
       {
-        "Type": "System.Collections.Generic.IEnumerable\u00601[[ValensApi.Domain.Entities.Product, ValensApi.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ValensApi.Domain.Entities.Category, ValensApi.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
         "MediaTypes": [
           "text/plain",
           "application/json",
@@ -20,48 +174,58 @@
     ]
   },
   {
-    "ContainingType": "ValensApi.API.Controllers.ProductsController",
-    "Method": "Create",
-    "RelativePath": "api/Products",
+    "ContainingType": "ValensApi.API.Controllers.CategoriesController",
+    "Method": "GetAdminAllCategories",
+    "RelativePath": "api/Categories/list-admin-product-categories",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ValensApi.Domain.Entities.Category, ValensApi.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CategoriesController",
+    "Method": "UpdateCategory",
+    "RelativePath": "api/Categories/update-product-category",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "product",
-        "Type": "ValensApi.Domain.Entities.Product",
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Categories.UpdateCategoryDto",
         "IsRequired": true
       }
     ],
-    "ReturnTypes": [
-      {
-        "Type": "ValensApi.Domain.Entities.Product",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ]
+    "ReturnTypes": []
   },
   {
-    "ContainingType": "ValensApi.API.Controllers.ProductsController",
-    "Method": "GetById",
-    "RelativePath": "api/Products/{id}",
-    "HttpMethod": "GET",
+    "ContainingType": "ValensApi.API.Controllers.CouponsController",
+    "Method": "CreateCoupon",
+    "RelativePath": "api/Coupons/create-coupon",
+    "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "id",
-        "Type": "System.Guid",
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Coupons.CouponDto",
         "IsRequired": true
       }
     ],
     "ReturnTypes": [
       {
-        "Type": "ValensApi.Domain.Entities.Product",
+        "Type": "ValensApi.Domain.Entities.Coupon",
         "MediaTypes": [
           "text/plain",
           "application/json",
@@ -72,53 +236,366 @@
     ]
   },
   {
-    "ContainingType": "ValensApi.API.Controllers.ProductsController",
-    "Method": "Update",
-    "RelativePath": "api/Products/{id}",
+    "ContainingType": "ValensApi.API.Controllers.CouponsController",
+    "Method": "DeleteCoupon",
+    "RelativePath": "api/Coupons/delete-coupon",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Common.IdRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CouponsController",
+    "Method": "GetAdminCoupons",
+    "RelativePath": "api/Coupons/list-admin",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ValensApi.Domain.Entities.Coupon, ValensApi.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CouponsController",
+    "Method": "UpdateCoupon",
+    "RelativePath": "api/Coupons/update-coupon",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Coupons.CouponDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CouponsController",
+    "Method": "ValidateCoupon",
+    "RelativePath": "api/Coupons/validate-coupon",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Coupons.ValidateCouponDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CustomersController",
+    "Method": "GetCustomerById",
+    "RelativePath": "api/Customers/detail-admin-customer",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Common.IdRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CustomersController",
+    "Method": "GetAdminCustomers",
+    "RelativePath": "api/Customers/list-admin-customers",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Customers.CustomerAdminFilterDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ValensApi.Domain.Entities.Customer, ValensApi.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CustomersController",
+    "Method": "UpdateProfile",
+    "RelativePath": "api/Customers/update-profile",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "id",
-        "Type": "System.Guid",
-        "IsRequired": true
-      },
-      {
-        "Name": "product",
-        "Type": "ValensApi.Domain.Entities.Product",
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Customers.UpdateProfileDto",
         "IsRequired": true
       }
     ],
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ValensApi.API.Controllers.ProductsController",
-    "Method": "Delete",
-    "RelativePath": "api/Products/{id}",
-    "HttpMethod": "DELETE",
+    "ContainingType": "ValensApi.API.Controllers.ExpensesController",
+    "Method": "CreateExpense",
+    "RelativePath": "api/Expenses/create-expense",
+    "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "id",
-        "Type": "System.Guid",
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Expenses.ExpenseDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "ValensApi.Domain.Entities.Expense",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.ExpensesController",
+    "Method": "DeleteExpense",
+    "RelativePath": "api/Expenses/delete-expense",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Common.IdRequestDto",
         "IsRequired": true
       }
     ],
     "ReturnTypes": []
   },
   {
-    "ContainingType": "ValensApi.API.Controllers.ProductsController",
-    "Method": "GetLowStock",
-    "RelativePath": "api/Products/low-stock/{threshold}",
+    "ContainingType": "ValensApi.API.Controllers.ExpensesController",
+    "Method": "GetAdminExpenses",
+    "RelativePath": "api/Expenses/list-admin",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ValensApi.Domain.Entities.Expense, ValensApi.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.ExpensesController",
+    "Method": "UpdateExpense",
+    "RelativePath": "api/Expenses/update-expense",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
     "Parameters": [
       {
-        "Name": "threshold",
-        "Type": "System.Int32",
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Expenses.ExpenseDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.OrdersController",
+    "Method": "CheckoutOrder",
+    "RelativePath": "api/Orders/checkout-order",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Orders.CheckoutDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.OrdersController",
+    "Method": "GetAdminOrders",
+    "RelativePath": "api/Orders/list-admin-orders",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Orders.OrderAdminFilterDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ValensApi.Domain.Entities.Order, ValensApi.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.OrdersController",
+    "Method": "GetMyOrdersHistory",
+    "RelativePath": "api/Orders/my-history",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Collections.Generic.IEnumerable\u00601[[ValensApi.Domain.Entities.Order, ValensApi.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.OrdersController",
+    "Method": "UpdateOrderStatus",
+    "RelativePath": "api/Orders/update-order-status",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Orders.OrderStatusUpdateDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.ProductsController",
+    "Method": "CreateProduct",
+    "RelativePath": "api/Products/create-product",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Products.ProductUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "ValensApi.Domain.Entities.Product",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.ProductsController",
+    "Method": "DeleteProduct",
+    "RelativePath": "api/Products/delete-product",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Common.IdRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.ProductsController",
+    "Method": "GetProductById",
+    "RelativePath": "api/Products/detail-product",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Common.IdRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": [
+      {
+        "Type": "ValensApi.Domain.Entities.Product",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.ProductsController",
+    "Method": "GetProducts",
+    "RelativePath": "api/Products/list-products",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Products.ProductFilterDto",
         "IsRequired": true
       }
     ],
@@ -133,5 +610,83 @@
         "StatusCode": 200
       }
     ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.ProductsController",
+    "Method": "UpdateProduct",
+    "RelativePath": "api/Products/update-product",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Products.ProductUpsertDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.ReportsController",
+    "Method": "GetDashboardReport",
+    "RelativePath": "api/Reports/dashboard-summary",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.SettingsController",
+    "Method": "GetHomepageSettings",
+    "RelativePath": "api/Settings/homepage-config",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.SettingsController",
+    "Method": "GetStoreSettings",
+    "RelativePath": "api/Settings/store-config",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.SettingsController",
+    "Method": "UpdateHomepageSettings",
+    "RelativePath": "api/Settings/update-homepage-config",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Settings.UpdateHomepageSettingsDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.SettingsController",
+    "Method": "UpdateStoreSettings",
+    "RelativePath": "api/Settings/update-store-config",
+    "HttpMethod": "PUT",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Settings.UpdateStoreSettingsDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
   }
 ]

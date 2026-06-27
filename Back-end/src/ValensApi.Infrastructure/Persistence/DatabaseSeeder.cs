@@ -149,6 +149,26 @@ public static class DatabaseSeeder
         }
 
         // 5. Seed Users & Customers
+        var adminExists = await context.Users.AnyAsync(u => u.Role == "Admin");
+        if (!adminExists)
+        {
+            var adminUser = new User
+            {
+                Id = new Guid("a7c4f4a9-83ff-410e-a4b5-90f772591605"),
+                Email = "admin@valens.com",
+                PasswordHash = PasswordHasher.HashPassword("Admin@Valens123!"),
+                FullName = "Valens Administrator",
+                Role = "Admin",
+                Phone = "01000000000",
+                Address = "Valens Head Office, Cairo",
+                City = "Cairo",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            await context.Users.AddAsync(adminUser);
+            await context.SaveChangesAsync();
+        }
+
         if (await context.Users.CountAsync() <= 1) // only Admin exists
         {
             // Seed Customer Users
