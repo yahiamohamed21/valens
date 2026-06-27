@@ -8,7 +8,7 @@ namespace ValensApi.Application.Interfaces;
 
 public interface IExpenseService
 {
-    Task<IEnumerable<Expense>> GetAllExpensesAsync();
+    Task<IEnumerable<Expense>> GetAllExpensesAsync(string? search, string? category);
     Task<Expense?> CreateExpenseAsync(ExpenseDto dto);
     Task<bool> UpdateExpenseAsync(Guid id, ExpenseDto dto);
     Task<bool> DeleteExpenseAsync(Guid id);

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using ValensApi.Application.DTOs.Expenses;
 using ValensApi.Application.Interfaces;
 using ValensApi.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace ValensApi.Application.Services;
 
@@ -17,10 +18,22 @@ public class ExpenseService : IExpenseService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IEnumerable<Expense>> GetAllExpensesAsync()
+    public async Task<IEnumerable<Expense>> GetAllExpensesAsync(string? search, string? category)
     {
-        var expenses = await _unitOfWork.Expenses.GetAllAsync();
-        return expenses.OrderByDescending(e => e.Date);
+        var query = _unitOfWork.Expenses.GetQueryable().AsNoTracking();
+
+        if (!string.IsNullOrEmpty(category))
+        {
+            query = query.Where(e => e.Category.ToLower() == category.ToLower());
+        }
+
+        if (!string.IsNullOrEmpty(search))
+        {
+            var searchLower = search.ToLower();
+            query = query.Where(e => e.Title.ToLower().Contains(searchLower));
+        }
+
+        return await query.OrderByDescending(e => e.Date).ToListAsync();
     }
 
     public async Task<Expense?> CreateExpenseAsync(ExpenseDto dto)
