@@ -166,7 +166,6 @@ public class AuthService : IAuthService
         }
 
         var otps = await _unitOfWork.UserOtps.FindAsync(o => 
-            o.Email.ToLower() == dto.Email.ToLower() && 
             o.Code == dto.OtpCode && 
             !o.IsUsed && 
             o.Expiry > System.DateTimeOffset.UtcNow
@@ -177,7 +176,7 @@ public class AuthService : IAuthService
             return false;
         }
 
-        var users = await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == dto.Email.ToLower());
+        var users = await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == otpRecord.Email.ToLower());
         var user = users.FirstOrDefault();
         if (user == null)
         {
