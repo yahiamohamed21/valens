@@ -36,6 +36,11 @@ export interface Product {
   images: string[];
   mainImage: string;
   variantType: "none" | "size" | "flavor" | "both";
+  name_ar?: string;
+  description_ar?: string;
+  ingredients_ar?: string[];
+  usage_ar?: string;
+  benefits_ar?: string[];
 }
 
 export interface Review {
@@ -154,6 +159,13 @@ export interface HomePageSettings {
   firstBannerSubtitle: string;
   firstBannerCtaText: string;
   promoBadge: string;
+  heroTitle_ar?: string;
+  heroSubtitle_ar?: string;
+  heroCtaText_ar?: string;
+  firstBannerTitle_ar?: string;
+  firstBannerSubtitle_ar?: string;
+  firstBannerCtaText_ar?: string;
+  promoBadge_ar?: string;
 }
 
 export interface StoreSettings {
@@ -183,6 +195,9 @@ export interface AppContextType {
   currentUserEmail: string | null;
   toast: (msg: string, type?: "success" | "error" | "info") => void;
   showToast: (message: string, type?: "success" | "error" | "info") => void;
+  locale: "en" | "ar";
+  changeLanguage: (newLocale: "en" | "ar") => void;
+  t: (key: string, variables?: Record<string, string | number>) => string;
 
   loginUser: (email: string, name?: string) => void;
   logoutUser: () => void;

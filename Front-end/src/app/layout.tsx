@@ -20,9 +20,9 @@ export default function RootLayout({
         <ThemeProvider>
           <AppContextProvider>
             {children}
+            <ThemeSettingsPanel />
             <Toaster richColors position="bottom-right" theme="system" />
           </AppContextProvider>
-          <ThemeSettingsPanel />
         </ThemeProvider>
       </body>
     </html>

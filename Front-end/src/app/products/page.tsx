@@ -20,12 +20,25 @@ function getInitialFilters() {
 }
 
 export default function ProductsPage() {
-  const { products, categories } = useApp();
+  const { products, categories, locale, t } = useApp();
+  
+  const getCategoryName = (catName: string) => {
+    if (locale !== "ar") return catName;
+    switch (catName.toLowerCase()) {
+      case "protein": return "البروتينات";
+      case "pre-workout": return "طاقة وتحفيز";
+      case "amino acids":
+      case "aminos": return "أحماض أمينية";
+      case "recovery": return "استشفاء وعضلات";
+      default: return catName;
+    }
+  };
+
   const searchParams = useSearchParams();
   const initialFilters = useMemo(() => getInitialFilters(), []);
   const hasAppliedUrlParams = useRef(false);
 
-  // Filter States - initialized from URL
+
   const [searchQuery, setSearchQuery] = useState(initialFilters.query);
   const [selectedCategory, setSelectedCategory] = useState(initialFilters.category);
   const [maxPrice, setMaxPrice] = useState(5000);
@@ -114,13 +127,13 @@ export default function ProductsPage() {
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
         {/* Page Title & Search Bar */}
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between border-b border-border-color pb-6 mb-8">
-          <div>
+        <div className={`flex flex-col gap-6 md:flex-row md:items-center md:justify-between border-b border-border-color pb-6 mb-8 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+          <div className={locale === "ar" ? "text-right" : "text-left"}>
             <h1 className="text-3xl font-black uppercase tracking-wider text-white">
-              VALENS FORMULAS
+              {locale === "ar" ? "تركيبات VALENS" : "VALENS FORMULAS"}
             </h1>
             <p className="mt-1 text-xs text-muted-text uppercase tracking-widest font-semibold">
-              Advanced supplement science for peak athleticism
+              {locale === "ar" ? "علم المكملات المتقدم للأداء الرياضي المتميز" : "Advanced supplement science for peak athleticism"}
             </p>
           </div>
 
@@ -129,14 +142,24 @@ export default function ProductsPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search supplement ingredients or names..."
-              className="w-full rounded-full border border-border-color bg-surface-deep px-4 py-3 pl-11 text-xs text-white placeholder-muted-text focus:border-primary-coral focus:outline-none focus:ring-1 focus:ring-primary-coral/30 transition-all duration-500 ease-out"
+              placeholder={locale === "ar" ? "ابحث عن مكونات أو أسماء المكملات..." : "Search supplement ingredients or names..."}
+              className={`w-full rounded-full border border-border-color bg-surface-deep px-4 py-3 text-xs text-white placeholder-muted-text focus:border-primary-coral focus:outline-none focus:ring-1 focus:ring-primary-coral/30 transition-all duration-500 ease-out ${
+                locale === "ar" ? "pr-11 pl-4" : "pl-11 pr-4"
+              }`}
             />
-            <Icon name="search" size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-text" />
+            <Icon
+              name="search"
+              size={16}
+              className={`absolute top-1/2 -translate-y-1/2 text-muted-text ${
+                locale === "ar" ? "right-4" : "left-4"
+              }`}
+            />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-text hover:text-white"
+                className={`absolute top-1/2 -translate-y-1/2 text-muted-text hover:text-white ${
+                  locale === "ar" ? "left-4" : "right-4"
+                }`}
               >
                 <Icon name="close" size={14} />
               </button>
@@ -150,32 +173,36 @@ export default function ProductsPage() {
           {/* Filters Sidebar */}
           <aside className="lg:col-span-3 flex flex-col gap-6">
             <div className="rounded-2xl border border-border-color bg-card-bg p-5">
-              <div className="flex items-center justify-between border-b border-border-color pb-4 mb-4">
-                <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
+              <div className={`flex items-center justify-between border-b border-border-color pb-4 mb-4 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+                <span className={`text-xs font-black uppercase tracking-wider text-white flex items-center gap-2 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
                   <Icon name="settings" size={14} />
-                  Filters
+                  {locale === "ar" ? "خيارات التصفية" : "Filters"}
                 </span>
                 <button
                   onClick={resetFilters}
-                  className="text-[10px] font-extrabold uppercase tracking-wide text-primary-coral hover:text-white transition-all duration-500 ease-out"
+                  className="text-[10px] font-extrabold uppercase tracking-wide text-primary-coral hover:text-white transition-all duration-500 ease-out cursor-pointer"
                 >
-                  Reset All
+                  {locale === "ar" ? "إعادة ضبط الكل" : "Reset All"}
                 </button>
               </div>
 
               {/* 1. Category Filter */}
               <div className="mb-6">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-text mb-3">Category</h4>
+                <h4 className={`text-[10px] font-black uppercase tracking-widest text-muted-text mb-3 ${locale === "ar" ? "text-right" : "text-left"}`}>
+                  {locale === "ar" ? "القسم" : "Category"}
+                </h4>
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={() => setSelectedCategory("all")}
-                    className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-500 ease-out text-left ${
+                    className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-500 ease-out border border-transparent ${
+                      locale === "ar" ? "flex-row-reverse text-right" : "text-left"
+                    } ${
                       selectedCategory === "all"
-                        ? "bg-primary-coral/10 text-primary-coral border border-primary-coral/20"
-                        : "bg-surface-deep text-soft-text hover:bg-surface-sec border border-transparent"
+                        ? "bg-primary-coral/10 text-primary-coral border-primary-coral/20"
+                        : "bg-surface-deep text-soft-text hover:bg-surface-sec"
                     }`}
                   >
-                    All Formulas
+                    {locale === "ar" ? "جميع التركيبات" : "All Formulas"}
                     <span className="text-[8px] bg-main-bg px-2 py-0.5 rounded-full text-muted-text">
                       {products.filter((p: Product) => p.visible).length}
                     </span>
@@ -184,13 +211,15 @@ export default function ProductsPage() {
                     <button
                       key={cat.id}
                       onClick={() => setSelectedCategory(cat.slug)}
-                      className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-500 ease-out text-left ${
+                      className={`flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-wider transition-all duration-500 ease-out border border-transparent ${
+                        locale === "ar" ? "flex-row-reverse text-right" : "text-left"
+                      } ${
                         selectedCategory === cat.slug
-                          ? "bg-primary-coral/10 text-primary-coral border border-primary-coral/20"
-                          : "bg-surface-deep text-soft-text hover:bg-surface-sec border border-transparent"
+                          ? "bg-primary-coral/10 text-primary-coral border-primary-coral/20"
+                          : "bg-surface-deep text-soft-text hover:bg-surface-sec"
                       }`}
                     >
-                      {cat.name}
+                      {getCategoryName(cat.name)}
                       <span className="text-[8px] bg-main-bg px-2 py-0.5 rounded-full text-muted-text font-bold">
                         {products.filter((p: Product) => p.category.toLowerCase() === cat.slug && p.visible).length}
                       </span>
@@ -201,9 +230,13 @@ export default function ProductsPage() {
 
               {/* 2. Price Range Filter */}
               <div className="mb-6 border-t border-border-color pt-4">
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-text">Max Price</h4>
-                  <span className="text-sm font-black text-primary-coral">{maxPrice.toLocaleString()} EGP</span>
+                <div className={`flex justify-between items-center mb-3 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-text">
+                    {locale === "ar" ? "الحد الأقصى للسعر" : "Max Price"}
+                  </h4>
+                  <span className="text-sm font-black text-primary-coral">
+                    {maxPrice.toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -215,29 +248,40 @@ export default function ProductsPage() {
                   className="w-full h-1 bg-border-color rounded-lg cursor-pointer"
                   style={{ accentColor: 'var(--color-primary-coral, #fb923c)' }}
                 />
-                <div className="flex justify-between text-[8px] text-muted-text mt-1 uppercase font-bold">
-                  <span>100 EGP</span>
-                  <span>5,000 EGP</span>
+                <div className={`flex justify-between text-[8px] text-muted-text mt-1 uppercase font-bold ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+                  <span>{locale === "ar" ? "100 ج.م" : "100 EGP"}</span>
+                  <span>{locale === "ar" ? "5,000 ج.م" : "5,000 EGP"}</span>
                 </div>
               </div>
 
               {/* 3. Availability Filter */}
               <div className="border-t border-border-color pt-4">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-text mb-3">Availability</h4>
+                <h4 className={`text-[10px] font-black uppercase tracking-widest text-muted-text mb-3 ${locale === "ar" ? "text-right" : "text-left"}`}>
+                  {locale === "ar" ? "حالة التوفر" : "Availability"}
+                </h4>
                 <div className="flex flex-col gap-2">
                   {["In Stock", "Low Stock", "Out of Stock"].map((status: string) => (
                     <label
                       key={status}
-                      className="flex items-center gap-3 cursor-pointer text-xs font-semibold text-soft-text hover:text-white uppercase tracking-wider"
+                      className={`flex items-center gap-3 cursor-pointer text-xs font-semibold text-soft-text hover:text-white uppercase tracking-wider ${
+                        locale === "ar" ? "flex-row-reverse justify-end" : ""
+                      }`}
                     >
                       <input
                         type="checkbox"
                         checked={selectedStock.includes(status)}
                         onChange={() => handleStockChange(status)}
-                        className="rounded border-border-color bg-surface-deep h-4 w-4"
+                        className="rounded border-border-color bg-surface-deep h-4 w-4 cursor-pointer"
                         style={{ accentColor: 'var(--color-primary-coral, #fb923c)' }}
                       />
-                      {status}
+                      <span>
+                        {status === "In Stock" 
+                          ? (locale === "ar" ? "متوفر" : "In Stock") 
+                          : status === "Low Stock"
+                            ? (locale === "ar" ? "مخزون منخفض" : "Low Stock")
+                            : (locale === "ar" ? "نفد من المخزون" : "Out of Stock")
+                        }
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -250,22 +294,27 @@ export default function ProductsPage() {
           <section className="lg:col-span-9 flex flex-col gap-6">
 
             {/* Sorting & Result Count Bar */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-border-color bg-card-bg p-4">
+            <div className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-border-color bg-card-bg p-4 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
               <span className="text-xs font-bold text-soft-text">
-                Showing <span className="font-extrabold text-white">{filteredProducts.length}</span> supplements
+                {locale === "ar" 
+                  ? `عرض ${filteredProducts.length} مكملاً`
+                  : `Showing ${filteredProducts.length} supplements`
+                }
               </span>
 
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-text">Sort By:</span>
+              <div className={`flex items-center gap-2 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-text">
+                  {locale === "ar" ? "ترتيب حسب:" : "Sort By:"}
+                </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="rounded-xl border border-border-color bg-surface-deep px-3 py-1.5 text-xs font-semibold text-white focus:outline-none focus:border-primary-coral cursor-pointer uppercase tracking-wider"
                 >
-                  <option value="best-selling">Best Sellers</option>
-                  <option value="latest">New Arrivals</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
+                  <option value="best-selling">{locale === "ar" ? "الأكثر مبيعاً" : "Best Sellers"}</option>
+                  <option value="latest">{locale === "ar" ? "الأحدث" : "New Arrivals"}</option>
+                  <option value="price-low">{locale === "ar" ? "السعر: من الأقل للأعلى" : "Price: Low to High"}</option>
+                  <option value="price-high">{locale === "ar" ? "السعر: من الأعلى للأقل" : "Price: High to Low"}</option>
                 </select>
               </div>
             </div>
@@ -283,15 +332,20 @@ export default function ProductsPage() {
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-deep border border-border-color text-muted-text mb-4">
                   <Icon name="search" size={28} />
                 </div>
-                <h3 className="text-lg font-bold text-white uppercase tracking-wider">No Supplements Found</h3>
+                <h3 className="text-lg font-bold text-white uppercase tracking-wider">
+                  {locale === "ar" ? "لم يتم العثور على مكملات" : "No Supplements Found"}
+                </h3>
                 <p className="mt-1 text-xs text-muted-text max-w-xs mx-auto">
-                  We couldn&apos;t find any products matching your active filters. Try adjusting your queries or price limits.
+                  {locale === "ar"
+                    ? "لم نتمكن من العثور على أي مكملات تطابق خيارات التصفية النشطة. حاول تعديل البحث أو حدود السعر."
+                    : "We couldn't find any products matching your active filters. Try adjusting your queries or price limits."
+                  }
                 </p>
                 <button
                   onClick={resetFilters}
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-all duration-500 ease-out"
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-all duration-500 ease-out cursor-pointer"
                 >
-                  RESET ALL FILTERS
+                  {locale === "ar" ? "إعادة تعيين التصفية" : "RESET ALL FILTERS"}
                 </button>
               </div>
             )}

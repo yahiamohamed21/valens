@@ -18,6 +18,8 @@ import { defaultHomePageSettings, defaultStoreSettings } from "@/data/settings";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { getStorageItem, setStorageItem } from "@/lib/storage";
 import { showToast } from "@/lib/toast";
+import en from "@/data/translations/en.json";
+import ar from "@/data/translations/ar.json";
 import type {
   AppContextType,
   CartItem,
@@ -59,6 +61,50 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(defaultStoreSettings);
   const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
+  const [locale, setLocale] = useState<"en" | "ar">("en");
+
+  useEffect(() => {
+    const storedLocale = localStorage.getItem("valens_locale") as "en" | "ar";
+    if (storedLocale === "en" || storedLocale === "ar") {
+      setLocale(storedLocale);
+    }
+  }, []);
+
+  const changeLanguage = useCallback((newLocale: "en" | "ar") => {
+    setLocale(newLocale);
+    localStorage.setItem("valens_locale", newLocale);
+  }, []);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+      document.documentElement.lang = locale;
+    }
+  }, [locale]);
+
+  const t = useCallback((key: string, variables?: Record<string, string | number>) => {
+    const dict = locale === "ar" ? ar : en;
+    const keys = key.split(".");
+    let val: any = dict;
+    for (const k of keys) {
+      if (val && typeof val === "object" && k in val) {
+        val = val[k];
+      } else {
+        return key;
+      }
+    }
+    if (typeof val === "string") {
+      let result = val;
+      if (variables) {
+        Object.entries(variables).forEach(([k, v]) => {
+          result = result.replace(`{${k}}`, String(v));
+        });
+      }
+      return result;
+    }
+    return key;
+  }, [locale]);
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
@@ -189,6 +235,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     loginUser,
     logoutUser,
     updateCustomer,
+    locale,
+    changeLanguage,
+    t,
     ...cartActions,
     ...orderActions,
     ...productActions,
@@ -219,6 +268,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     loginUser,
     logoutUser,
     updateCustomer,
+    locale,
+    changeLanguage,
+    t,
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

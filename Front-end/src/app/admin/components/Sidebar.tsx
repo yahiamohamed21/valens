@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/SvgIcons";
 import { useState } from "react";
+import { useApp } from "@/context/AppContext";
 
 export interface SidebarProps {
   sidebarOpen: boolean;
@@ -10,6 +11,8 @@ export interface SidebarProps {
 import { usePathname } from 'next/navigation';
 
 export const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen }) => {
+  const { locale } = useApp();
+  
   const tabs = [
     { id: "overview", label: "Overview", icon: "dashboard" },
     { id: "products", label: "Products", icon: "products" },
@@ -22,6 +25,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen })
     { id: "reports", label: "Reports", icon: "report" },
     { id: "settings", label: "Settings", icon: "settings" },
   ];
+  
+  const getTabLabel = (id: string, defaultLabel: string) => {
+    if (locale !== "ar") return defaultLabel;
+    switch (id) {
+      case "overview": return "نظرة عامة";
+      case "products": return "المنتجات";
+      case "categories": return "التصنيفات";
+      case "orders": return "الطلبات";
+      case "customers": return "العملاء";
+      case "homepage": return "التحكم بالرئيسية";
+      case "coupons": return "الكوبونات";
+      case "expenses": return "المصاريف";
+      case "reports": return "التقارير";
+      case "settings": return "الإعدادات";
+      default: return defaultLabel;
+    }
+  };
+
   const pathname = usePathname();
   const isActive = (id: string) => pathname === `/admin/${id}` || (id === 'overview' && pathname === '/admin');
 
@@ -47,21 +68,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen })
             <Link
               key={tab.id}
               href={tab.id === "overview" ? "/admin" : `/admin/${tab.id}`}
-              className={`flex items-center gap-3.5 rounded-xl px-3 py-3 text-xs font-bold uppercase tracking-wider transition-luxury ${isActive(tab.id)
+              className={`flex items-center gap-3.5 rounded-xl px-3 py-3 text-xs font-bold uppercase tracking-wider transition-luxury ${
+                locale === "ar" ? "flex-row-reverse text-right" : ""
+              } ${isActive(tab.id)
                   ? "bg-primary-coral/10 text-primary-coral border border-primary-coral/20"
                   : "text-soft-text hover:bg-surface-sec hover:text-white"}
                 `}
             >
               <Icon name={tab.icon as any} size={18} />
-              {sidebarOpen && <span>{tab.label}</span>}
+              {sidebarOpen && <span>{getTabLabel(tab.id, tab.label)}</span>}
             </Link>
           ))}        </nav>
       </div>
       {/* Exit back to store */}
       <div className="p-4 border-t border-border-color">
-        <Link href="/" className="flex items-center justify-center gap-2 rounded-xl border border-border-color bg-surface-sec py-2.5 text-xs font-bold uppercase tracking-wider text-soft-text hover:text-white hover:border-primary-coral transition-luxury w-full">
+        <Link href="/" className={`flex items-center justify-center gap-2 rounded-xl border border-border-color bg-surface-sec py-2.5 text-xs font-bold uppercase tracking-wider text-soft-text hover:text-white hover:border-primary-coral transition-luxury w-full ${
+          locale === "ar" ? "flex-row-reverse" : ""
+        }`}>
           <Icon name="logout" size={14} />
-          {sidebarOpen && <span>Back to store</span>}
+          {sidebarOpen && <span>{locale === "ar" ? "العودة للمتجر" : "Back to store"}</span>}
         </Link>
       </div>
     </aside>

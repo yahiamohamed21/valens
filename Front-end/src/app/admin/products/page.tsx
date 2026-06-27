@@ -24,6 +24,7 @@ export default function AdminProductsPage() {
 
   // Form states - Products
   const [prodName, setProdName] = useState("");
+  const [prodNameAr, setProdNameAr] = useState("");
   const [prodCategory, setProdCategory] = useState("Protein");
   const [prodPrice, setProdPrice] = useState("");
   const [prodDiscountPrice, setProdDiscountPrice] = useState("");
@@ -32,9 +33,13 @@ export default function AdminProductsPage() {
   const [prodStock, setProdStock] = useState("");
   const [prodSku, setProdSku] = useState("");
   const [prodDesc, setProdDesc] = useState("");
+  const [prodDescAr, setProdDescAr] = useState("");
   const [prodIngredients, setProdIngredients] = useState("");
+  const [prodIngredientsAr, setProdIngredientsAr] = useState("");
   const [prodUsage, setProdUsage] = useState("");
+  const [prodUsageAr, setProdUsageAr] = useState("");
   const [prodBenefits, setProdBenefits] = useState("");
+  const [prodBenefitsAr, setProdBenefitsAr] = useState("");
   const [prodImgColor, setProdImgColor] = useState("#FF8A75");
   const [prodImgType, setProdImgType] = useState<"powder" | "capsule" | "liquid">("powder");
   const [prodFeatured, setProdFeatured] = useState(false);
@@ -162,6 +167,7 @@ export default function AdminProductsPage() {
     if (prod) {
       setEditingProductId(prod.id);
       setProdName(prod.name);
+      setProdNameAr(prod.name_ar || "");
       setProdCategory(prod.category);
       setProdPrice(prod.price.toString());
       setProdDiscountPrice(prod.discountPrice?.toString() || "");
@@ -174,9 +180,13 @@ export default function AdminProductsPage() {
       setProdStock(prod.stock.toString());
       setProdSku(prod.sku);
       setProdDesc(prod.description);
+      setProdDescAr(prod.description_ar || "");
       setProdIngredients(prod.ingredients.join(", "));
+      setProdIngredientsAr(prod.ingredients_ar?.join(", ") || "");
       setProdUsage(prod.usage);
+      setProdUsageAr(prod.usage_ar || "");
       setProdBenefits(prod.benefits.join("\n"));
+      setProdBenefitsAr(prod.benefits_ar?.join("\n") || "");
       setProdImgColor(prod.imageColor);
       setProdImgType(prod.imageType);
       setProdFeatured(prod.featured);
@@ -190,6 +200,7 @@ export default function AdminProductsPage() {
     } else {
       setEditingProductId(null);
       setProdName("");
+      setProdNameAr("");
       setProdCategory(categories[0]?.name || "Protein");
       setProdPrice("");
       setProdDiscountPrice("");
@@ -198,9 +209,13 @@ export default function AdminProductsPage() {
       setProdStock("");
       setProdSku("");
       setProdDesc("");
+      setProdDescAr("");
       setProdIngredients("");
+      setProdIngredientsAr("");
       setProdUsage("");
+      setProdUsageAr("");
       setProdBenefits("");
+      setProdBenefitsAr("");
       setProdImgColor("#FF8A75");
       setProdImgType("powder");
       setProdFeatured(false);
@@ -312,6 +327,11 @@ export default function AdminProductsPage() {
       mainImage: prodMainImage,
       images: prodImages,
       variantType: prodVariantType,
+      name_ar: prodNameAr || undefined,
+      description_ar: prodDescAr || undefined,
+      ingredients_ar: prodIngredientsAr ? prodIngredientsAr.split(",").map((i) => i.trim()).filter(Boolean) : undefined,
+      usage_ar: prodUsageAr || undefined,
+      benefits_ar: prodBenefitsAr ? prodBenefitsAr.split("\n").map((b) => b.trim()).filter(Boolean) : undefined,
     };
 
     if (editingProductId) {
@@ -440,7 +460,7 @@ export default function AdminProductsPage() {
                   specs: "Specifications"
                 };
                 const iconMap = {
-                  general: "info" as const,
+                  general: "settings" as const,
                   pricing: "report" as const,
                   media: "box" as const,
                   specs: "edit" as const
@@ -467,7 +487,7 @@ export default function AdminProductsPage() {
               {activeTab === "general" && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 animate-fade-in">
                   <div>
-                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Supplement Name *</label>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Supplement Name (EN) *</label>
                     <input
                       type="text"
                       value={prodName}
@@ -478,6 +498,18 @@ export default function AdminProductsPage() {
                   </div>
 
                   <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Supplement Name (AR)</label>
+                    <input
+                      type="text"
+                      value={prodNameAr}
+                      onChange={(e) => setProdNameAr(e.target.value)}
+                      placeholder="مثال: أيزو-واي بروتين معزول فاخر"
+                      dir="rtl"
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:border-primary-coral focus:outline-none focus:ring-1 focus:ring-primary-coral/25 transition-all duration-300 placeholder-muted-text/50"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
                     <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Category Sector *</label>
                     <select
                       value={prodCategory}
@@ -491,11 +523,22 @@ export default function AdminProductsPage() {
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Product Description *</label>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Product Description (EN) *</label>
                     <textarea
                       value={prodDesc}
                       onChange={(e) => setProdDesc(e.target.value)}
-                      placeholder="Explain the product features and formulation highlights..."
+                      placeholder="Explain the product features and formulation highlights in English..."
+                      className="w-full h-24 rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:border-primary-coral focus:outline-none resize-none placeholder-muted-text/50"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Product Description (AR)</label>
+                    <textarea
+                      value={prodDescAr}
+                      onChange={(e) => setProdDescAr(e.target.value)}
+                      placeholder="اشرح مميزات المنتج وتفاصيل التركيبة باللغة العربية..."
+                      dir="rtl"
                       className="w-full h-24 rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:border-primary-coral focus:outline-none resize-none placeholder-muted-text/50"
                     />
                   </div>
@@ -854,8 +897,8 @@ export default function AdminProductsPage() {
               {/* Tab 4: Specifications */}
               {activeTab === "specs" && (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 animate-fade-in">
-                  <div className="sm:col-span-2">
-                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Active Ingredients (comma separated)</label>
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Active Ingredients (EN) (comma separated)</label>
                     <input
                       type="text"
                       placeholder="e.g. Whey Isolate, Creatine, Ashwagandha"
@@ -865,8 +908,20 @@ export default function AdminProductsPage() {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Suggested Usage instructions</label>
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Active Ingredients (AR) (comma separated)</label>
+                    <input
+                      type="text"
+                      placeholder="مثال: واي بروتين معزول، كرياتين، أشواغاندا"
+                      value={prodIngredientsAr}
+                      onChange={(e) => setProdIngredientsAr(e.target.value)}
+                      dir="rtl"
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none placeholder-muted-text/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Suggested Usage instructions (EN)</label>
                     <input
                       type="text"
                       placeholder="e.g. Mix 1 scoop with 300ml of cold water post-workout"
@@ -876,12 +931,35 @@ export default function AdminProductsPage() {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
-                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Formulation Benefits (one per line)</label>
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Suggested Usage instructions (AR)</label>
+                    <input
+                      type="text"
+                      placeholder="مثال: امزج مكيالًا واحدًا مع 300 مل من الماء البارد بعد التمرين"
+                      value={prodUsageAr}
+                      onChange={(e) => setProdUsageAr(e.target.value)}
+                      dir="rtl"
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none placeholder-muted-text/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Formulation Benefits (EN) (one per line)</label>
                     <textarea
                       value={prodBenefits}
                       onChange={(e) => setProdBenefits(e.target.value)}
                       placeholder="e.g. Accelerates muscle protein synthesis&#10;Enhances physical strength output"
+                      className="w-full h-24 rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none resize-none placeholder-muted-text/50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Formulation Benefits (AR) (one per line)</label>
+                    <textarea
+                      value={prodBenefitsAr}
+                      onChange={(e) => setProdBenefitsAr(e.target.value)}
+                      placeholder="مثال: يسرع تخليق البروتين العضلي&#10;يعزز إنتاج القوة البدنية"
+                      dir="rtl"
                       className="w-full h-24 rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none resize-none placeholder-muted-text/50"
                     />
                   </div>

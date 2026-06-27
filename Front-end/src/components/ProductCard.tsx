@@ -169,7 +169,7 @@ export const ProductImage: React.FC<{
 };
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { addToCart } = useApp();
+  const { addToCart, locale, t } = useApp();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
@@ -373,17 +373,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <div className="flex flex-col gap-1.5">
               {discount > 0 && (
                 <span className="self-start rounded bg-accent-orange/90 px-2 py-0.5 text-[9px] font-extrabold tracking-wide text-white uppercase shadow-sm">
-                  SAVE {discount}%
+                  {locale === "ar" ? `وفر ${discount}%` : `SAVE ${discount}%`}
                 </span>
               )}
               {product.bestSeller && (
                 <span className="self-start rounded bg-primary-coral px-2 py-0.5 text-[9px] font-extrabold tracking-wide text-main-bg uppercase shadow-sm">
-                  HOT
+                  {locale === "ar" ? "شائع" : "HOT"}
                 </span>
               )}
               {product.newArrival && (
                 <span className="self-start rounded border border-primary-coral/30 bg-card-bg/95 px-2 py-0.5 text-[9px] font-extrabold tracking-wide text-primary-coral uppercase shadow-sm">
-                  NEW
+                  {locale === "ar" ? "جديد" : "NEW"}
                 </span>
               )}
             </div>
@@ -401,13 +401,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               <span
                 className={`h-1 w-1 rounded-full ${
                   product.stockStatus === "In Stock"
-                    ? "bg-success-green"
-                    : product.stockStatus === "Low Stock"
-                      ? "bg-primary-coral"
-                      : "bg-red-500"
+                     ? "bg-success-green"
+                     : product.stockStatus === "Low Stock"
+                       ? "bg-primary-coral"
+                       : "bg-red-500"
                 }`}
               />
-              {product.stockStatus}
+              {product.stockStatus === "In Stock" 
+                ? (locale === "ar" ? "متوفر" : "In Stock") 
+                : product.stockStatus === "Low Stock"
+                  ? (locale === "ar" ? "مخزون منخفض" : "Low Stock")
+                  : (locale === "ar" ? "نفد من المخزون" : "Out of Stock")
+              }
             </span>
           </div>
 
@@ -423,17 +428,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Product Details Section */}
           <div className="flex flex-col gap-1.5 mt-auto">
             {/* Title and Price Row */}
-            <div className="flex justify-between items-start gap-2">
-              <h3 className="text-base font-extrabold tracking-wide uppercase text-white group-hover:text-primary-coral transition-colors duration-300 line-clamp-2">
-                {product.name}
+            <div className={`flex justify-between items-start gap-2 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+              <h3 className={`text-base font-extrabold tracking-wide uppercase text-white group-hover:text-primary-coral transition-colors duration-300 line-clamp-2 ${locale === "ar" ? "text-right" : "text-left"}`}>
+                {locale === "ar" && product.name_ar ? product.name_ar : product.name}
               </h3>
               <span className="text-base font-extrabold text-primary-coral whitespace-nowrap">
-                {Math.round(product.discountPrice || product.price).toLocaleString()} EGP
+                {Math.round(product.discountPrice || product.price).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
               </span>
             </div>
 
             {/* Ratings and Reviews */}
-            <div className="flex items-center gap-1">
+            <div className={`flex items-center gap-1 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
               <div className="flex text-primary-coral">
                 {Array.from({ length: 5 }).map((_, idx) => (
                   <Icon
@@ -444,12 +449,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   />
                 ))}
               </div>
-              <span className="text-[10px] font-bold text-soft-text ml-1">({product.reviews.length || 120} Reviews)</span>
+              <span className="text-[10px] font-bold text-soft-text ml-1">({product.reviews.length || 120} {locale === "ar" ? "تقييم" : "Reviews"})</span>
             </div>
 
             {/* Description */}
-            <p className="text-xs text-muted-text line-clamp-2 leading-relaxed min-h-[32px]">
-              {product.description}
+            <p className={`text-xs text-muted-text line-clamp-2 leading-relaxed min-h-[32px] ${locale === "ar" ? "text-right" : "text-left"}`}>
+              {locale === "ar" && product.description_ar ? product.description_ar : product.description}
             </p>
 
             {/* Quick Add Button */}
@@ -463,7 +468,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               }`}
             >
               <Icon name="cart" size={14} />
-              Quick Add
+              {locale === "ar" ? "إضافة سريعة" : "Quick Add"}
             </button>
           </div>
         </div>

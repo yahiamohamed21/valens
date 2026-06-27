@@ -13,6 +13,13 @@ export const defaultHomePageSettings: HomePageSettings = {
     "Cold-filtered processing, zero artificial coloring, complete transparency. We don't hide behind proprietary blends. What you see is exactly what powers you.",
   firstBannerCtaText: "DISCOVER THE SCIENCE",
   promoBadge: "ELITE PERFORMANCE LINE",
+  heroTitle_ar: "مُصمم برؤية علمية، مُنفجر بقوة الأداء",
+  heroSubtitle_ar: "مُهندس خصيصاً للرياضيين النخبة. مكملات فاخرة مُصممة بجرعات سريرية ومكونات نظيفة وبدون تنازلات.",
+  heroCtaText_ar: "تسوق التغذية الفاخرة",
+  firstBannerTitle_ar: "تركيبة VALENS النخبوية",
+  firstBannerSubtitle_ar: "معالجة بالفلترة الباردة، خالية تمامًا من الألوان الاصطناعية، وشفافية مطلقة للبطاقات. لا نختبئ خلف تركيبات احتكارية مبهمة.",
+  firstBannerCtaText_ar: "اكتشف الجانب العلمي",
+  promoBadge_ar: "خط الأداء الرياضي الفاخر",
 };
 
 export const defaultStoreSettings: StoreSettings = {

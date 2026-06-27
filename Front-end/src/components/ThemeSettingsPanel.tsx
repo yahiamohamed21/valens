@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { useTheme, PRESET_THEMES } from "@/context/ThemeContext";
 import { Icon } from "@/components/SvgIcons";
+import { useApp } from "@/context/AppContext";
 
 export const ThemeSettingsPanel = () => {
   const { theme, setMode, setPrimaryColor, setAccentColor, applyPreset, resetToDefault, isPanelOpen, setIsPanelOpen } = useTheme();
+  const { locale, changeLanguage } = useApp();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -42,8 +44,12 @@ export const ThemeSettingsPanel = () => {
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border-color px-6 py-5">
-          <h2 className="text-sm font-black uppercase tracking-widest text-white">Theme Settings</h2>
+        <div className={`flex items-center justify-between border-b border-border-color px-6 py-5 ${
+          locale === "ar" ? "flex-row-reverse" : ""
+        }`}>
+          <h2 className="text-sm font-black uppercase tracking-widest text-white">
+            {locale === "ar" ? "إعدادات المظهر" : "Theme Settings"}
+          </h2>
           <button
             onClick={() => setIsPanelOpen(false)}
             className="text-muted-text hover:text-primary-coral transition-colors cursor-pointer"
@@ -54,43 +60,76 @@ export const ThemeSettingsPanel = () => {
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           
+          {/* Language Selector */}
+          <div className="space-y-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">
+              {locale === "ar" ? "اللغة / Language" : "Language / اللغة"}
+            </span>
+            <div className="flex rounded-xl border border-border-color bg-card-bg p-1">
+              <button
+                onClick={() => changeLanguage("en")}
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
+                  locale === "en"
+                    ? "bg-surface-deep text-primary-coral shadow-sm"
+                    : "text-muted-text hover:text-white"
+                }`}
+              >
+                <span>🇺🇸</span> EN
+              </button>
+              <button
+                onClick={() => changeLanguage("ar")}
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
+                  locale === "ar"
+                    ? "bg-surface-deep text-primary-coral shadow-sm"
+                    : "text-muted-text hover:text-white"
+                }`}
+              >
+                <span>🇪🇬</span> AR
+              </button>
+            </div>
+          </div>
+
           {/* Mode Toggle */}
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">Display Mode</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">
+              {locale === "ar" ? "وضع العرض" : "Display Mode"}
+            </span>
             <div className="flex rounded-xl border border-border-color bg-card-bg p-1">
               <button
                 onClick={() => setMode("dark")}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all ${
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                   theme.mode === "dark"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
                     : "text-muted-text hover:text-white"
                 }`}
               >
-                Dark
+                {locale === "ar" ? "داكن" : "Dark"}
               </button>
               <button
                 onClick={() => setMode("light")}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all ${
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                   theme.mode === "light"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
                     : "text-muted-text hover:text-white"
                 }`}
               >
-                Light
+                {locale === "ar" ? "فاتح" : "Light"}
               </button>
             </div>
           </div>
 
           {/* Presets */}
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">Color Presets</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">
+              {locale === "ar" ? "قوالب الألوان" : "Color Presets"}
+            </span>
             <div className="grid grid-cols-4 gap-3">
               {PRESET_THEMES.map((preset) => (
                 <button
                   key={preset.name}
                   onClick={() => applyPreset(preset)}
                   title={preset.name}
-                  className="group relative flex aspect-square items-center justify-center rounded-xl border border-border-color bg-card-bg transition-all hover:scale-105 overflow-hidden"
+                  className="group relative flex aspect-square items-center justify-center rounded-xl border border-border-color bg-card-bg transition-all hover:scale-105 overflow-hidden cursor-pointer"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br" style={{ backgroundImage: `linear-gradient(to bottom right, ${preset.primaryColor}, ${preset.accentColor})`, opacity: 0.2 }} />
                   <div
@@ -109,11 +148,15 @@ export const ThemeSettingsPanel = () => {
 
           {/* Custom Colors */}
           <div className="space-y-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">Custom Palette</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">
+              {locale === "ar" ? "تخصيص الألوان" : "Custom Palette"}
+            </span>
             
-            <div className="flex items-center justify-between rounded-xl border border-border-color bg-card-bg p-3">
-              <span className="text-xs font-bold text-white">Primary</span>
-              <div className="flex items-center gap-3">
+            <div className={`flex items-center justify-between rounded-xl border border-border-color bg-card-bg p-3 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+              <span className="text-xs font-bold text-white">
+                {locale === "ar" ? "الأساسي" : "Primary"}
+              </span>
+              <div className={`flex items-center gap-3 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
                 <span className="text-xs font-mono text-muted-text">{theme.primaryColor.toUpperCase()}</span>
                 <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-border-color cursor-pointer">
                   <input
@@ -126,9 +169,11 @@ export const ThemeSettingsPanel = () => {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-xl border border-border-color bg-card-bg p-3">
-              <span className="text-xs font-bold text-white">Accent</span>
-              <div className="flex items-center gap-3">
+            <div className={`flex items-center justify-between rounded-xl border border-border-color bg-card-bg p-3 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+              <span className="text-xs font-bold text-white">
+                {locale === "ar" ? "الثانوي" : "Accent"}
+              </span>
+              <div className={`flex items-center gap-3 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
                 <span className="text-xs font-mono text-muted-text">{theme.accentColor.toUpperCase()}</span>
                 <div className="relative h-8 w-8 overflow-hidden rounded-lg border border-border-color cursor-pointer">
                   <input
@@ -146,12 +191,14 @@ export const ThemeSettingsPanel = () => {
 
         {/* Footer */}
         <div className="border-t border-border-color p-6 space-y-4">
-          <p className="text-center text-[10px] text-muted-text">Changes apply instantly</p>
+          <p className="text-center text-[10px] text-muted-text">
+            {locale === "ar" ? "يتم تطبيق التغييرات فوراً" : "Changes apply instantly"}
+          </p>
           <button
             onClick={resetToDefault}
-            className="w-full rounded-xl border border-border-color bg-surface-sec py-3 text-xs font-bold uppercase tracking-widest text-soft-text transition-all hover:border-primary-coral hover:text-white"
+            className="w-full rounded-xl border border-border-color bg-surface-sec py-3 text-xs font-bold uppercase tracking-widest text-soft-text transition-all hover:border-primary-coral hover:text-white cursor-pointer"
           >
-            Reset to Default
+            {locale === "ar" ? "إعادة الضبط الافتراضي" : "Reset to Default"}
           </button>
         </div>
 
