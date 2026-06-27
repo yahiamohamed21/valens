@@ -4,6 +4,9 @@ using System;
 using System.Threading.Tasks;
 using ValensApi.Application.Interfaces;
 
+using ValensApi.Domain.Entities;
+using ValensApi.Infrastructure.Persistence.Repositories;
+
 namespace ValensApi.Infrastructure.Persistence;
 
 public class UnitOfWork : IUnitOfWork
@@ -13,11 +16,31 @@ public class UnitOfWork : IUnitOfWork
     private bool _disposed;
 
     public IProductRepository Products { get; }
+    public IGenericRepository<Category> Categories { get; }
+    public IGenericRepository<ProductVariant> ProductVariants { get; }
+    public IGenericRepository<User> Users { get; }
+    public IGenericRepository<Customer> Customers { get; }
+    public IGenericRepository<Order> Orders { get; }
+    public IGenericRepository<OrderItem> OrderItems { get; }
+    public IGenericRepository<Coupon> Coupons { get; }
+    public IGenericRepository<Expense> Expenses { get; }
+    public IGenericRepository<StoreSetting> StoreSettings { get; }
+    public IGenericRepository<UserOtp> UserOtps { get; }
 
     public UnitOfWork(ApplicationDbContext context, IProductRepository products)
     {
         _context = context;
         Products = products;
+        Categories = new GenericRepository<Category>(context);
+        ProductVariants = new GenericRepository<ProductVariant>(context);
+        Users = new GenericRepository<User>(context);
+        Customers = new GenericRepository<Customer>(context);
+        Orders = new GenericRepository<Order>(context);
+        OrderItems = new GenericRepository<OrderItem>(context);
+        Coupons = new GenericRepository<Coupon>(context);
+        Expenses = new GenericRepository<Expense>(context);
+        StoreSettings = new GenericRepository<StoreSetting>(context);
+        UserOtps = new GenericRepository<UserOtp>(context);
     }
 
     public async Task<int> SaveChangesAsync()

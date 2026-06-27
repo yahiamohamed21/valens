@@ -17,7 +17,7 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
     public async Task<IEnumerable<Product>> GetProductsWithLowStockAsync(int threshold)
     {
         return await _dbSet
-            .Where(p => p.StockQuantity < threshold)
+            .Where(p => p.Stock < threshold)
             .ToListAsync();
     }
 }

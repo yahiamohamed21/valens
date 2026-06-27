@@ -64,4 +64,9 @@ public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
             Delete(entity);
         }
     }
+
+    public virtual System.Linq.IQueryable<T> GetQueryable()
+    {
+        return _dbSet;
+    }
 }
