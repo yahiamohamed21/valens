@@ -62,6 +62,13 @@ app.UseStaticFiles();
 // Map Endpoints
 app.MapControllers();
 
+// Seed database with mock data on startup
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ValensApi.Infrastructure.Persistence.ApplicationDbContext>();
+    await ValensApi.Infrastructure.Persistence.DatabaseSeeder.SeedDataAsync(context);
+}
+
 // Redirect root URL to Swagger UI in Development
 if (app.Environment.IsDevelopment())
 {
