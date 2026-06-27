@@ -1,8 +1,8 @@
 {
 	"info": {
 		"_postman_id": "b5db03a4-8b6c-482b-8a8b-3d60064d1234",
-		"name": "Valens API - Collection",
-		"description": "Postman Collection for Valens E-commerce Backend APIs including Auth, Homepage, Products, Coupons, Orders, and Expenses.",
+		"name": "Valens API - Complete Collection",
+		"description": "Comprehensive Postman Collection containing all 39 API endpoints for Valens E-commerce backend.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -60,6 +60,44 @@
 								"api",
 								"auth",
 								"register-customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register New Admin",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fullName\": \"New Admin\",\n  \"email\": \"newadmin@valens.com\",\n  \"password\": \"Admin@Valens123!\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register-new-admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register-new-admin"
 							]
 						}
 					},
@@ -200,16 +238,74 @@
 			]
 		},
 		{
-			"name": "Homepage",
+			"name": "Categories",
 			"item": [
 				{
-					"name": "Homepage Overview",
+					"name": "Get Active Product Categories",
 					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/list-active-product-categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"categories",
+								"list-active-product-categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Admin Product Categories",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/list-admin-product-categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"categories",
+								"list-admin-product-categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Category",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
 						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{}",
+							"raw": "{\n  \"name\": \"Creatine\",\n  \"isActive\": true\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -217,14 +313,128 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/settings/homepage-overview",
+							"raw": "{{baseUrl}}/api/categories/create-product-category",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"settings",
-								"homepage-overview"
+								"categories",
+								"create-product-category"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Category",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"e0bfa923-5e76-4d2c-80a1-d7ef71a4f002\",\n  \"name\": \"Premium Creatine\",\n  \"isActive\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/update-product-category",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"categories",
+								"update-product-category"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Category",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"e0bfa923-5e76-4d2c-80a1-d7ef71a4f002\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/delete-product-category",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"categories",
+								"delete-product-category"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Category Visibility",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"e0bfa923-5e76-4d2c-80a1-d7ef71a4f002\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/categories/toggle-product-category",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"categories",
+								"toggle-product-category"
 							]
 						}
 					},
@@ -264,7 +474,150 @@
 					"response": []
 				},
 				{
-					"name": "Toggle Coupon Visibility",
+					"name": "Get Admin Coupons",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/coupons/list-admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"coupons",
+								"list-admin"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Coupon",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"VALENS20\",\n  \"discountType\": \"Percentage\",\n  \"discountValue\": 20.00,\n  \"minOrderAmount\": 1000.00,\n  \"maxUsage\": 100,\n  \"expiryDate\": \"2026-12-31T23:59:59Z\",\n  \"isActive\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/coupons/create-coupon",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"coupons",
+								"create-coupon"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Coupon",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"cc3a8f4c-1d01-447b-91d1-678912efc4d3\",\n  \"code\": \"VALENS20\",\n  \"discountType\": \"Percentage\",\n  \"discountValue\": 25.00,\n  \"minOrderAmount\": 1000.00,\n  \"maxUsage\": 150,\n  \"expiryDate\": \"2026-12-31T23:59:59Z\",\n  \"isActive\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/coupons/update-coupon",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"coupons",
+								"update-coupon"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Coupon",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"cc3a8f4c-1d01-447b-91d1-678912efc4d3\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/coupons/delete-coupon",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"coupons",
+								"delete-coupon"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Coupon Active State",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -304,10 +657,10 @@
 			]
 		},
 		{
-			"name": "Products",
+			"name": "Customers",
 			"item": [
 				{
-					"name": "Toggle Product Visibility",
+					"name": "Get Admin Customers",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -323,7 +676,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"id\": \"8a38db4f-8f83-4a11-a83d-eb88812c3f81\"\n}",
+							"raw": "{\n  \"search\": \"\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -331,26 +684,21 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/products/toggle-product",
+							"raw": "{{baseUrl}}/api/customers/list-admin-customers",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"products",
-								"toggle-product"
+								"customers",
+								"list-admin-customers"
 							]
 						}
 					},
 					"response": []
-				}
-			]
-		},
-		{
-			"name": "Categories",
-			"item": [
+				},
 				{
-					"name": "Toggle Category Visibility",
+					"name": "Get Customer Details By ID",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -374,14 +722,209 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/categories/toggle-product-category",
+							"raw": "{{baseUrl}}/api/customers/detail-admin-customer",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"categories",
-								"toggle-product-category"
+								"customers",
+								"detail-admin-customer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fullName\": \"Abdo Updated\",\n  \"phone\": \"01099999999\",\n  \"address\": \"Tagamoa, Cairo\",\n  \"city\": \"New Cairo\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/customers/update-profile",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"customers",
+								"update-profile"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Expenses",
+			"item": [
+				{
+					"name": "List Expenses (Admin Filter)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"search\": \"\",\n  \"category\": \"\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/expenses/list-admin-expenses",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"expenses",
+								"list-admin-expenses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Expense",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Gym Promo Banner Printing\",\n  \"amount\": 850.00,\n  \"category\": \"Marketing\",\n  \"date\": \"2026-06-27T00:00:00Z\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/expenses/create-expense",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"expenses",
+								"create-expense"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Expense",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"guid-expense-id\",\n  \"title\": \"Updated Gym Banner Printing\",\n  \"amount\": 900.00,\n  \"category\": \"Marketing\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/expenses/update-expense",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"expenses",
+								"update-expense"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Expense",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"guid-expense-id\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/expenses/delete-expense",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"expenses",
+								"delete-expense"
 							]
 						}
 					},
@@ -556,10 +1099,94 @@
 			]
 		},
 		{
-			"name": "Expenses",
+			"name": "Products",
 			"item": [
 				{
-					"name": "List Expenses (Admin Filter)",
+					"name": "Get All Products",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"category\": \"\",\n  \"search\": \"\",\n  \"minPrice\": null,\n  \"maxPrice\": null,\n  \"sortBy\": \"newest\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products/list-products",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"list-products"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List Homepage Sections",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products/list-homepage-sections",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"list-homepage-sections"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product Details By ID",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"8a38db4f-8f83-4a11-a83d-eb88812c3f81\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products/detail-product",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"detail-product"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product",
 					"request": {
 						"auth": {
 							"type": "bearer",
@@ -575,7 +1202,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"search\": \"\",\n  \"category\": \"\"\n}",
+							"raw": "{\n  \"name\": \"Valens Iso Whey\",\n  \"category\": \"Whey Protein\",\n  \"description\": \"Pure hydrolyzed whey protein isolate.\",\n  \"featured\": true,\n  \"bestSeller\": false,\n  \"newArrival\": true,\n  \"visible\": true,\n  \"variantType\": \"flavor\",\n  \"variants\": [\n    {\n      \"id\": \"flavor-vanilla-1kg\",\n      \"size\": \"1kg\",\n      \"flavor\": \"Vanilla\",\n      \"price\": 1450.00,\n      \"discountPrice\": 1350.00,\n      \"stockQuantity\": 40,\n      \"sku\": \"V-ISO-VAN-1\",\n      \"image\": \"\",\n      \"isAvailable\": true\n    }\n  ],\n  \"price\": 1450.00,\n  \"discountPrice\": 1350.00,\n  \"stock\": 40,\n  \"mainImage\": \"\",\n  \"images\": []\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -583,14 +1210,309 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/expenses/list-admin-expenses",
+							"raw": "{{baseUrl}}/api/products/create-product",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
-								"expenses",
-								"list-admin-expenses"
+								"products",
+								"create-product"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"8a38db4f-8f83-4a11-a83d-eb88812c3f81\",\n  \"name\": \"Updated Valens Iso Whey\",\n  \"category\": \"Whey Protein\",\n  \"description\": \"Updated isolate formula.\",\n  \"featured\": true,\n  \"bestSeller\": true,\n  \"newArrival\": false,\n  \"visible\": true,\n  \"variantType\": \"none\",\n  \"price\": 1400.00,\n  \"discountPrice\": 1300.00,\n  \"stock\": 35\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products/update-product",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"update-product"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"8a38db4f-8f83-4a11-a83d-eb88812c3f81\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products/delete-product",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"delete-product"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Product Visibility",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"8a38db4f-8f83-4a11-a83d-eb88812c3f81\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products/toggle-product",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"products",
+								"toggle-product"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Reports",
+			"item": [
+				{
+					"name": "Get Dashboard Summary",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/reports/dashboard-summary",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"reports",
+								"dashboard-summary"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Settings",
+			"item": [
+				{
+					"name": "Get Store Config",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/settings/store-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"settings",
+								"store-config"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Homepage Config",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/settings/homepage-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"settings",
+								"homepage-config"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Store Config",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"shippingCost\": 70.00,\n  \"freeShippingThreshold\": 2000.00,\n  \"contactPhone\": \"+201099999999\",\n  \"contactEmail\": \"info@valens.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/settings/update-store-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"settings",
+								"update-store-config"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Homepage Config",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"homepageHeroTitle\": \"Ultimate Supps Store\",\n  \"homepageHeroSubtitle\": \"Get your power now!\",\n  \"homepageDiscountBannerText\": \"15% OFF for all creatine products!\",\n  \"heroImage\": \"\",\n  \"promoBannerImage\": \"\",\n  \"homepageSliderImages\": []\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/settings/update-homepage-config",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"settings",
+								"update-homepage-config"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Homepage Overview",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/settings/homepage-overview",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"settings",
+								"homepage-overview"
 							]
 						}
 					},
