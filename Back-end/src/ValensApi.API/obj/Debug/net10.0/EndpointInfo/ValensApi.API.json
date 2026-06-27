@@ -408,6 +408,37 @@
         }
       }
     },
+    "/api/Categories/toggle-product-category": {
+      "post": {
+        "tags": [
+          "Categories"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Coupons/validate-coupon": {
       "post": {
         "tags": [
@@ -587,6 +618,37 @@
         }
       }
     },
+    "/api/Coupons/toggle-coupon": {
+      "post": {
+        "tags": [
+          "Coupons"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Customers/list-admin-customers": {
       "post": {
         "tags": [
@@ -706,11 +768,30 @@
         }
       }
     },
-    "/api/Expenses/list-admin": {
-      "get": {
+    "/api/Expenses/list-admin-expenses": {
+      "post": {
         "tags": [
           "Expenses"
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseFilterDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseFilterDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExpenseFilterDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -1068,6 +1149,35 @@
         }
       }
     },
+    "/api/Products/list-homepage-sections": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomepageSectionsDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomepageSectionsDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomepageSectionsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Products/detail-product": {
       "post": {
         "tags": [
@@ -1226,6 +1336,37 @@
         }
       }
     },
+    "/api/Products/toggle-product": {
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Reports/dashboard-summary": {
       "get": {
         "tags": [
@@ -1317,6 +1458,18 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Settings/homepage-overview": {
+      "post": {
+        "tags": [
+          "Settings"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -1661,11 +1814,52 @@
         },
         "additionalProperties": false
       },
+      "ExpenseFilterDto": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ForgotPasswordRequestDto": {
         "type": "object",
         "properties": {
           "email": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "HomepageSectionsDto": {
+        "type": "object",
+        "properties": {
+          "featured": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            },
+            "nullable": true
+          },
+          "bestSellers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            },
+            "nullable": true
+          },
+          "newArrivals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Product"
+            },
             "nullable": true
           }
         },
@@ -2213,10 +2407,6 @@
       "ResetPasswordWithOtpDto": {
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string",
-            "nullable": true
-          },
           "otpCode": {
             "type": "string",
             "nullable": true

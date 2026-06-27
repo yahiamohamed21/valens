@@ -195,6 +195,22 @@
   },
   {
     "ContainingType": "ValensApi.API.Controllers.CategoriesController",
+    "Method": "ToggleCategory",
+    "RelativePath": "api/Categories/toggle-product-category",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Common.IdRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CategoriesController",
     "Method": "UpdateCategory",
     "RelativePath": "api/Categories/update-product-category",
     "HttpMethod": "POST",
@@ -270,6 +286,22 @@
         "StatusCode": 200
       }
     ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.CouponsController",
+    "Method": "ToggleCoupon",
+    "RelativePath": "api/Coupons/toggle-coupon",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Common.IdRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
   },
   {
     "ContainingType": "ValensApi.API.Controllers.CouponsController",
@@ -406,11 +438,17 @@
   {
     "ContainingType": "ValensApi.API.Controllers.ExpensesController",
     "Method": "GetAdminExpenses",
-    "RelativePath": "api/Expenses/list-admin",
-    "HttpMethod": "GET",
+    "RelativePath": "api/Expenses/list-admin-expenses",
+    "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
-    "Parameters": [],
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Expenses.ExpenseFilterDto",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": [
       {
         "Type": "System.Collections.Generic.IEnumerable\u00601[[ValensApi.Domain.Entities.Expense, ValensApi.Domain, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
@@ -587,6 +625,26 @@
   },
   {
     "ContainingType": "ValensApi.API.Controllers.ProductsController",
+    "Method": "GetHomepageSections",
+    "RelativePath": "api/Products/list-homepage-sections",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "ValensApi.Application.DTOs.Products.HomepageSectionsDto",
+        "MediaTypes": [
+          "text/plain",
+          "application/json",
+          "text/json"
+        ],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.ProductsController",
     "Method": "GetProducts",
     "RelativePath": "api/Products/list-products",
     "HttpMethod": "POST",
@@ -610,6 +668,22 @@
         "StatusCode": 200
       }
     ]
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.ProductsController",
+    "Method": "ToggleProduct",
+    "RelativePath": "api/Products/toggle-product",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "ValensApi.Application.DTOs.Common.IdRequestDto",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
   },
   {
     "ContainingType": "ValensApi.API.Controllers.ProductsController",
@@ -642,6 +716,16 @@
     "Method": "GetHomepageSettings",
     "RelativePath": "api/Settings/homepage-config",
     "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "ValensApi.API.Controllers.SettingsController",
+    "Method": "GetHomepageOverview",
+    "RelativePath": "api/Settings/homepage-overview",
+    "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [],

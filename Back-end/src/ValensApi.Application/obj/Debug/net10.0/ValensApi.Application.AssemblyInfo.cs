@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ValensApi.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7ae8355110c3bc18b4d0bb905721418991b82640")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bbbcb7460ab08f0d4c98fdddcddff9e26c78d063")]
 [assembly: System.Reflection.AssemblyProductAttribute("ValensApi.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ValensApi.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

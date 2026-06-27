@@ -336,3 +336,4 @@ C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.API\obj\Debug\net10
 C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.API\obj\Debug\net10.0\ref\ValensApi.API.dll
 C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.API\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
 C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.API\bin\Debug\net10.0\ValensApi.API.staticwebassets.runtime.json
+C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.API\obj\Debug\net10.0\staticwebassets.upToDateCheck.txt
