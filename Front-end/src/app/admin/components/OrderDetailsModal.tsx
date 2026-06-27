@@ -87,29 +87,36 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         <div className="flex flex-col gap-2 mb-6 max-h-40 overflow-y-auto pr-1">
           {order.items.map((item) => (
             <div
-              key={`${item.productId}-${item.size}-${item.variant}`}
+              key={`${item.productId}-${item.size || ""}-${item.variant || ""}`}
               className="flex items-center justify-between border-b border-border-color/30 pb-2 text-xs"
             >
               <div className="flex items-center gap-3">
-                <div className="h-10 w-8 bg-surface-deep border border-border-color rounded p-0.5 flex items-center justify-center shrink-0">
-                  <ProductImage
-                    color={item.imageColor}
-                    type={item.imageType}
-                    glow={false}
-                    className="h-8 w-full"
-                  />
+                <div className="h-10 w-8 bg-surface-deep border border-border-color rounded p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                  {item.image ? (
+                    <img src={item.image} alt={item.productName} className="h-full w-full object-contain" />
+                  ) : (
+                    <ProductImage
+                      color={item.imageColor}
+                      type={item.imageType}
+                      glow={false}
+                      className="h-8 w-full"
+                    />
+                  )}
                 </div>
                 <div>
                   <span className="font-bold text-white block truncate max-w-[150px]">
                     {item.productName}
                   </span>
                   <span className="text-4xs text-muted-text uppercase font-semibold">
-                    Qty: {item.quantity} • {item.variant} • {item.size}
+                    Qty: {item.quantity}
+                    {item.size && ` • Size: ${item.size}`}
+                    {item.variant && ` • Flavor: ${item.variant}`}
                   </span>
                 </div>
               </div>
-              <span className="font-bold text-soft-text">
-                ${(item.price * item.quantity).toFixed(2)}
+              <span className="font-bold text-soft-text text-right flex flex-col items-end">
+                <span>{(item.price * item.quantity).toLocaleString()} EGP</span>
+                <span className="text-4xs text-muted-text font-normal">({item.price.toLocaleString()} EGP each)</span>
               </span>
             </div>
           ))}
@@ -120,17 +127,17 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           <div className="flex justify-between">
             <span>Coupons Discount</span>
             <span className="text-success-green">
-              -${order.discountAmount.toFixed(2)}
+              -{order.discountAmount.toLocaleString()} EGP
             </span>
           </div>
           <div className="flex justify-between">
             <span>Shipping cost</span>
-            <span>${order.shippingCost.toFixed(2)}</span>
+            <span>{order.shippingCost.toLocaleString()} EGP</span>
           </div>
           <div className="flex justify-between font-bold text-white text-sm border-t border-border-color/30 pt-2">
             <span>Total Amount Charged</span>
             <span className="text-primary-coral">
-              ${order.totalPrice.toFixed(2)}
+              {order.totalPrice.toLocaleString()} EGP
             </span>
           </div>
         </div>

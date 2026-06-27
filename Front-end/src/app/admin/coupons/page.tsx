@@ -98,9 +98,9 @@ export default function AdminCouponsPage() {
                 <tr key={c.id} className="border-b border-border-color/30 last:border-0 hover:bg-surface-deep/20">
                   <td className="py-3.5 font-bold text-white font-mono">{c.code}</td>
                   <td className="py-3.5 font-bold">
-                    {c.discountType === "percentage" ? `${c.discountValue}% Off` : `$${c.discountValue} Fixed`}
+                    {c.discountType === "percentage" ? `${c.discountValue}% Off` : `${c.discountValue} EGP Fixed`}
                   </td>
-                  <td className="py-3.5 text-muted-text font-bold">${c.minOrderAmount} min</td>
+                  <td className="py-3.5 text-muted-text font-bold">{c.minOrderAmount} EGP min</td>
                   <td className="py-3.5 text-3xs font-semibold text-muted-text">{c.expiryDate}</td>
                   <td className="py-3.5">
                     {c.usageCount} / {c.usageLimit}
@@ -203,7 +203,7 @@ export default function AdminCouponsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Min Order ($)</label>
+                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Min Order (EGP)</label>
                   <input
                     type="number"
                     value={coupMinOrder}

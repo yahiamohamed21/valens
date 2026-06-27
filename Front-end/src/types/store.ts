@@ -1,3 +1,15 @@
+export interface ProductVariant {
+  id: string;
+  size?: string;
+  flavor?: string;
+  price: number;
+  discountPrice?: number;
+  stockQuantity: number;
+  sku: string;
+  image?: string;
+  isAvailable: boolean;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -5,7 +17,7 @@ export interface Product {
   price: number;
   discountPrice?: number;
   size: string;
-  variants: string[];
+  variants: ProductVariant[];
   stock: number;
   stockStatus: "In Stock" | "Low Stock" | "Out of Stock";
   sku: string;
@@ -21,6 +33,9 @@ export interface Product {
   visible: boolean;
   imageColor: string; // hex color for cap/accent
   imageType: "powder" | "capsule" | "liquid";
+  images: string[];
+  mainImage: string;
+  variantType: "none" | "size" | "flavor" | "both";
 }
 
 export interface Review {
@@ -42,8 +57,11 @@ export interface Category {
 export interface CartItem {
   product: Product;
   quantity: number;
-  selectedSize: string;
-  selectedVariant: string;
+  selectedSize?: string;
+  selectedVariant?: string;
+  selectedVariantPrice: number;
+  sku: string;
+  image?: string;
 }
 
 export interface Order {
@@ -171,7 +189,15 @@ export interface AppContextType {
   updateCustomer: (email: string, updatedDetails: Partial<Customer>) => void;
 
   // Cart operations
-  addToCart: (product: Product, quantity: number, size: string, variant: string) => void;
+  addToCart: (
+    product: Product,
+    quantity: number,
+    size?: string,
+    variant?: string,
+    price?: number,
+    sku?: string,
+    image?: string
+  ) => void;
   updateCartQuantity: (index: number, quantity: number) => void;
   removeFromCart: (index: number) => void;
   clearCart: () => void;

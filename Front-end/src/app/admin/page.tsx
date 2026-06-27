@@ -26,20 +26,20 @@ export default function AdminDashboard() {
 
         <div className="rounded-2xl border border-border-color bg-card-bg p-4 flex flex-col">
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">TOTAL REVENUES</span>
-          <span className="mt-1.5 text-lg font-black text-white">${totals.totalSales.toFixed(2)}</span>
+          <span className="mt-1.5 text-lg font-black text-white">{Math.round(totals.totalSales).toLocaleString()} EGP</span>
           <span className="text-4xs text-success-green mt-1">Confirmed orders</span>
         </div>
 
         <div className="rounded-2xl border border-border-color bg-card-bg p-4 flex flex-col">
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">TOTAL EXPENSES</span>
-          <span className="mt-1.5 text-lg font-black text-accent-orange">${totals.totalExpenses.toFixed(2)}</span>
+          <span className="mt-1.5 text-lg font-black text-accent-orange">{Math.round(totals.totalExpenses).toLocaleString()} EGP</span>
           <span className="text-4xs text-muted-text mt-1">Brand procurement</span>
         </div>
 
         <div className="rounded-2xl border border-border-color bg-card-bg p-4 flex flex-col">
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">NET PROFITS</span>
           <span className={`mt-1.5 text-lg font-black ${totals.netProfit >= 0 ? "text-success-green" : "text-red-500"}`}>
-            ${totals.netProfit.toFixed(2)}
+            {Math.round(totals.netProfit).toLocaleString()} EGP
           </span>
           <span className="text-4xs text-muted-text mt-1">Sales - Expenses</span>
         </div>
@@ -90,7 +90,7 @@ export default function AdminDashboard() {
                 style={{ height: `${Math.min(180, (totals.totalSales / Math.max(1, totals.totalSales + totals.totalExpenses)) * 180)}px` }}
               />
               <span className="text-4xs font-black uppercase tracking-widest text-white">REVENUES</span>
-              <span className="text-2xs font-extrabold text-primary-coral">${totals.totalSales.toFixed(0)}</span>
+              <span className="text-2xs font-extrabold text-primary-coral">{Math.round(totals.totalSales).toLocaleString()} EGP</span>
             </div>
 
             {/* Expenses Column */}
@@ -100,7 +100,7 @@ export default function AdminDashboard() {
                 style={{ height: `${Math.min(180, (totals.totalExpenses / Math.max(1, totals.totalSales + totals.totalExpenses)) * 180)}px` }}
               />
               <span className="text-4xs font-black uppercase tracking-widest text-muted-text">EXPENSES</span>
-              <span className="text-2xs font-extrabold text-white">${totals.totalExpenses.toFixed(0)}</span>
+              <span className="text-2xs font-extrabold text-white">{Math.round(totals.totalExpenses).toLocaleString()} EGP</span>
             </div>
 
             {/* Net Profit Column */}
@@ -110,7 +110,7 @@ export default function AdminDashboard() {
                 style={{ height: `${Math.min(180, (Math.abs(totals.netProfit) / Math.max(1, totals.totalSales + totals.totalExpenses)) * 180)}px` }}
               />
               <span className="text-4xs font-black uppercase tracking-widest text-white">NET PROFIT</span>
-              <span className="text-2xs font-extrabold text-white">${totals.netProfit.toFixed(0)}</span>
+              <span className="text-2xs font-extrabold text-white">{Math.round(totals.netProfit).toLocaleString()} EGP</span>
             </div>
 
           </div>
@@ -180,7 +180,7 @@ export default function AdminDashboard() {
                 <tr key={ord.id} className="border-b border-border-color/30 last:border-0">
                   <td className="py-3.5 font-bold text-white">{ord.id}</td>
                   <td className="py-3.5">{ord.customerName}</td>
-                  <td className="py-3.5 text-primary-coral font-bold">${ord.totalPrice.toFixed(2)}</td>
+                  <td className="py-3.5 text-primary-coral font-bold">{Math.round(ord.totalPrice).toLocaleString()} EGP</td>
                   <td className="py-3.5 uppercase">{ord.paymentMethod}</td>
                   <td className="py-3.5">
                     <span className={`inline-block px-2.5 py-0.5 rounded-full text-3xs font-extrabold uppercase ${ord.status === "Delivered"

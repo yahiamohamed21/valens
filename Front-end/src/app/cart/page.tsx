@@ -31,7 +31,7 @@ export default function CartPage() {
 
   // Cart Calculations
   const subtotal = cart.reduce((acc, item) => {
-    const price = item.product.discountPrice || item.product.price;
+    const price = item.selectedVariantPrice !== undefined ? item.selectedVariantPrice : (item.product.discountPrice || item.product.price);
     return acc + price * item.quantity;
   }, 0);
 
@@ -45,8 +45,8 @@ export default function CartPage() {
     }
   }
 
-  // Shipping cost (Free if subtotal after discount is over $150, else use storeSettings shippingCost)
-  const isFreeShipping = subtotal > 150;
+  // Shipping cost (Free if subtotal after discount is over 1500 EGP, else use storeSettings shippingCost)
+  const isFreeShipping = subtotal > 1500;
   const shippingCost = isFreeShipping ? 0 : storeSettings.shippingCost;
 
   // Tax calculation
@@ -71,16 +71,20 @@ export default function CartPage() {
             {/* Cart Items List */}
             <div className="lg:col-span-8 flex flex-col gap-4">
               {cart.map((item, index) => {
-                const itemPrice = item.product.discountPrice || item.product.price;
+                const itemPrice = item.selectedVariantPrice !== undefined ? item.selectedVariantPrice : (item.product.discountPrice || item.product.price);
                 return (
                   <div
-                    key={`${item.product.id}-${item.selectedSize}-${item.selectedVariant}`}
+                    key={`${item.product.id}-${item.selectedSize || ""}-${item.selectedVariant || ""}`}
                     className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 rounded-2xl border border-border-color bg-card-bg p-5"
                   >
                     {/* Image & Title Info */}
                     <div className="flex items-center gap-4">
-                      <div className="h-20 w-16 bg-surface-deep border border-border-color rounded-xl p-1 flex items-center justify-center shrink-0">
-                        <ProductImage color={item.product.imageColor} type={item.product.imageType} glow={false} className="h-16 w-full" />
+                      <div className="h-20 w-16 bg-surface-deep border border-border-color rounded-xl p-1 flex items-center justify-center shrink-0 overflow-hidden">
+                        {item.image ? (
+                          <img src={item.image} alt={item.product.name} className="h-full w-full object-contain" />
+                        ) : (
+                          <ProductImage color={item.product.imageColor} type={item.product.imageType} glow={false} className="h-16 w-full" />
+                        )}
                       </div>
                       <div>
                         <span className="text-4xs font-extrabold uppercase tracking-widest text-primary-coral">
@@ -90,9 +94,9 @@ export default function CartPage() {
                           <Link href={`/products/${item.product.id}`}>{item.product.name}</Link>
                         </h3>
                         <div className="mt-1 flex flex-wrap gap-2 text-3xs font-bold text-muted-text uppercase">
-                          <span>Size: {item.selectedSize}</span>
-                          <span>•</span>
-                          <span>Option: {item.selectedVariant}</span>
+                          {item.selectedSize && <span>Size: {item.selectedSize}</span>}
+                          {item.selectedSize && item.selectedVariant && <span>•</span>}
+                          {item.selectedVariant && <span>Option: {item.selectedVariant}</span>}
                         </div>
                       </div>
                     </div>
@@ -119,10 +123,10 @@ export default function CartPage() {
                       {/* Pricing Info */}
                       <div className="flex flex-col text-right min-w-[80px]">
                         <span className="text-sm font-black text-white">
-                          ${(itemPrice * item.quantity).toFixed(2)}
+                          {(itemPrice * item.quantity).toLocaleString()} EGP
                         </span>
                         {item.quantity > 1 && (
-                          <span className="text-4xs text-muted-text">(${itemPrice.toFixed(2)} each)</span>
+                          <span className="text-4xs text-muted-text">({itemPrice.toLocaleString()} EGP each)</span>
                         )}
                       </div>
 
@@ -150,7 +154,7 @@ export default function CartPage() {
                 {/* Subtotal */}
                 <div className="flex justify-between items-center text-xs text-soft-text mb-3">
                   <span>Cart Subtotal</span>
-                  <span className="font-bold text-white">${subtotal.toFixed(2)}</span>
+                  <span className="font-bold text-white">{subtotal.toLocaleString()} EGP</span>
                 </div>
 
                 {/* Coupon Code Panel */}
@@ -189,7 +193,7 @@ export default function CartPage() {
                   {activeCoupon && (
                     <div className="flex justify-between items-center text-xs text-soft-text mt-3">
                       <span>Discount ({activeCoupon.discountType === "percentage" ? `${activeCoupon.discountValue}%` : "Fixed"})</span>
-                      <span className="font-bold text-success-green">-${discountAmount.toFixed(2)}</span>
+                      <span className="font-bold text-success-green">-{discountAmount.toLocaleString()} EGP</span>
                     </div>
                   )}
                 </div>
@@ -200,20 +204,20 @@ export default function CartPage() {
                   {isFreeShipping ? (
                     <span className="font-bold text-success-green uppercase text-2xs">FREE SHIPPING</span>
                   ) : (
-                    <span className="font-bold text-white">${shippingCost.toFixed(2)}</span>
+                    <span className="font-bold text-white">{shippingCost.toLocaleString()} EGP</span>
                   )}
                 </div>
 
                 {/* Tax */}
                 <div className="flex justify-between items-center text-xs text-soft-text mb-4">
                   <span>Sales Tax ({storeSettings.taxRate}%)</span>
-                  <span className="font-bold text-white">${taxAmount.toFixed(2)}</span>
+                  <span className="font-bold text-white">{taxAmount.toLocaleString()} EGP</span>
                 </div>
 
                 {/* Grand Total */}
                 <div className="flex justify-between items-center border-t border-border-color pt-4 text-sm font-black text-white uppercase tracking-wider mb-6">
                   <span>Grand Total</span>
-                  <span className="text-lg text-primary-coral font-black">${finalTotal.toFixed(2)}</span>
+                  <span className="text-lg text-primary-coral font-black">{finalTotal.toLocaleString()} EGP</span>
                 </div>
 
                 {/* Proceed Checkout Button */}
@@ -225,9 +229,9 @@ export default function CartPage() {
                   <Icon name="arrow-right" size={14} />
                 </Link>
 
-                {subtotal <= 150 && (
+                {subtotal <= 1500 && (
                   <p className="mt-4 text-center text-4xs text-muted-text font-bold uppercase tracking-wide">
-                    Add <span className="text-white">${(150.01 - subtotal).toFixed(2)}</span> more to unlock FREE SHIPPING!
+                    Add <span className="text-white">{(1500.01 - subtotal).toLocaleString()} EGP</span> more to unlock FREE SHIPPING!
                   </p>
                 )}
               </div>

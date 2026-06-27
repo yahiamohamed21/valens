@@ -21,7 +21,7 @@ export const defaultStoreSettings: StoreSettings = {
   contactEmail: "elite@valens.com",
   contactPhone: "+1 (800) 825-3677",
   address: "88 Science & Athletics Drive, Sector 4, CA 90210",
-  shippingCost: 10,
+  shippingCost: 60,
   taxRate: 5,
   socialInstagram: "@valens_nutrition",
   socialTwitter: "@valens_performance",

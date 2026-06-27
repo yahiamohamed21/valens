@@ -66,7 +66,7 @@ export default function CheckoutPage() {
 
   // Cart Calculations
   const subtotal = cart.reduce((acc, item) => {
-    const price = item.product.discountPrice || item.product.price;
+    const price = item.selectedVariantPrice !== undefined ? item.selectedVariantPrice : (item.product.discountPrice || item.product.price);
     return acc + price * item.quantity;
   }, 0);
 
@@ -81,9 +81,9 @@ export default function CheckoutPage() {
   }
 
   // Shipping Fee
-  const isFreeShipping = subtotal > 150;
+  const isFreeShipping = subtotal > 1500;
   const baseShippingFee = isFreeShipping ? 0 : storeSettings.shippingCost;
-  const shippingCost = shippingMethod === "Priority Air" ? baseShippingFee + 5 : baseShippingFee;
+  const shippingCost = shippingMethod === "Priority Air" ? baseShippingFee + 30 : baseShippingFee;
 
   // Tax
   const taxableAmount = Math.max(0, subtotal - discountAmount);
@@ -116,12 +116,13 @@ export default function CheckoutPage() {
       items: cart.map((item) => ({
         productId: item.product.id,
         productName: item.product.name,
-        price: item.product.discountPrice || item.product.price,
+        price: item.selectedVariantPrice !== undefined ? item.selectedVariantPrice : (item.product.discountPrice || item.product.price),
         quantity: item.quantity,
-        size: item.selectedSize,
-        variant: item.selectedVariant,
+        size: item.selectedSize || "",
+        variant: item.selectedVariant || "",
         imageColor: item.product.imageColor,
-        imageType: item.product.imageType
+        imageType: item.product.imageType,
+        image: item.image || item.product.mainImage || undefined
       })),
       totalPrice: finalTotal,
       paymentMethod,
@@ -396,48 +397,59 @@ export default function CheckoutPage() {
 
               {/* Items List */}
               <div className="flex flex-col gap-3 mb-6 max-h-60 overflow-y-auto pr-1">
-                {cart.map((item) => (
-                  <div key={`${item.product.id}-${item.selectedSize}-${item.selectedVariant}`} className="flex items-center justify-between gap-4 py-2 border-b border-border-color/30">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-10 bg-surface-deep border border-border-color rounded-lg p-0.5 flex items-center justify-center shrink-0">
-                        <ProductImage color={item.product.imageColor} type={item.product.imageType} glow={false} className="h-8 w-full" />
+                {cart.map((item) => {
+                  const itemPrice = item.selectedVariantPrice !== undefined ? item.selectedVariantPrice : (item.product.discountPrice || item.product.price);
+                  return (
+                    <div key={`${item.product.id}-${item.selectedSize || ""}-${item.selectedVariant || ""}`} className="flex items-center justify-between gap-4 py-2 border-b border-border-color/30">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-10 bg-surface-deep border border-border-color rounded-lg p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                          {item.image ? (
+                            <img src={item.image} alt={item.product.name} className="h-full w-full object-contain" />
+                          ) : (
+                            <ProductImage color={item.product.imageColor} type={item.product.imageType} glow={false} className="h-8 w-full" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <span className="block text-2xs font-bold text-white truncate max-w-[150px]">{item.product.name}</span>
+                          <span className="block text-4xs text-muted-text uppercase font-semibold">
+                            Qty: {item.quantity}
+                            {item.selectedSize && ` • ${item.selectedSize}`}
+                            {item.selectedVariant && ` • ${item.selectedVariant}`}
+                          </span>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <span className="block text-2xs font-bold text-white truncate max-w-[150px]">{item.product.name}</span>
-                        <span className="block text-4xs text-muted-text uppercase font-semibold">Qty: {item.quantity} • {item.selectedVariant}</span>
-                      </div>
+                      <span className="text-xs font-black text-soft-text">
+                        {(itemPrice * item.quantity).toLocaleString()} EGP
+                      </span>
                     </div>
-                    <span className="text-xs font-black text-soft-text">
-                      ${((item.product.discountPrice || item.product.price) * item.quantity).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* pricing recap */}
               <div className="flex justify-between items-center text-2xs text-soft-text mb-2.5">
                 <span>Items Subtotal</span>
-                <span className="font-bold text-white">${subtotal.toFixed(2)}</span>
+                <span className="font-bold text-white">{subtotal.toLocaleString()} EGP</span>
               </div>
               {activeCoupon && (
                 <div className="flex justify-between items-center text-2xs text-success-green mb-2.5 font-semibold">
                   <span>Coupon Applied ({activeCoupon.code})</span>
-                  <span>-${discountAmount.toFixed(2)}</span>
+                  <span>-{discountAmount.toLocaleString()} EGP</span>
                 </div>
               )}
               <div className="flex justify-between items-center text-2xs text-soft-text mb-2.5">
                 <span>Shipping Fee</span>
-                <span>{shippingCost === 0 ? "FREE" : `$${shippingCost.toFixed(2)}`}</span>
+                <span>{shippingCost === 0 ? "FREE" : `${shippingCost.toLocaleString()} EGP`}</span>
               </div>
               <div className="flex justify-between items-center text-2xs text-soft-text mb-4">
                 <span>Sales Tax ({storeSettings.taxRate}%)</span>
-                <span className="font-bold text-white">${taxAmount.toFixed(2)}</span>
+                <span className="font-bold text-white">{taxAmount.toLocaleString()} EGP</span>
               </div>
 
               {/* Grand Total */}
               <div className="flex justify-between items-center border-t border-border-color pt-4 text-sm font-black text-white uppercase mb-6 tracking-wider">
                 <span>Grand Total</span>
-                <span className="text-base text-primary-coral font-black">${finalTotal.toFixed(2)}</span>
+                <span className="text-base text-primary-coral font-black">{finalTotal.toLocaleString()} EGP</span>
               </div>
 
               {/* Submit trigger button */}
@@ -486,7 +498,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Total Charges Paid</span>
-                  <span className="font-extrabold text-primary-coral">${placedOrder.totalPrice.toFixed(2)}</span>
+                  <span className="font-extrabold text-primary-coral">{placedOrder.totalPrice.toLocaleString()} EGP</span>
                 </div>
               </div>
 

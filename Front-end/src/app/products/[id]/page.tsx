@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApp, Product, Review } from "@/context/AppContext";
 import { ProductImage } from "@/components/ProductCard";
@@ -19,17 +19,68 @@ export default function ProductDetailsPage() {
 
   // Gallery tabs: "front", "label", "facts"
   const [activeTab, setActiveTab] = useState<"front" | "label" | "facts">("front");
-  
-  // Selection states
-  const [selectedVariant, setSelectedVariant] = useState(() => {
-    // derive initial selected variant from available products to avoid setting state inside an effect
-    const initialProduct = products?.find((p: Product) => p.id === id);
-    return initialProduct && initialProduct.variants.length > 0 ? initialProduct.variants[0] : "";
-  });
   const [quantity, setQuantity] = useState(1);
   const [activeAccordion, setActiveAccordion] = useState<string>("benefits");
 
-  // NOTE: selectedVariant is initialized from products above to avoid synchronous setState in effect
+  // Selection states
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedFlavor, setSelectedFlavor] = useState("");
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  // Find all unique sizes and flavors for the active product
+  const availableSizes = useMemo(() => {
+    if (!product || !product.variants) return [];
+    return Array.from(
+      new Set(product.variants.map((v) => v.size).filter(Boolean))
+    ) as string[];
+  }, [product]);
+
+  const availableFlavors = useMemo(() => {
+    if (!product || !product.variants) return [];
+    return Array.from(
+      new Set(product.variants.map((v) => v.flavor).filter(Boolean))
+    ) as string[];
+  }, [product]);
+
+  // Gallery images list (main image + other gallery images)
+  const productImages = useMemo(() => {
+    if (!product) return [];
+    const list = [];
+    if (product.mainImage) list.push(product.mainImage);
+    if (product.images) {
+      product.images.forEach((img) => {
+        if (img !== product.mainImage) list.push(img);
+      });
+    }
+    return list;
+  }, [product]);
+
+  // Pre-populate selectors when product details page loads
+  useEffect(() => {
+    if (product) {
+      if (product.variants && product.variants.length > 0) {
+        setSelectedSize(product.variants[0].size || "");
+        setSelectedFlavor(product.variants[0].flavor || "");
+      } else {
+        setSelectedSize("");
+        setSelectedFlavor("");
+      }
+      setSelectedImageIndex(0);
+      setActiveTab("front");
+    }
+  }, [product]);
+
+  // Derive active variant
+  const matchedVariant = useMemo(() => {
+    if (!product || !product.variants) return null;
+    return (
+      product.variants.find((v) => {
+        const matchSize = !selectedSize || v.size === selectedSize;
+        const matchFlavor = !selectedFlavor || v.flavor === selectedFlavor;
+        return matchSize && matchFlavor;
+      }) || null
+    );
+  }, [product, selectedSize, selectedFlavor]);
 
   if (!product) {
     return (
@@ -60,13 +111,30 @@ export default function ProductDetailsPage() {
     .filter((p: Product) => p.category === product.category && p.id !== product.id && p.visible)
     .slice(0, 3);
 
-  const handleAddToCart = () => {
-    if (product.stockStatus === "Out of Stock") return;
-    addToCart(product, quantity, product.size, selectedVariant);
-  };
+  const isOutOfStock = matchedVariant ? matchedVariant.stockQuantity === 0 : product.stock === 0;
+  const isLowStock = matchedVariant ? (matchedVariant.stockQuantity > 0 && matchedVariant.stockQuantity <= 10) : (product.stock > 0 && product.stock <= 10);
+  const stockText = isOutOfStock ? "Out of Stock" : isLowStock ? "Low Stock" : "In Stock";
+  const matchedSku = matchedVariant ? matchedVariant.sku : product.sku;
+  const stockCount = matchedVariant ? matchedVariant.stockQuantity : product.stock;
 
-  const hasDiscount = !!product.discountPrice;
-  const currentPrice = product.discountPrice || product.price;
+  const hasDiscount = matchedVariant ? !!matchedVariant.discountPrice : !!product.discountPrice;
+  const currentPrice = matchedVariant 
+    ? (matchedVariant.discountPrice || matchedVariant.price) 
+    : (product.discountPrice || product.price);
+  const originalPrice = matchedVariant ? matchedVariant.price : product.price;
+
+  const handleAddToCart = () => {
+    if (isOutOfStock) return;
+    addToCart(
+      product,
+      quantity,
+      selectedSize || undefined,
+      selectedFlavor || undefined,
+      currentPrice,
+      matchedSku,
+      matchedVariant?.image || product.mainImage || undefined
+    );
+  };
 
   return (
     <div className="flex min-h-screen flex-col bg-main-bg text-white">
@@ -89,7 +157,17 @@ export default function ProductDetailsPage() {
           <div className="lg:col-span-6 flex flex-col gap-6">
             <div className="relative rounded-3xl border border-border-color bg-card-bg/60 p-8 flex items-center justify-center min-h-[400px] overflow-hidden glass-panel">
               {activeTab === "front" && (
-                <ProductImage color={product.imageColor} type={product.imageType} glow={true} className="h-96 w-full" />
+                <div className="h-full w-full flex items-center justify-center relative">
+                  {(matchedVariant?.image || productImages[selectedImageIndex]) ? (
+                    <img 
+                      src={matchedVariant?.image || productImages[selectedImageIndex]} 
+                      alt={product.name} 
+                      className="h-96 w-full object-contain drop-shadow-[0_15px_15px_rgba(0,0,0,0.6)]" 
+                    />
+                  ) : (
+                    <ProductImage color={product.imageColor} type={product.imageType} glow={true} className="h-96 w-full" />
+                  )}
+                </div>
               )}
 
               {activeTab === "label" && (
@@ -149,6 +227,23 @@ export default function ProductDetailsPage() {
               )}
             </div>
 
+            {/* Custom Gallery Image Thumbnails */}
+            {activeTab === "front" && productImages.length > 1 && (
+              <div className="flex gap-2.5 justify-center py-2 flex-wrap">
+                {productImages.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedImageIndex(idx)}
+                    className={`h-12 w-10 rounded-xl border p-0.5 bg-card-bg overflow-hidden transition-luxury shrink-0 ${
+                      selectedImageIndex === idx ? "border-primary-coral scale-105" : "border-border-color hover:border-white"
+                    }`}
+                  >
+                    <img src={img} className="h-full w-full object-contain" />
+                  </button>
+                ))}
+              </div>
+            )}
+
             {/* Gallery Thumbnail Toggles */}
             <div className="grid grid-cols-3 gap-4">
               <button
@@ -207,14 +302,14 @@ export default function ProductDetailsPage() {
             <div className="mt-6 flex items-baseline gap-4">
               {hasDiscount ? (
                 <>
-                  <span className="text-3xl font-black text-primary-coral">${product.discountPrice?.toFixed(2)}</span>
-                  <span className="text-lg text-muted-text line-through">${product.price.toFixed(2)}</span>
+                  <span className="text-3xl font-black text-primary-coral">{Math.round(currentPrice).toLocaleString()} EGP</span>
+                  <span className="text-lg text-muted-text line-through">{Math.round(originalPrice).toLocaleString()} EGP</span>
                   <span className="rounded-full bg-accent-orange px-2.5 py-0.5 text-3xs font-extrabold text-white">
-                    SAVE ${Math.round(product.price - (product.discountPrice || 0))}
+                    SAVE {Math.round(originalPrice - currentPrice).toLocaleString()} EGP
                   </span>
                 </>
               ) : (
-                <span className="text-3xl font-black text-white">${product.price.toFixed(2)}</span>
+                <span className="text-3xl font-black text-white">{Math.round(currentPrice).toLocaleString()} EGP</span>
               )}
             </div>
 
@@ -225,35 +320,78 @@ export default function ProductDetailsPage() {
             {/* Selection Area */}
             <div className="mt-8 flex flex-col gap-6 border-t border-border-color pt-6">
               
-              {/* Size variant list */}
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-extrabold text-muted-text uppercase tracking-wider">Serving weight</span>
-                <span className="font-bold text-white uppercase tracking-wider bg-surface-deep px-3 py-1 border border-border-color rounded-lg">{product.size}</span>
-              </div>
+              {/* Dynamic Size & Flavor Selectors */}
+              <div className="flex flex-col gap-5">
+                {/* Size Selector */}
+                {(product.variantType === "size" || product.variantType === "both") && availableSizes.length > 0 && (
+                  <div>
+                    <h4 className="text-2xs font-extrabold uppercase tracking-widest text-muted-text mb-3">
+                      Select Serving Size
+                    </h4>
+                    <div className="flex flex-wrap gap-2.5">
+                      {availableSizes.map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => setSelectedSize(size)}
+                          className={`rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-luxury ${
+                            selectedSize === size
+                              ? "border-primary-coral bg-primary-coral/10 text-primary-coral"
+                              : "border-border-color bg-card-bg text-soft-text hover:text-white"
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-              {/* Flavors Select */}
-              {product.variants.length > 0 && (
-                <div>
-                  <h4 className="text-2xs font-extrabold uppercase tracking-widest text-muted-text mb-3">
-                    Choose Flavor / Option
-                  </h4>
-                  <div className="flex flex-wrap gap-2.5">
-                    {product.variants.map((v: string) => (
-                      <button
-                        key={v}
-                        onClick={() => setSelectedVariant(v)}
-                        className={`rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-luxury ${
-                          selectedVariant === v
-                            ? "border-primary-coral bg-primary-coral/10 text-primary-coral"
-                            : "border-border-color bg-card-bg text-soft-text hover:text-white"
-                        }`}
-                      >
-                        {v}
-                      </button>
-                    ))}
+                {/* Flavor Selector */}
+                {(product.variantType === "flavor" || product.variantType === "both") && availableFlavors.length > 0 && (
+                  <div>
+                    <h4 className="text-2xs font-extrabold uppercase tracking-widest text-muted-text mb-3">
+                      Select Flavor Option
+                    </h4>
+                    <div className="flex flex-wrap gap-2.5">
+                      {availableFlavors.map((flavor) => (
+                        <button
+                          key={flavor}
+                          onClick={() => setSelectedFlavor(flavor)}
+                          className={`rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-luxury ${
+                            selectedFlavor === flavor
+                              ? "border-primary-coral bg-primary-coral/10 text-primary-coral"
+                              : "border-border-color bg-card-bg text-soft-text hover:text-white"
+                          }`}
+                        >
+                          {flavor}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Stock SKU Details */}
+                <div className="flex justify-between items-center text-xs border-t border-border-color/30 pt-4">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-extrabold text-muted-text uppercase tracking-wider text-4xs">Stock Availability</span>
+                    <span className={`inline-block w-fit px-2.5 py-0.5 rounded-full text-3xs font-extrabold uppercase ${
+                      isOutOfStock
+                        ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                        : isLowStock
+                          ? "bg-accent-orange/10 text-accent-orange border border-accent-orange/20"
+                          : "bg-success-green/10 text-success-green border border-success-green/20"
+                    }`}>
+                      {stockText} {stockCount > 0 ? `(${stockCount} left)` : ""}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="font-extrabold text-muted-text uppercase tracking-wider text-4xs">SKU Code</span>
+                    <span className="font-mono text-3xs text-white uppercase tracking-wider bg-surface-deep px-3 py-1 border border-border-color rounded-lg">
+                      {matchedSku}
+                    </span>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Quantity Selector & Add to Cart */}
               <div className="flex flex-col gap-4 sm:flex-row mt-4">
@@ -277,15 +415,15 @@ export default function ProductDetailsPage() {
                 {/* Add to Cart CTA */}
                 <button
                   onClick={handleAddToCart}
-                  disabled={product.stockStatus === "Out of Stock"}
+                  disabled={isOutOfStock}
                   className={`flex flex-1 items-center justify-center gap-2 rounded-full py-4 text-sm font-black tracking-widest transition-luxury shadow-xl ${
-                    product.stockStatus === "Out of Stock"
+                    isOutOfStock
                       ? "bg-border-color text-muted-text cursor-not-allowed"
                       : "bg-primary-coral text-main-bg hover:bg-white hover:scale-102 hover:shadow-[0_0_20px_rgba(255,138,117,0.3)]"
                   }`}
                 >
                   <Icon name="cart" size={18} />
-                  {product.stockStatus === "Out of Stock" ? "OUT OF STOCK" : "ADD TO CART"}
+                  {isOutOfStock ? "OUT OF STOCK" : "ADD TO CART"}
                 </button>
               </div>
 
@@ -380,8 +518,12 @@ export default function ProductDetailsPage() {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {relatedProducts.map((prod: Product) => (
                 <div key={prod.id} className="group relative flex flex-col rounded-2xl border border-border-color bg-card-bg p-4 transition-luxury hover:border-primary-coral/40 hover:bg-surface-sec">
-                  <div className="mb-4 mt-2">
-                    <ProductImage color={prod.imageColor} type={prod.imageType} glow={false} className="h-44 w-full" />
+                  <div className="mb-4 mt-2 h-44 overflow-hidden flex items-center justify-center bg-surface-deep/40 rounded-xl">
+                    {prod.mainImage ? (
+                      <img src={prod.mainImage} alt={prod.name} className="h-full w-full object-contain" />
+                    ) : (
+                      <ProductImage color={prod.imageColor} type={prod.imageType} glow={false} className="h-44 w-full" />
+                    )}
                   </div>
                   <div className="flex-1">
                     <span className="text-3xs font-extrabold uppercase tracking-widest text-muted-text">{prod.category}</span>
@@ -390,7 +532,7 @@ export default function ProductDetailsPage() {
                     </h4>
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-border-color pt-3">
-                    <span className="text-sm font-extrabold text-primary-coral">${(prod.discountPrice || prod.price).toFixed(2)}</span>
+                    <span className="text-sm font-extrabold text-primary-coral">{Math.round(prod.discountPrice || prod.price).toLocaleString()} EGP</span>
                     <Link
                       href={`/products/${prod.id}`}
                       className="text-3xs font-bold uppercase tracking-widest text-white hover:text-primary-coral transition-luxury"

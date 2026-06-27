@@ -13,16 +13,39 @@ interface CartActionDeps {
 }
 
 export const useCartActions = ({ cart, setCart, coupons, setActiveCoupon }: CartActionDeps) => {
-  const addToCart = useCallback((product: Product, quantity: number, size: string, variant: string) => {
+  const addToCart = useCallback((
+    product: Product,
+    quantity: number,
+    size?: string,
+    variant?: string,
+    price?: number,
+    sku?: string,
+    image?: string
+  ) => {
     const newCart = [...cart];
     const existingIndex = newCart.findIndex(
-      (item) => item.product.id === product.id && item.selectedSize === size && item.selectedVariant === variant
+      (item) =>
+        item.product.id === product.id &&
+        item.selectedSize === size &&
+        item.selectedVariant === variant
     );
+
+    const variantPrice = price !== undefined ? price : (product.discountPrice || product.price);
+    const itemSku = sku || product.sku;
+    const itemImage = image || product.mainImage || "";
 
     if (existingIndex > -1) {
       newCart[existingIndex].quantity += quantity;
     } else {
-      newCart.push({ product, quantity, selectedSize: size, selectedVariant: variant });
+      newCart.push({
+        product,
+        quantity,
+        selectedSize: size,
+        selectedVariant: variant,
+        selectedVariantPrice: variantPrice,
+        sku: itemSku,
+        image: itemImage,
+      });
     }
 
     setCart(newCart);

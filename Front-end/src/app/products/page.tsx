@@ -28,7 +28,7 @@ export default function ProductsPage() {
   // Filter States - initialized from URL
   const [searchQuery, setSearchQuery] = useState(initialFilters.query);
   const [selectedCategory, setSelectedCategory] = useState(initialFilters.category);
-  const [maxPrice, setMaxPrice] = useState(100);
+  const [maxPrice, setMaxPrice] = useState(5000);
   const [selectedStock, setSelectedStock] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("best-selling");
 
@@ -203,21 +203,21 @@ export default function ProductsPage() {
               <div className="mb-6 border-t border-border-color pt-4">
                 <div className="flex justify-between items-center mb-3">
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-text">Max Price</h4>
-                  <span className="text-sm font-black text-primary-coral">${maxPrice}</span>
+                  <span className="text-sm font-black text-primary-coral">{maxPrice.toLocaleString()} EGP</span>
                 </div>
                 <input
                   type="range"
-                  min="10"
-                  max="100"
-                  step="5"
+                  min="100"
+                  max="5000"
+                  step="50"
                   value={maxPrice}
                   onChange={(e) => setMaxPrice(Number(e.target.value))}
                   className="w-full h-1 bg-border-color rounded-lg cursor-pointer"
                   style={{ accentColor: 'var(--color-primary-coral, #fb923c)' }}
                 />
                 <div className="flex justify-between text-[8px] text-muted-text mt-1 uppercase font-bold">
-                  <span>$10</span>
-                  <span>$100</span>
+                  <span>100 EGP</span>
+                  <span>5,000 EGP</span>
                 </div>
               </div>
 

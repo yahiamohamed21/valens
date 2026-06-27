@@ -337,7 +337,7 @@ export default function UserDashboard() {
                       Total Invested
                     </span>
                     <span className="block text-xl font-black text-primary-coral mt-1">
-                      ${currentCustomer.totalSpent.toFixed(2)}
+                      {Math.round(currentCustomer.totalSpent).toLocaleString()} EGP
                     </span>
                   </div>
                 </div>
@@ -437,7 +437,7 @@ export default function UserDashboard() {
                               </div>
                             </div>
                             <span className="font-semibold text-soft-text text-right shrink-0">
-                              {item.quantity} x ${item.price.toFixed(2)}
+                              {item.quantity} x {Math.round(item.price).toLocaleString()} EGP
                             </span>
                           </div>
                         ))}
@@ -452,7 +452,7 @@ export default function UserDashboard() {
                         <div className="font-black text-white uppercase tracking-wider">
                           Grand Total:{" "}
                           <span className="text-primary-coral text-xs ml-1">
-                            ${order.totalPrice.toFixed(2)}
+                            {Math.round(order.totalPrice).toLocaleString()} EGP
                           </span>
                         </div>
                       </div>

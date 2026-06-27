@@ -76,8 +76,27 @@ export const useOrderActions = ({
       const orderItem = orderData.items.find((item) => item.productId === prod.id);
       if (orderItem) {
         const remainingStock = Math.max(0, prod.stock - orderItem.quantity);
+        
+        let updatedVariants = prod.variants;
+        if (prod.variants && prod.variants.length > 0) {
+          updatedVariants = prod.variants.map((v) => {
+            const matchSize = !v.size || v.size === orderItem.size;
+            const matchFlavor = !v.flavor || v.flavor === orderItem.variant;
+            if (matchSize && matchFlavor) {
+              const newQty = Math.max(0, v.stockQuantity - orderItem.quantity);
+              return {
+                ...v,
+                stockQuantity: newQty,
+                isAvailable: newQty > 0
+              };
+            }
+            return v;
+          });
+        }
+
         return {
           ...prod,
+          variants: updatedVariants,
           stock: remainingStock,
           stockStatus: getStockStatus(remainingStock),
         } as Product;

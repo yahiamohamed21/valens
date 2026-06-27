@@ -47,7 +47,7 @@ export default function AdminOrdersPage() {
                   <td className="py-3.5 text-muted-text text-3xs font-semibold">
                     {new Date(ord.orderDate).toLocaleString()}
                   </td>
-                  <td className="py-3.5 text-primary-coral font-bold">${ord.totalPrice.toFixed(2)}</td>
+                  <td className="py-3.5 text-primary-coral font-bold">{Math.round(ord.totalPrice).toLocaleString()} EGP</td>
                   <td className="py-3.5 uppercase">{ord.paymentMethod}</td>
                   <td className="py-3.5">
                     <span className={`inline-block px-2.5 py-0.5 rounded-full text-3xs font-extrabold uppercase ${ord.status === "Delivered"

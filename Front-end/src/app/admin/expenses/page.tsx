@@ -84,7 +84,7 @@ export default function AdminExpensesPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-border-color bg-card-bg p-5 text-center">
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">TOTAL OUTFLOWS</span>
-          <span className="block mt-2 text-xl font-black text-white">${totals.totalExpenses.toFixed(2)}</span>
+          <span className="block mt-2 text-xl font-black text-white">{Math.round(totals.totalExpenses).toLocaleString()} EGP</span>
         </div>
         <div className="rounded-2xl border border-border-color bg-card-bg p-5 text-center">
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">HIGHEST OUTFLOW CATEGORY</span>
@@ -95,7 +95,7 @@ export default function AdminExpensesPage() {
         <div className="rounded-2xl border border-border-color bg-card-bg p-5 text-center">
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">MONTHLY EXPENSES</span>
           <span className="block mt-2 text-xl font-black text-white">
-            ${expenses.filter(e => e.date.includes("2026-06")).reduce((acc, curr) => acc + curr.amount, 0).toFixed(2)}
+            {Math.round(expenses.filter(e => e.date.includes("2026-06")).reduce((acc, curr) => acc + curr.amount, 0)).toLocaleString()} EGP
           </span>
         </div>
       </div>
@@ -120,7 +120,7 @@ export default function AdminExpensesPage() {
                 <tr key={e.id} className="border-b border-border-color/30 last:border-0 hover:bg-surface-deep/20">
                   <td className="py-3.5 font-bold text-white">{e.title}</td>
                   <td className="py-3.5 uppercase text-3xs font-semibold text-muted-text">{e.category}</td>
-                  <td className="py-3.5 font-black text-accent-orange">${e.amount.toFixed(2)}</td>
+                  <td className="py-3.5 font-black text-accent-orange">{e.amount.toLocaleString()} EGP</td>
                   <td className="py-3.5 text-muted-text text-3xs font-semibold">{e.date}</td>
                   <td className="py-3.5 uppercase">{e.paymentMethod}</td>
                   <td className="py-3.5 text-muted-text max-w-xs truncate">{e.notes || "—"}</td>
@@ -202,7 +202,7 @@ export default function AdminExpensesPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Amount ($) *</label>
+                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Amount (EGP) *</label>
                   <input
                     type="number"
                     step="0.01"

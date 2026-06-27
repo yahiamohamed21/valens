@@ -51,18 +51,18 @@ export default function AdminReportsPage() {
 
           <div className="flex justify-between items-center text-xs text-soft-text border-b border-border-color/30 pb-3">
             <span>Gross Sales Revenues</span>
-            <span className="font-extrabold text-white">${totals.totalSales.toFixed(2)}</span>
+            <span className="font-extrabold text-white">{Math.round(totals.totalSales).toLocaleString()} EGP</span>
           </div>
 
           <div className="flex justify-between items-center text-xs text-soft-text border-b border-border-color/30 pb-3">
             <span>Operational Business Expenses</span>
-            <span className="font-extrabold text-accent-orange">-${totals.totalExpenses.toFixed(2)}</span>
+            <span className="font-extrabold text-accent-orange">-{Math.round(totals.totalExpenses).toLocaleString()} EGP</span>
           </div>
 
           <div className="flex justify-between items-center text-sm font-black uppercase tracking-wider py-2">
             <span>Real Net Profit</span>
             <span className={`text-lg font-black ${totals.netProfit >= 0 ? "text-success-green" : "text-red-500"}`}>
-              ${totals.netProfit.toFixed(2)}
+              {Math.round(totals.netProfit).toLocaleString()} EGP
             </span>
           </div>
 
@@ -83,7 +83,7 @@ export default function AdminReportsPage() {
                 <div key={category} className="flex flex-col gap-1.5">
                   <div className="flex justify-between text-3xs font-bold text-soft-text uppercase">
                     <span>{category}</span>
-                    <span>${amount.toFixed(0)} ({((amount / Math.max(1, totals.totalExpenses)) * 100).toFixed(0)}%)</span>
+                    <span>{Math.round(amount).toLocaleString()} EGP ({((amount / Math.max(1, totals.totalExpenses)) * 100).toFixed(0)}%)</span>
                   </div>
                   {/* percentage indicator strip */}
                   <div className="w-full bg-surface-deep h-1.5 rounded-full overflow-hidden">

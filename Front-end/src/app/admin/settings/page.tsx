@@ -45,7 +45,7 @@ export default function AdminSettingsPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Base Shipping Cost ($)</label>
+              <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Base Shipping Cost (EGP)</label>
               <input
                 type="number"
                 value={setShipping}

@@ -196,10 +196,22 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     e.stopPropagation();
     if (product.stockStatus === "Out of Stock") return;
 
-    // Choose default variant/size
-    const defaultSize = product.size;
-    const defaultVariant = product.variants[0] || "Standard";
-    addToCart(product, 1, defaultSize, defaultVariant);
+    // Choose default variant/size details safely
+    const defaultSize = product.variants?.[0]?.size || product.size || "";
+    const defaultFlavor = product.variants?.[0]?.flavor || "";
+    const defaultPrice = product.variants?.[0]?.price !== undefined ? product.variants[0].price : (product.discountPrice || product.price);
+    const defaultSku = product.variants?.[0]?.sku || product.sku;
+    const defaultImage = product.variants?.[0]?.image || product.mainImage || undefined;
+
+    addToCart(
+      product,
+      1,
+      defaultSize || undefined,
+      defaultFlavor || undefined,
+      defaultPrice,
+      defaultSku,
+      defaultImage
+    );
   };
 
   const discount = product.discountPrice
@@ -399,9 +411,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </span>
           </div>
 
-          {/* Supplement Bottle Image (Pure SVG) */}
-          <div className="my-2 overflow-visible flex items-center justify-center flex-1 min-h-[170px]">
-            <ProductImage color={product.imageColor} type={product.imageType} glow={true} className="h-44 w-full" />
+          {/* Supplement Bottle Image */}
+          <div className="my-2 overflow-visible flex items-center justify-center flex-1 min-h-[170px] relative">
+            {product.mainImage ? (
+              <img src={product.mainImage} alt={product.name} className="h-40 w-full object-contain drop-shadow-[0_8px_8px_rgba(0,0,0,0.5)] group-hover:scale-105 transition-all duration-500" />
+            ) : (
+              <ProductImage color={product.imageColor} type={product.imageType} glow={true} className="h-44 w-full" />
+            )}
           </div>
 
           {/* Product Details Section */}
@@ -412,7 +428,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 {product.name}
               </h3>
               <span className="text-base font-extrabold text-primary-coral whitespace-nowrap">
-                ${(product.discountPrice || product.price).toFixed(2)}
+                {Math.round(product.discountPrice || product.price).toLocaleString()} EGP
               </span>
             </div>
 
