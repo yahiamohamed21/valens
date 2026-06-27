@@ -59,9 +59,21 @@ public class CouponService : ICouponService
                 }
 
                 decimal price = 0;
-                if (product.VariantType != "none" && !string.IsNullOrEmpty(cartItem.VariantId))
+                if (product.VariantType != "none")
                 {
-                    var variant = product.Variants.FirstOrDefault(v => v.VariantId == cartItem.VariantId);
+                    ProductVariant? variant = null;
+                    if (!string.IsNullOrEmpty(cartItem.VariantId))
+                    {
+                        variant = product.Variants.FirstOrDefault(v => v.VariantId == cartItem.VariantId);
+                    }
+                    else if (!string.IsNullOrEmpty(cartItem.Size) || !string.IsNullOrEmpty(cartItem.Flavor))
+                    {
+                        variant = product.Variants.FirstOrDefault(v =>
+                            (string.IsNullOrEmpty(cartItem.Size) || v.Size.Equals(cartItem.Size, StringComparison.OrdinalIgnoreCase)) &&
+                            (string.IsNullOrEmpty(cartItem.Flavor) || v.Flavor.Equals(cartItem.Flavor, StringComparison.OrdinalIgnoreCase))
+                        );
+                    }
+
                     if (variant != null)
                     {
                         price = variant.DiscountPrice > 0 ? variant.DiscountPrice : variant.Price;

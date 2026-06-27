@@ -120,17 +120,26 @@ public class OrderService : IOrderService
 
                 if (product.VariantType != "none")
                 {
-                    if (string.IsNullOrEmpty(cartItem.VariantId))
+                    ProductVariant? variant = null;
+                    if (!string.IsNullOrEmpty(cartItem.VariantId))
                     {
-                        await _unitOfWork.RollbackTransactionAsync();
-                        throw new ArgumentException($"Product '{product.Name}' requires selecting a size/flavor variant.");
+                        variant = product.Variants.FirstOrDefault(v => v.VariantId == cartItem.VariantId);
+                    }
+                    else if (!string.IsNullOrEmpty(cartItem.Size) || !string.IsNullOrEmpty(cartItem.Flavor))
+                    {
+                        variant = product.Variants.FirstOrDefault(v =>
+                            (string.IsNullOrEmpty(cartItem.Size) || v.Size.Equals(cartItem.Size, StringComparison.OrdinalIgnoreCase)) &&
+                            (string.IsNullOrEmpty(cartItem.Flavor) || v.Flavor.Equals(cartItem.Flavor, StringComparison.OrdinalIgnoreCase))
+                        );
                     }
 
-                    var variant = product.Variants.FirstOrDefault(v => v.VariantId == cartItem.VariantId);
                     if (variant == null)
                     {
                         await _unitOfWork.RollbackTransactionAsync();
-                        throw new KeyNotFoundException($"Variant '{cartItem.VariantId}' for product '{product.Name}' was not found.");
+                        string details = !string.IsNullOrEmpty(cartItem.VariantId) 
+                            ? $"VariantId '{cartItem.VariantId}'"
+                            : $"Size '{cartItem.Size}' and Flavor '{cartItem.Flavor}'";
+                        throw new KeyNotFoundException($"Matching variant ({details}) for product '{product.Name}' was not found.");
                     }
 
                     if (variant.StockQuantity < cartItem.Quantity)
