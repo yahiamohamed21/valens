@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useApp, CartItem } from "@/context/AppContext";
@@ -11,9 +11,14 @@ export const Navbar: React.FC = () => {
   const { cart, homePageSettings, currentUserEmail, locale, t } = useApp();
   const { setIsPanelOpen } = useTheme();
 
+  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +28,7 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  const totalItems = cart.reduce((acc: number, item: CartItem) => acc + item.quantity, 0);
+  const totalItems = mounted ? cart.reduce((acc: number, item: CartItem) => acc + item.quantity, 0) : 0;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border-color bg-main-bg/85 backdrop-blur-md">
@@ -114,7 +119,7 @@ export const Navbar: React.FC = () => {
             title="Shopping Cart"
           >
             <Icon name="cart" size={20} />
-            {totalItems > 0 && (
+            {mounted && totalItems > 0 && (
               <span className={`absolute -top-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent-orange text-3xs font-extrabold text-white shadow-[0_0_8px_#FF5226] ${
                 locale === "ar" ? "-left-2.5" : "-right-2.5"
               }`}>
@@ -131,7 +136,7 @@ export const Navbar: React.FC = () => {
 
           <Link href="/cart" className="relative flex items-center justify-center text-soft-text">
             <Icon name="cart" size={20} />
-            {totalItems > 0 && (
+            {mounted && totalItems > 0 && (
               <span className={`absolute -top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent-orange text-4xs font-extrabold text-white ${
                 locale === "ar" ? "-left-2" : "-right-2"
               }`}>

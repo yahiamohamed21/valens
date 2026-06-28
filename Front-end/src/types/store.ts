@@ -69,6 +69,17 @@ export interface CartItem {
   image?: string;
 }
 
+/** All possible states an order can move through, from creation to close-out. */
+export type OrderStatus =
+  | "New Order"
+  | "Confirmed"
+  | "Preparing"
+  | "Shipped / Out for Delivery"
+  | "Delivered"
+  | "Cancelled"
+  | "Rejected"
+  | "Returned";
+
 export interface Order {
   id: string;
   customerName: string;
@@ -94,15 +105,7 @@ export interface Order {
   discountAmount: number;
   couponCode?: string;
   orderDate: string;
-  status:
-    | "New Order"
-    | "Confirmed"
-    | "Preparing"
-    | "Shipped / Out for Delivery"
-    | "Delivered"
-    | "Cancelled"
-    | "Rejected"
-    | "Returned";
+  status: OrderStatus;
 }
 
 export interface Customer {
@@ -221,7 +224,7 @@ export interface AppContextType {
 
   // Order operations
   placeOrder: (orderData: Omit<Order, "id" | "orderDate" | "status">) => Order;
-  updateOrderStatus: (orderId: string, status: Order["status"]) => void;
+  updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   confirmOrder: (orderId: string) => void;
   cancelOrder: (orderId: string) => void;
 
