@@ -33,8 +33,6 @@ import type {
   StoreSettings,
 } from "@/types/store";
 
-// Re-export store types from the context module so feature pages only need
-// a single import source (`@/context/AppContext`) for both the hook and its types.
 export type {
   AppContextType,
   CartItem,
@@ -44,14 +42,10 @@ export type {
   Expense,
   HomePageSettings,
   Order,
-  OrderStatus,
   Product,
   Review,
   StoreSettings,
 } from "@/types/store";
-
-/** Shape of the en/ar translation JSON files: nested string dictionaries. */
-type TranslationDict = { [key: string]: TranslationDict | string };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -68,11 +62,14 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
-  const [locale, setLocale] = useState<"en" | "ar">(() => {
-    if (typeof window === "undefined") return "en";
-    const storedLocale = window.localStorage.getItem("valens_locale");
-    return storedLocale === "ar" ? "ar" : "en";
-  });
+  const [locale, setLocale] = useState<"en" | "ar">("en");
+
+  useEffect(() => {
+    const storedLocale = localStorage.getItem("valens_locale") as "en" | "ar";
+    if (storedLocale === "en" || storedLocale === "ar") {
+      setLocale(storedLocale);
+    }
+  }, []);
 
   const changeLanguage = useCallback((newLocale: "en" | "ar") => {
     setLocale(newLocale);
@@ -87,9 +84,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [locale]);
 
   const t = useCallback((key: string, variables?: Record<string, string | number>) => {
-    const dict: TranslationDict = locale === "ar" ? (ar as TranslationDict) : (en as TranslationDict);
+    const dict = locale === "ar" ? ar : en;
     const keys = key.split(".");
-    let val: TranslationDict | string = dict;
+    let val: any = dict;
     for (const k of keys) {
       if (val && typeof val === "object" && k in val) {
         val = val[k];

@@ -169,8 +169,6 @@ export const ProductImage: React.FC<{
 };
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
   const { addToCart, locale, t } = useApp();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -430,12 +428,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Product Details Section */}
           <div className="flex flex-col gap-1.5 mt-auto">
             {/* Title and Price Row */}
-            <div className="flex justify-between items-start gap-2">
-              <h3 className="text-base font-extrabold tracking-wide uppercase text-white group-hover:text-primary-coral transition-colors duration-300 line-clamp-2 text-left">
-                {mounted && locale === "ar" && product.name_ar ? product.name_ar : product.name}
+            <div className={`flex justify-between items-start gap-2 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
+              <h3 className={`text-base font-extrabold tracking-wide uppercase text-white group-hover:text-primary-coral transition-colors duration-300 line-clamp-2 ${locale === "ar" ? "text-right" : "text-left"}`}>
+                {locale === "ar" && product.name_ar ? product.name_ar : product.name}
               </h3>
               <span className="text-base font-extrabold text-primary-coral whitespace-nowrap">
-                {mounted ? `${Math.round(product.discountPrice || product.price).toLocaleString(locale === "ar" ? "ar-EG" : undefined)} ${locale === "ar" ? "ج.م" : "EGP"}` : ""}
+                {Math.round(product.discountPrice || product.price).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
               </span>
             </div>
 
