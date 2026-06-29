@@ -71,6 +71,7 @@ export interface CartItem {
 
 export interface Order {
   id: string;
+  orderName?: string;
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -86,6 +87,7 @@ export interface Order {
     variant: string;
     imageColor: string;
     imageType: "powder" | "capsule" | "liquid";
+    image?: string;
   }[];
   totalPrice: number;
   paymentMethod: string;
@@ -193,15 +195,20 @@ export interface AppContextType {
   storeSettings: StoreSettings;
   activeCoupon: Coupon | null;
   currentUserEmail: string | null;
+  token: string | null;
+  currentUserRole: "Admin" | "Customer" | null;
   toast: (msg: string, type?: "success" | "error" | "info") => void;
   showToast: (message: string, type?: "success" | "error" | "info") => void;
   locale: "en" | "ar";
   changeLanguage: (newLocale: "en" | "ar") => void;
   t: (key: string, variables?: Record<string, string | number>) => string;
 
-  loginUser: (email: string, name?: string) => void;
+  loginUser: (email: string, password: string) => Promise<boolean>;
+  registerCustomer: (email: string, password: string, name: string) => Promise<boolean>;
   logoutUser: () => void;
   updateCustomer: (email: string, updatedDetails: Partial<Customer>) => void;
+  fetchAdminData: () => Promise<void>;
+  fetchCustomerData: () => Promise<void>;
 
   // Cart operations
   addToCart: (
@@ -216,11 +223,11 @@ export interface AppContextType {
   updateCartQuantity: (index: number, quantity: number) => void;
   removeFromCart: (index: number) => void;
   clearCart: () => void;
-  applyCoupon: (code: string) => boolean;
+  applyCoupon: (code: string) => Promise<boolean>;
   removeCoupon: () => void;
 
   // Order operations
-  placeOrder: (orderData: Omit<Order, "id" | "orderDate" | "status">) => Order;
+  placeOrder: (orderData: Omit<Order, "id" | "orderDate" | "status">) => Promise<Order>;
   updateOrderStatus: (orderId: string, status: Order["status"]) => void;
   confirmOrder: (orderId: string) => void;
   cancelOrder: (orderId: string) => void;

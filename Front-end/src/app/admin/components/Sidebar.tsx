@@ -23,6 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen })
     { id: "coupons", label: "Coupons", icon: "tag" },
     { id: "expenses", label: "Expenses", icon: "expense" },
     { id: "reports", label: "Reports", icon: "report" },
+    { id: "goverment", label: "Goverment", icon: "location" },
     { id: "settings", label: "Settings", icon: "settings" },
   ];
   
@@ -38,7 +39,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen })
       case "coupons": return "الكوبونات";
       case "expenses": return "المصاريف";
       case "reports": return "التقارير";
+      case "goverment": return "المحافظات";
       case "settings": return "الإعدادات";
+      
       default: return defaultLabel;
     }
   };

@@ -8,7 +8,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { Icon } from "./SvgIcons";
 
 export const Navbar: React.FC = () => {
-  const { cart, homePageSettings, currentUserEmail, locale, t } = useApp();
+  const { cart, homePageSettings, currentUserEmail, currentUserRole, locale, t } = useApp();
   const { setIsPanelOpen } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,13 +63,7 @@ export const Navbar: React.FC = () => {
             >
               {t("storefront.navbar.contact")}
             </Link>
-            <Link
-              href="/admin"
-              className="rounded-full border border-primary-coral/20 bg-primary-coral/5 px-3.5 py-1 text-xs font-bold tracking-wider text-primary-coral hover:bg-primary-coral hover:text-main-bg transition-luxury"
-            >
-              {t("storefront.navbar.admin")}
-            </Link>
-          </nav>
+           </nav>
         </div>
 
         {/* Search, Cart & Account */}
@@ -98,11 +92,23 @@ export const Navbar: React.FC = () => {
 
           {/* Account */}
           <Link
-            href={currentUserEmail ? "/dashboard" : "/login"}
+            href={
+              currentUserEmail
+                ? currentUserRole === "Admin"
+                  ? "/admin"
+                  : "/dashboard"
+                : "/login"
+            }
             className={`flex items-center justify-center hover:text-primary-coral transition-luxury ${
               currentUserEmail ? "text-primary-coral" : "text-soft-text"
             }`}
-            title={currentUserEmail ? "Athlete Dashboard" : "Account"}
+            title={
+              currentUserEmail
+                ? currentUserRole === "Admin"
+                  ? "Admin Dashboard"
+                  : "Athlete Dashboard"
+                : "Account"
+            }
           >
             <Icon name="user" size={20} />
           </Link>
@@ -201,13 +207,23 @@ export const Navbar: React.FC = () => {
               {t("storefront.navbar.contact")}
             </Link>
             <Link
-              href={currentUserEmail ? "/dashboard" : "/login"}
+              href={
+                currentUserEmail
+                  ? currentUserRole === "Admin"
+                    ? "/admin"
+                    : "/dashboard"
+                  : "/login"
+              }
               onClick={() => setMobileMenuOpen(false)}
               className={`text-sm font-semibold tracking-wide hover:text-primary-coral ${
                 currentUserEmail ? "text-primary-coral" : "text-soft-text"
               }`}
             >
-              {currentUserEmail ? (locale === "ar" ? "لوحة التحكم للرياضيين" : "Athlete Dashboard") : t("storefront.navbar.login")}
+              {currentUserEmail ? (
+                currentUserRole === "Admin"
+                  ? (locale === "ar" ? "لوحة التحكم للمسؤول" : "Admin Dashboard")
+                  : (locale === "ar" ? "لوحة التحكم للرياضيين" : "Athlete Dashboard")
+              ) : t("storefront.navbar.login")}
             </Link>
             <Link
               href="/admin"

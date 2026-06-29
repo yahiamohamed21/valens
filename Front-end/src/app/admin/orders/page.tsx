@@ -25,7 +25,7 @@ export default function AdminOrdersPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border-color text-muted-text uppercase tracking-wider">
-                <th className="pb-3 font-extrabold">Order ID</th>
+                <th className="pb-3 font-extrabold">Order Name</th>
                 <th className="pb-3 font-extrabold">Client</th>
                 <th className="pb-3 font-extrabold">Date</th>
                 <th className="pb-3 font-extrabold">Total Cost</th>
@@ -37,7 +37,7 @@ export default function AdminOrdersPage() {
             <tbody>
               {orders.map((ord) => (
                 <tr key={ord.id} className="border-b border-border-color/30 last:border-0 hover:bg-surface-deep/20">
-                  <td className="py-3.5 font-bold text-white">{ord.id}</td>
+                  <td className="py-3.5 font-bold text-white">{ord.orderName || ord.id}</td>
                   <td className="py-3.5">
                     <div>
                       <span className="block font-semibold text-white">{ord.customerName}</span>

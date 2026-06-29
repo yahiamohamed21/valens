@@ -27,7 +27,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         </button>
 
         <h2 className="text-base font-black uppercase tracking-wider text-white border-b border-border-color pb-3 mb-5">
-          Order Details: {order.id}
+          Order Details: {order.orderName || order.id}
         </h2>
 
         {/* Client address summary */}

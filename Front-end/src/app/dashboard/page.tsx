@@ -7,10 +7,12 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
 import { showToast } from "@/lib/toast";
+import { api } from "@/lib/api";
 
 export default function UserDashboard() {
   const {
     currentUserEmail,
+    currentUserRole,
     customers,
     orders,
     updateCustomer,
@@ -30,6 +32,20 @@ export default function UserDashboard() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [governorates, setGovernorates] = useState<{ id: string; governorateName: string }[]>([]);
+
+  // Fetch Governorates on mount
+  useEffect(() => {
+    const loadGovs = async () => {
+      try {
+        const data = await api.settings.governorates();
+        setGovernorates(data || []);
+      } catch (err) {
+        console.error("Failed to load governorates for profile dropdown", err);
+      }
+    };
+    loadGovs();
+  }, []);
 
   // Sync state with customer details when currentCustomer loads
   useEffect(() => {
@@ -52,6 +68,13 @@ export default function UserDashboard() {
       return () => clearTimeout(timer);
     }
   }, [currentUserEmail, router]);
+
+  // If role is Admin, redirect to Admin dashboard
+  useEffect(() => {
+    if (currentUserEmail && currentUserRole === "Admin") {
+      router.push("/admin");
+    }
+  }, [currentUserEmail, currentUserRole, router]);
 
   if (!currentUserEmail) {
     return (
@@ -270,12 +293,23 @@ export default function UserDashboard() {
                     <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-1.5">
                       City / Area
                     </label>
-                    <input
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white placeholder-muted-text focus:outline-none focus:border-primary-coral"
-                    />
+                    <div className="relative">
+                      <select
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral appearance-none cursor-pointer pr-10"
+                      >
+                        <option value="" disabled>Select Governorate / Area</option>
+                        {governorates.map((gov) => (
+                          <option key={gov.id} value={gov.governorateName}>
+                            {gov.governorateName}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-muted-text">
+                        <Icon name="chevron-down" size={14} />
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-1.5">
@@ -382,7 +416,7 @@ export default function UserDashboard() {
                       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border-color/30 pb-4">
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                           <span className="text-xs font-black text-white tracking-wide uppercase">
-                            Order {order.id}
+                            Order {order.orderName || order.id}
                           </span>
                           <span className="text-3xs font-semibold text-muted-text">
                             {formatDate(order.orderDate)}
@@ -405,11 +439,11 @@ export default function UserDashboard() {
                               onClick={() => {
                                 if (
                                   confirm(
-                                    `Are you sure you want to cancel order ${order.id}?`
+                                    `Are you sure you want to cancel order ${order.orderName || order.id}?`
                                   )
                                 ) {
                                   cancelOrder(order.id);
-                                  showToast(`Order ${order.id} cancelled.`, "info");
+                                  showToast(`Order ${order.orderName || order.id} cancelled.`, "info");
                                 }
                               }}
                               className="rounded-full border border-rose-500/20 bg-rose-500/5 px-2.5 py-1 text-4xs font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500 hover:text-white transition-all duration-300 cursor-pointer"

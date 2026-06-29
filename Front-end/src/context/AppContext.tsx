@@ -8,16 +8,20 @@ import { useExpenseActions } from "@/context/actions/expense-actions";
 import { useOrderActions } from "@/context/actions/order-actions";
 import { useProductActions } from "@/context/actions/product-actions";
 import { useSettingsActions } from "@/context/actions/settings-actions";
-import { initialCategories } from "@/data/categories";
-import { initialCoupons } from "@/data/coupons";
-import { initialCustomers } from "@/data/customers";
-import { initialExpenses } from "@/data/expenses";
-import { initialOrders } from "@/data/orders";
-import { initialProducts } from "@/data/products";
-import { defaultHomePageSettings, defaultStoreSettings } from "@/data/settings";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { getStorageItem, setStorageItem } from "@/lib/storage";
 import { showToast } from "@/lib/toast";
+import {
+  api,
+  decodeJwt,
+  mapApiProductToClient,
+  mapApiCategoryToClient,
+  mapApiCouponToClient,
+  mapApiCustomerToClient,
+  mapApiExpenseToClient,
+  mapApiOrderToClient,
+  safeArray,
+} from "@/lib/api";
 import en from "@/data/translations/en.json";
 import ar from "@/data/translations/ar.json";
 import type {
@@ -49,18 +53,46 @@ export type {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
+const emptyHomePageSettings: HomePageSettings = {
+  brandName: "",
+  logoText: "",
+  heroTitle: "",
+  heroSubtitle: "",
+  heroCtaText: "",
+  heroCtaLink: "",
+  firstBannerTitle: "",
+  firstBannerSubtitle: "",
+  firstBannerCtaText: "",
+  promoBadge: "",
+};
+
+const emptyStoreSettings: StoreSettings = {
+  brandName: "",
+  logoText: "",
+  contactEmail: "",
+  contactPhone: "",
+  address: "",
+  shippingCost: 0,
+  taxRate: 0,
+  socialInstagram: "",
+  socialTwitter: "",
+  socialFacebook: "",
+};
+
 export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [coupons, setCoupons] = useState<Coupon[]>(initialCoupons);
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [homePageSettings, setHomePageSettings] = useState<HomePageSettings>(defaultHomePageSettings);
-  const [storeSettings, setStoreSettings] = useState<StoreSettings>(defaultStoreSettings);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [homePageSettings, setHomePageSettings] = useState<HomePageSettings>(emptyHomePageSettings);
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>(emptyStoreSettings);
   const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<"Admin" | "Customer" | null>(null);
 
   const [locale, setLocale] = useState<"en" | "ar">("en");
 
@@ -106,50 +138,114 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return key;
   }, [locale]);
 
+  const fetchPublicData = useCallback(async () => {
+    try {
+      const data = await api.settings.homepageOverview();
+      if (data) {
+        if (data.products) setProducts(safeArray(data.products).map(mapApiProductToClient));
+        if (data.categories) setCategories(safeArray(data.categories).map(mapApiCategoryToClient));
+        if (data.homePageSettings || data.homepageConfig) setHomePageSettings(data.homePageSettings || data.homepageConfig);
+        if (data.storeSettings || data.storeConfig) setStoreSettings(data.storeSettings || data.storeConfig);
+      }
+    } catch (err) {
+      console.error("Failed to fetch public homepage overview, falling back to active lists:", err);
+      try {
+        const prodList = await api.products.list({});
+        if (prodList) setProducts(safeArray(prodList).map(mapApiProductToClient));
+        const catList = await api.categories.listActive();
+        if (catList) setCategories(safeArray(catList).map(mapApiCategoryToClient));
+        const storeConf = await api.settings.storeConfig();
+        if (storeConf) setStoreSettings(storeConf);
+        const homeConf = await api.settings.homepageConfig();
+        if (homeConf) setHomePageSettings(homeConf);
+      } catch (fallbackErr) {
+        console.error("All fetch fallbacks failed:", fallbackErr);
+      }
+    }
+  }, []);
+
+  const fetchAdminData = useCallback(async () => {
+    const results = await Promise.allSettled([
+      api.categories.listAdmin(),
+      api.coupons.listAdmin(),
+      api.customers.listAdmin({ search: "" }),
+      api.expenses.listAdmin({}),
+      api.orders.listAdmin({}),
+      api.products.list({}),
+    ]);
+
+    const [adminCats, adminCoupons, adminCustomers, adminExpenses, adminOrders, adminProducts] = results;
+
+    if (adminCats.status === "fulfilled" && adminCats.value)
+      setCategories(safeArray(adminCats.value).map(mapApiCategoryToClient));
+    else if (adminCats.status === "rejected")
+      console.error("Failed to load admin categories:", adminCats.reason);
+
+    if (adminCoupons.status === "fulfilled" && adminCoupons.value)
+      setCoupons(safeArray(adminCoupons.value).map(mapApiCouponToClient));
+    else if (adminCoupons.status === "rejected")
+      console.error("Failed to load admin coupons:", adminCoupons.reason);
+
+    if (adminCustomers.status === "fulfilled" && adminCustomers.value)
+      setCustomers(safeArray(adminCustomers.value).map(mapApiCustomerToClient));
+    else if (adminCustomers.status === "rejected")
+      console.error("Failed to load admin customers:", adminCustomers.reason);
+
+    if (adminExpenses.status === "fulfilled" && adminExpenses.value)
+      setExpenses(safeArray(adminExpenses.value).map(mapApiExpenseToClient));
+    else if (adminExpenses.status === "rejected")
+      console.error("Failed to load admin expenses:", adminExpenses.reason);
+
+    if (adminOrders.status === "fulfilled" && adminOrders.value)
+      setOrders(safeArray(adminOrders.value).map(mapApiOrderToClient));
+    else if (adminOrders.status === "rejected")
+      console.error("Failed to load admin orders:", adminOrders.reason);
+
+    if (adminProducts.status === "fulfilled" && adminProducts.value)
+      setProducts(safeArray(adminProducts.value).map(mapApiProductToClient));
+    else if (adminProducts.status === "rejected")
+      console.error("Failed to load admin products:", adminProducts.reason);
+  }, []);
+
+  const fetchCustomerData = useCallback(async () => {
+    try {
+      const history = await api.orders.myHistory();
+      if (history) setOrders(safeArray(history).map(mapApiOrderToClient));
+    } catch (err) {
+      console.error("Failed to load customer order history:", err);
+    }
+  }, []);
+
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    const storedProducts = getStorageItem<Product[]>(STORAGE_KEYS.PRODUCTS);
-    const storedCategories = getStorageItem<Category[]>(STORAGE_KEYS.CATEGORIES);
     const storedCart = getStorageItem<CartItem[]>(STORAGE_KEYS.CART);
-    const storedOrders = getStorageItem<Order[]>(STORAGE_KEYS.ORDERS);
-    const storedCustomers = getStorageItem<Customer[]>(STORAGE_KEYS.CUSTOMERS);
-    const storedCoupons = getStorageItem<Coupon[]>(STORAGE_KEYS.COUPONS);
-    const storedExpenses = getStorageItem<Expense[]>(STORAGE_KEYS.EXPENSES);
-    const storedHomePage = getStorageItem<HomePageSettings>(STORAGE_KEYS.HOMEPAGE);
-    const storedSettings = getStorageItem<StoreSettings>(STORAGE_KEYS.SETTINGS);
-
-    if (storedProducts !== undefined) setProducts(storedProducts);
-    if (storedCategories !== undefined) {
-      const updated = storedCategories.map(cat => {
-        if (cat.id === "cat-4" || cat.slug === "recovery") {
-          return { ...cat, visible: true };
-        }
-        return cat;
-      });
-      if (!updated.some(c => c.id === "cat-4")) {
-        const recoveryCat = initialCategories.find(c => c.id === "cat-4");
-        if (recoveryCat) updated.push(recoveryCat);
-      }
-      setCategories(updated);
-      try {
-        localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(updated));
-      } catch (e) {
-        console.error("Failed to sync category visible state", e);
-      }
-    } else {
-      setCategories(initialCategories);
-    }
     if (storedCart !== undefined) setCart(storedCart);
-    if (storedOrders !== undefined) setOrders(storedOrders);
-    if (storedCustomers !== undefined) setCustomers(storedCustomers);
-    if (storedCoupons !== undefined) setCoupons(storedCoupons);
-    if (storedExpenses !== undefined) setExpenses(storedExpenses);
-    if (storedHomePage !== undefined) setHomePageSettings(storedHomePage);
-    if (storedSettings !== undefined) setStoreSettings(storedSettings);
-    const storedUser = getStorageItem<string>(STORAGE_KEYS.CURRENT_USER);
-    if (storedUser !== undefined) setCurrentUserEmail(storedUser);
-  }, []);
+
+    if (typeof window !== "undefined") {
+      const storedToken = localStorage.getItem("valens_jwt_token");
+      if (storedToken) {
+        setToken(storedToken);
+        const claims = decodeJwt(storedToken);
+        if (claims) {
+          const email = claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"];
+          const role = claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+          setCurrentUserEmail(email || null);
+          setCurrentUserRole(role || null);
+        }
+      }
+    }
+
+    fetchPublicData();
+  }, [fetchPublicData]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (token && currentUserRole === "Admin") {
+      fetchAdminData();
+    } else if (token && currentUserRole === "Customer") {
+      fetchCustomerData();
+    }
+  }, [token, currentUserRole, fetchAdminData, fetchCustomerData]);
 
   const appToast: AppContextType["toast"] = useCallback((msg, type = "info") => {
     showToast(msg, type);
@@ -171,47 +267,97 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setCurrentUserEmail,
   });
 
-  const loginUser = useCallback((email: string, name?: string) => {
-    setCurrentUserEmail(email);
-    setStorageItem(STORAGE_KEYS.CURRENT_USER, email);
-
-    // If the customer doesn't exist, create one
-    const exists = customers.some(c => c.email.toLowerCase() === email.toLowerCase());
-    if (!exists) {
-      const newCustomer: Customer = {
-        id: `cust-${Date.now()}`,
-        name: name || email.split("@")[0],
-        email: email,
-        phone: "",
-        address: "",
-        city: "",
-        orderCount: 0,
-        totalSpent: 0,
-        joinDate: new Date().toISOString().split("T")[0]
-      };
-      const updated = [...customers, newCustomer];
-      setCustomers(updated);
-      setStorageItem(STORAGE_KEYS.CUSTOMERS, updated);
-    }
-  }, [customers]);
-
-  const logoutUser = useCallback(() => {
-    setCurrentUserEmail(null);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  const loginUser = useCallback(async (email: string, password: string) => {
+    try {
+      const response = await api.auth.login({ email, password });
+      const jwtToken = response.token;
+      if (jwtToken) {
+        localStorage.setItem("valens_jwt_token", jwtToken);
+        setToken(jwtToken);
+        const claims = decodeJwt(jwtToken);
+        if (claims) {
+          const parsedEmail = claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || email;
+          const parsedRole = claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "Customer";
+          setCurrentUserEmail(parsedEmail);
+          setCurrentUserRole(parsedRole);
+        } else {
+          setCurrentUserEmail(email);
+          setCurrentUserRole("Customer");
+        }
+        showToast("Authenticated successfully!", "success");
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      showToast(err.message || "Failed to authenticate", "error");
+      return false;
     }
   }, []);
 
-  const updateCustomer = useCallback((email: string, updatedDetails: Partial<Customer>) => {
-    const updated = customers.map(c => {
-      if (c.email.toLowerCase() === email.toLowerCase()) {
-        return { ...c, ...updatedDetails };
+  const registerCustomer = useCallback(async (email: string, password: string, name: string) => {
+    try {
+      const response = await api.auth.registerCustomer({
+        email,
+        password,
+        firstName: name.split(" ")[0] || name,
+        lastName: name.split(" ").slice(1).join(" ") || "Customer",
+      });
+      const jwtToken = response.token;
+      if (jwtToken) {
+        localStorage.setItem("valens_jwt_token", jwtToken);
+        setToken(jwtToken);
+        const claims = decodeJwt(jwtToken);
+        if (claims) {
+          const parsedEmail = claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || email;
+          setCurrentUserEmail(parsedEmail);
+          setCurrentUserRole("Customer");
+        } else {
+          setCurrentUserEmail(email);
+          setCurrentUserRole("Customer");
+        }
+        showToast("Account registered successfully!", "success");
+        return true;
       }
-      return c;
-    });
-    setCustomers(updated);
-    setStorageItem(STORAGE_KEYS.CUSTOMERS, updated);
+      return true;
+    } catch (err: any) {
+      showToast(err.message || "Registration failed", "error");
+      return false;
+    }
+  }, []);
+
+  const logoutUser = useCallback(() => {
+    setCurrentUserEmail(null);
+    setCurrentUserRole(null);
+    setToken(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("valens_jwt_token");
+      localStorage.removeItem("valens_current_user");
+    }
+    showToast("Logged out successfully", "info");
+  }, []);
+
+  const updateCustomer = useCallback(async (email: string, updatedDetails: Partial<Customer>) => {
+    try {
+      await api.customers.updateProfile({
+        name: updatedDetails.name,
+        phone: updatedDetails.phone,
+        address: updatedDetails.address,
+        city: updatedDetails.city,
+      });
+
+      const updated = customers.map(c => {
+        if (c.email.toLowerCase() === email.toLowerCase()) {
+          return { ...c, ...updatedDetails };
+        }
+        return c;
+      });
+      setCustomers(updated);
+      showToast("Profile updated successfully", "success");
+    } catch (err: any) {
+      showToast(err.message || "Failed to update profile", "error");
+    }
   }, [customers]);
+
   const productActions = useProductActions({ products, setProducts });
   const categoryActions = useCategoryActions({ categories, setCategories });
   const couponActions = useCouponActions({ coupons, setCoupons });
@@ -230,14 +376,19 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     storeSettings,
     activeCoupon,
     currentUserEmail,
+    token,
+    currentUserRole,
     toast: appToast,
     showToast: appToast,
     loginUser,
+    registerCustomer,
     logoutUser,
     updateCustomer,
     locale,
     changeLanguage,
     t,
+    fetchAdminData,
+    fetchCustomerData,
     ...cartActions,
     ...orderActions,
     ...productActions,
@@ -248,6 +399,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }), [
     activeCoupon,
     currentUserEmail,
+    token,
+    currentUserRole,
     appToast,
     cart,
     cartActions,
@@ -266,11 +419,14 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     settingsActions,
     storeSettings,
     loginUser,
+    registerCustomer,
     logoutUser,
     updateCustomer,
     locale,
     changeLanguage,
     t,
+    fetchAdminData,
+    fetchCustomerData,
   ]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -21,10 +21,10 @@ export default function CartPage() {
 
   const [couponCodeInput, setCouponCodeInput] = useState("");
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (couponCodeInput.trim()) {
-      applyCoupon(couponCodeInput.trim());
+      await applyCoupon(couponCodeInput.trim());
       setCouponCodeInput("");
     }
   };
@@ -45,9 +45,8 @@ export default function CartPage() {
     }
   }
 
-  // Shipping cost (Free if subtotal after discount is over 1500 EGP, else use storeSettings shippingCost)
-  const isFreeShipping = subtotal > 1500;
-  const shippingCost = isFreeShipping ? 0 : storeSettings.shippingCost;
+  // Shipping cost
+  const shippingCost = storeSettings.shippingCost;
 
   // Tax calculation
   const taxableAmount = Math.max(0, subtotal - discountAmount);
@@ -201,11 +200,7 @@ export default function CartPage() {
                 {/* Shipping */}
                 <div className="flex justify-between items-center text-xs text-soft-text mb-3">
                   <span>Shipping & Handling</span>
-                  {isFreeShipping ? (
-                    <span className="font-bold text-success-green uppercase text-2xs">FREE SHIPPING</span>
-                  ) : (
-                    <span className="font-bold text-white">{shippingCost.toLocaleString()} EGP</span>
-                  )}
+                  <span className="font-bold text-white">{shippingCost.toLocaleString()} EGP</span>
                 </div>
 
                 {/* Tax */}
@@ -229,11 +224,7 @@ export default function CartPage() {
                   <Icon name="arrow-right" size={14} />
                 </Link>
 
-                {subtotal <= 1500 && (
-                  <p className="mt-4 text-center text-4xs text-muted-text font-bold uppercase tracking-wide">
-                    Add <span className="text-white">{(1500.01 - subtotal).toLocaleString()} EGP</span> more to unlock FREE SHIPPING!
-                  </p>
-                )}
+
               </div>
             </div>
 

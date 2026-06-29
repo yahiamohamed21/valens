@@ -36,30 +36,36 @@ export const Footer: React.FC = () => {
               }
             </p>
             <div className={`mt-2 flex gap-4 text-xs font-semibold text-soft-text ${locale === "ar" ? "justify-start flex-row-reverse" : "justify-start"}`}>
-              <a
-                href={`https://instagram.com/${storeSettings.socialInstagram.replace("@", "")}`}
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-primary-coral transition-luxury"
-              >
-                Instagram
-              </a>
-              <a
-                href={`https://twitter.com/${storeSettings.socialTwitter.replace("@", "")}`}
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-primary-coral transition-luxury"
-              >
-                Twitter
-              </a>
-              <a
-                href={`https://facebook.com/${storeSettings.socialFacebook}`}
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-primary-coral transition-luxury"
-              >
-                Facebook
-              </a>
+              {storeSettings?.socialInstagram && (
+                <a
+                  href={`https://instagram.com/${storeSettings.socialInstagram.replace("@", "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-primary-coral transition-luxury"
+                >
+                  Instagram
+                </a>
+              )}
+              {storeSettings?.socialTwitter && (
+                <a
+                  href={`https://twitter.com/${storeSettings.socialTwitter.replace("@", "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-primary-coral transition-luxury"
+                >
+                  Twitter
+                </a>
+              )}
+              {storeSettings?.socialFacebook && (
+                <a
+                  href={`https://facebook.com/${storeSettings.socialFacebook}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-primary-coral transition-luxury"
+                >
+                  Facebook
+                </a>
+              )}
             </div>
           </div>
 

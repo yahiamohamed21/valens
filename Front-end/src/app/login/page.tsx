@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
+import { api, decodeJwt } from "@/lib/api";
 
 export default function LoginPage() {
-  const { showToast, loginUser } = useApp();
+  const { showToast, loginUser, registerCustomer } = useApp();
   const router = useRouter();
 
   // Active view: "login" | "signup" | "forgot"
@@ -22,19 +22,38 @@ export default function LoginPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
 
-    loginUser(email);
-    showToast(`Logged in successfully as ${email}`, "success");
-    // Reset fields
-    setEmail("");
-    setPassword("");
-    router.push("/dashboard");
+    const success = await loginUser(email, password);
+    if (success) {
+      // Reset fields
+      setEmail("");
+      setPassword("");
+      
+      const storedToken = typeof window !== "undefined" ? localStorage.getItem("valens_jwt_token") : null;
+      let role = "Customer";
+      if (storedToken) {
+        try {
+          const claims = decodeJwt(storedToken);
+          if (claims) {
+            role = claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "Customer";
+          }
+        } catch (error) {
+          console.error("Error decoding token for login routing:", error);
+        }
+      }
+
+      if (role.toLowerCase() === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
+    }
   };
 
-  const handleSignupSubmit = (e: React.FormEvent) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !confirmPassword || !firstName || !lastName) {
       showToast("All fields are required.", "error");
@@ -46,24 +65,30 @@ export default function LoginPage() {
       return;
     }
 
-    loginUser(email, `${firstName} ${lastName}`);
-    showToast("Account registered successfully! Welcome to Valens.", "success");
-    // Reset fields
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
-    setFirstName("");
-    setLastName("");
-    router.push("/dashboard");
+    const success = await registerCustomer(email, password, `${firstName} ${lastName}`);
+    if (success) {
+      // Reset fields
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setFirstName("");
+      setLastName("");
+      router.push("/dashboard");
+    }
   };
 
-  const handleForgotSubmit = (e: React.FormEvent) => {
+  const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
-    showToast(`Password recovery link dispatched to ${email}`, "info");
-    setEmail("");
-    setActiveTab("login");
+    try {
+      await api.auth.forgotPassword({ email });
+      showToast(`Password recovery code dispatched to ${email}`, "info");
+      setEmail("");
+      setActiveTab("login");
+    } catch (err: any) {
+      showToast(err.message || "Failed to send recovery code", "error");
+    }
   };
 
   return (

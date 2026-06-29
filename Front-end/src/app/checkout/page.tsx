@@ -9,6 +9,7 @@ import { showToast } from "@/lib/toast";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
 import { ProductImage } from "@/components/ProductCard";
+import { api } from "@/lib/api";
 
 export default function CheckoutPage() {
   const {
@@ -18,6 +19,7 @@ export default function CheckoutPage() {
     placeOrder,
     currentUserEmail,
     customers,
+    locale,
   } = useApp();
   const router = useRouter();
 
@@ -29,6 +31,20 @@ export default function CheckoutPage() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [notes, setNotes] = useState("");
+  const [governorates, setGovernorates] = useState<{ id: string; governorateName: string; shippingCost: number }[]>([]);
+
+  // Fetch Governorates on mount
+  useEffect(() => {
+    const loadGovs = async () => {
+      try {
+        const data = await api.settings.governorates();
+        setGovernorates(data || []);
+      } catch (err) {
+        console.error("Failed to load governorates for checkout dropdown", err);
+      }
+    };
+    loadGovs();
+  }, []);
 
   // Get logged-in user profile if exists
   const currentCustomer = useMemo(() => {
@@ -81,9 +97,8 @@ export default function CheckoutPage() {
   }
 
   // Shipping Fee
-  const isFreeShipping = subtotal > 1500;
-  const baseShippingFee = isFreeShipping ? 0 : storeSettings.shippingCost;
-  const shippingCost = shippingMethod === "Priority Air" ? baseShippingFee + 30 : baseShippingFee;
+  const selectedGov = governorates.find(g => g.governorateName.toLowerCase() === city.toLowerCase());
+  const shippingCost = selectedGov ? selectedGov.shippingCost : storeSettings.shippingCost;
 
   // Tax
   const taxableAmount = Math.max(0, subtotal - discountAmount);
@@ -93,7 +108,7 @@ export default function CheckoutPage() {
   const finalTotal = taxableAmount + shippingCost + taxAmount;
 
   // Form submit handler
-  const handleConfirmOrder = (e: React.FormEvent) => {
+  const handleConfirmOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!firstName || !lastName || !phone || !email || !address || !city) {
@@ -132,8 +147,12 @@ export default function CheckoutPage() {
       couponCode: activeCoupon?.code || undefined
     };
 
-    const newOrder = placeOrder(orderPayload);
-    setPlacedOrder(newOrder);
+    try {
+      const newOrder = await placeOrder(orderPayload);
+      setPlacedOrder(newOrder);
+    } catch (err) {
+      // Errors are handled inside placeOrder with a toast
+    }
   };
 
   // If cart is empty and order hasn't been placed, redirect to products
@@ -168,17 +187,17 @@ export default function CheckoutPage() {
         </h1>
 
         <form onSubmit={handleConfirmOrder} className="grid grid-cols-1 gap-10 lg:grid-cols-12">
-          
+
           {/* Shipping and Payment Forms (Left Columns) */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            
+
             {/* Shipping Info Container */}
             <div className="rounded-2xl border border-border-color bg-card-bg p-6">
               <h2 className="text-sm font-black uppercase tracking-wider text-white border-b border-border-color pb-3 mb-5 flex items-center gap-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-coral text-4xs font-bold text-main-bg">1</span>
                 Shipping Address
               </h2>
-              
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">First Name *</label>
@@ -222,13 +241,24 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">City / Area *</label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white placeholder-muted-text focus:outline-none focus:border-primary-coral"
-                  />
+                  <div className="relative">
+                    <select
+                      required
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none focus:border-primary-coral appearance-none cursor-pointer pr-10"
+                    >
+                      <option value="" disabled>{locale === "ar" ? "اختر المحافظة" : "Select Governorate"}</option>
+                      {governorates.map((gov) => (
+                        <option key={gov.id} value={gov.governorateName}>
+                          {gov.governorateName} ({gov.shippingCost} EGP)
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-muted-text">
+                      <Icon name="chevron-down" size={14} />
+                    </div>
+                  </div>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Full Delivery Address *</label>
@@ -252,79 +282,22 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Shipping Rates Container */}
-            <div className="rounded-2xl border border-border-color bg-card-bg p-6">
-              <h2 className="text-sm font-black uppercase tracking-wider text-white border-b border-border-color pb-3 mb-5 flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-coral text-4xs font-bold text-main-bg">2</span>
-                Shipping Courier Method
-              </h2>
-              
-              <div className="flex flex-col gap-3">
-                <label className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-luxury ${
-                  shippingMethod === "Standard Express"
-                    ? "border-primary-coral bg-primary-coral/5"
-                    : "border-border-color bg-surface-deep"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="shipping_method"
-                      checked={shippingMethod === "Standard Express"}
-                      onChange={() => setShippingMethod("Standard Express")}
-                      className="text-primary-coral focus:ring-0 cursor-pointer h-4 w-4"
-                    />
-                    <div>
-                      <span className="block text-xs font-bold text-white uppercase">Standard Express</span>
-                      <span className="text-3xs text-muted-text uppercase font-semibold">Delivered in 3-5 Business Days</span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-primary-coral">
-                    {isFreeShipping ? "FREE" : `$${storeSettings.shippingCost}`}
-                  </span>
-                </label>
-
-                <label className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-luxury ${
-                  shippingMethod === "Priority Air"
-                    ? "border-primary-coral bg-primary-coral/5"
-                    : "border-border-color bg-surface-deep"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="shipping_method"
-                      checked={shippingMethod === "Priority Air"}
-                      onChange={() => setShippingMethod("Priority Air")}
-                      className="text-primary-coral focus:ring-0 cursor-pointer h-4 w-4"
-                    />
-                    <div>
-                      <span className="block text-xs font-bold text-white uppercase">Priority Air Cargo</span>
-                      <span className="text-3xs text-muted-text uppercase font-semibold">Delivered in 1-2 Business Days</span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-primary-coral">
-                    ${(isFreeShipping ? 5 : storeSettings.shippingCost + 5).toFixed(2)}
-                  </span>
-                </label>
-              </div>
-            </div>
-
             {/* Payment Method Container */}
             <div className="rounded-2xl border border-border-color bg-card-bg p-6">
               <h2 className="text-sm font-black uppercase tracking-wider text-white border-b border-border-color pb-3 mb-5 flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-coral text-4xs font-bold text-main-bg">3</span>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-coral text-4xs font-bold text-main-bg">2</span>
                 Payment Method
               </h2>
-              
+
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row gap-3">
                   {["Cash on Delivery"].map((method) => (
                     <label
                       key={method}
-                      className={`flex-1 flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition-luxury uppercase ${
-                        paymentMethod === method
-                          ? "border-primary-coral bg-primary-coral/5 text-primary-coral font-bold"
-                          : "border-border-color bg-surface-deep text-soft-text font-semibold"
-                      }`}
+                      className={`flex-1 flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition-luxury uppercase ${paymentMethod === method
+                        ? "border-primary-coral bg-primary-coral/5 text-primary-coral font-bold"
+                        : "border-border-color bg-surface-deep text-soft-text font-semibold"
+                        }`}
                     >
                       <input
                         type="radio"
@@ -338,51 +311,6 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
-                {/* Credit Card inputs sub-drawer */}
-                {paymentMethod === "Credit Card" && (
-                  <div className="rounded-xl border border-border-color bg-surface-deep p-4 grid grid-cols-3 gap-4 mt-2">
-                    <div className="col-span-3">
-                      <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Card Number *</label>
-                      <input
-                        type="text"
-                        required={paymentMethod === "Credit Card"}
-                        placeholder="4000 1234 5678 9010"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        className="w-full rounded-xl border border-border-color bg-main-bg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Expiration Date *</label>
-                      <input
-                        type="text"
-                        required={paymentMethod === "Credit Card"}
-                        placeholder="MM / YY"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                        className="w-full rounded-xl border border-border-color bg-main-bg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">CVC *</label>
-                      <input
-                        type="text"
-                        required={paymentMethod === "Credit Card"}
-                        placeholder="123"
-                        value={cardCvc}
-                        onChange={(e) => setCardCvc(e.target.value)}
-                        className="w-full rounded-xl border border-border-color bg-main-bg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* PayPal panel */}
-                {paymentMethod === "PayPal" && (
-                  <div className="rounded-xl border border-border-color bg-surface-deep p-4 text-center text-xs text-muted-text font-bold uppercase mt-2">
-                    Redirect to PayPal payment gateway upon clicking confirm.
-                  </div>
-                )}
               </div>
             </div>
 
@@ -470,7 +398,7 @@ export default function CheckoutPage() {
           <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-main-bg/95 backdrop-blur-md p-4">
             <div className="w-full max-w-xl rounded-3xl border border-border-color bg-card-bg p-8 text-center shadow-2xl glass-panel relative overflow-hidden animate-slide-in">
               <div className="absolute top-0 right-0 h-40 w-40 rounded-full bg-primary-coral/5 blur-[50px] pointer-events-none" />
-              
+
               {/* Checkmark icon box */}
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success-green/10 border-2 border-success-green text-success-green mb-6 shadow-[0_0_15px_rgba(16,217,129,0.3)] animate-pulse">
                 <Icon name="check" size={36} />
@@ -479,7 +407,7 @@ export default function CheckoutPage() {
               <span className="text-2xs font-extrabold uppercase tracking-widest text-primary-coral">Order Finalized</span>
               <h2 className="mt-2 text-2xl font-black uppercase tracking-wider text-white">ATHLETE Stack REGISTERED</h2>
               <p className="mt-4 text-xs text-soft-text max-w-md mx-auto leading-relaxed">
-                Thank you, your order <span className="text-white font-bold">{placedOrder.id}</span> has been processed successfully. A confirmation email has been dispatched to {placedOrder.customerEmail}.
+                Thank you, your order <span className="text-white font-bold">{placedOrder.orderName || placedOrder.id}</span> has been processed successfully. A confirmation email has been dispatched to {placedOrder.customerEmail}.
               </p>
 
               {/* Details box */}

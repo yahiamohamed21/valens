@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { STORAGE_KEYS } from "@/lib/constants";
-import { setStorageItem } from "@/lib/storage";
+import { api } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 import type { Category } from "@/types/store";
 
@@ -11,40 +10,72 @@ interface CategoryActionDeps {
 }
 
 export const useCategoryActions = ({ categories, setCategories }: CategoryActionDeps) => {
-  const addCategory = useCallback((catData: Omit<Category, "id" | "slug">) => {
-    const newCat: Category = {
-      ...catData,
-      id: `cat-${Date.now()}`,
-      slug: catData.name.toLowerCase().replace(/\s+/g, "-"),
-    };
-    const newCats = [...categories, newCat];
-    setCategories(newCats);
-    setStorageItem(STORAGE_KEYS.CATEGORIES, newCats);
-    showToast(`Category "${newCat.name}" created`, "success");
-  }, [categories, setCategories]);
+  const addCategory = useCallback(async (catData: Omit<Category, "id" | "slug">) => {
+    try {
+      const created = await api.categories.create({
+        name: catData.name,
+        imageColor: catData.imageColor,
+        visible: catData.visible,
+      });
+      const newCat: Category = {
+        id: created.id || `cat-${Date.now()}`,
+        name: created.name || catData.name,
+        slug: created.slug || catData.name.toLowerCase().replace(/\s+/g, "-"),
+        imageColor: created.imageColor || catData.imageColor,
+        visible: created.visible !== undefined ? created.visible : catData.visible,
+      };
+      setCategories((prev) => [...prev, newCat]);
+      showToast(`Category "${newCat.name}" created`, "success");
+    } catch (error: any) {
+      showToast(error.message || "Failed to create category", "error");
+    }
+  }, [setCategories]);
 
-  const editCategory = useCallback((categoryId: string, updatedFields: Partial<Category>) => {
-    const newCats = categories.map((cat) => {
-      if (cat.id === categoryId) {
-        const merged = { ...cat, ...updatedFields };
-        if (updatedFields.name) {
-          merged.slug = updatedFields.name.toLowerCase().replace(/\s+/g, "-");
-        }
-        return merged;
+  const editCategory = useCallback(async (categoryId: string, updatedFields: Partial<Category>) => {
+    try {
+      const existing = categories.find((c) => c.id === categoryId);
+      if (!existing) return;
+
+      const isToggleOnly = Object.keys(updatedFields).length === 1 && "visible" in updatedFields;
+
+      if (isToggleOnly) {
+        await api.categories.toggle(categoryId);
+      } else {
+        await api.categories.update({
+          id: categoryId,
+          name: updatedFields.name !== undefined ? updatedFields.name : existing.name,
+          imageColor: updatedFields.imageColor !== undefined ? updatedFields.imageColor : existing.imageColor,
+          visible: updatedFields.visible !== undefined ? updatedFields.visible : existing.visible,
+        });
       }
-      return cat;
-    });
-    setCategories(newCats);
-    setStorageItem(STORAGE_KEYS.CATEGORIES, newCats);
-    showToast("Category updated", "success");
+
+      setCategories((prev) =>
+        prev.map((cat) => {
+          if (cat.id === categoryId) {
+            const merged = { ...cat, ...updatedFields };
+            if (updatedFields.name) {
+              merged.slug = updatedFields.name.toLowerCase().replace(/\s+/g, "-");
+            }
+            return merged;
+          }
+          return cat;
+        })
+      );
+      showToast("Category updated", "success");
+    } catch (error: any) {
+      showToast(error.message || "Failed to update category", "error");
+    }
   }, [categories, setCategories]);
 
-  const deleteCategory = useCallback((categoryId: string) => {
-    const newCats = categories.filter((cat) => cat.id !== categoryId);
-    setCategories(newCats);
-    setStorageItem(STORAGE_KEYS.CATEGORIES, newCats);
-    showToast("Category removed", "error");
-  }, [categories, setCategories]);
+  const deleteCategory = useCallback(async (categoryId: string) => {
+    try {
+      await api.categories.delete(categoryId);
+      setCategories((prev) => prev.filter((cat) => cat.id !== categoryId));
+      showToast("Category removed", "error");
+    } catch (error: any) {
+      showToast(error.message || "Failed to delete category", "error");
+    }
+  }, [setCategories]);
 
   return useMemo(
     () => ({ addCategory, editCategory, deleteCategory }),
