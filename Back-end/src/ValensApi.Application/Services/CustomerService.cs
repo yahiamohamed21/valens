@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,23 +18,27 @@ public class CustomerService : ICustomerService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IEnumerable<Customer>> GetAllAsync(string? search)
+    public async Task<ValensApi.Application.DTOs.Common.PaginatedList<Customer>> GetAllAsync(string? search, int pageNumber = 1, int pageSize = 10)
     {
-        if (string.IsNullOrEmpty(search))
+        var query = _unitOfWork.Customers.GetQueryable();
+
+        if (!string.IsNullOrEmpty(search))
         {
-            var customers = await _unitOfWork.Customers.GetAllAsync();
-            return customers.OrderByDescending(c => c.TotalSpent);
+            var searchLower = search.ToLower();
+            query = query.Where(c =>
+                c.FullName.ToLower().Contains(searchLower) ||
+                c.Email.ToLower().Contains(searchLower) ||
+                c.Phone.ToLower().Contains(searchLower) ||
+                c.City.ToLower().Contains(searchLower)
+            );
         }
 
-        var searchLower = search.ToLower();
-        var matched = await _unitOfWork.Customers.FindAsync(c =>
-            c.FullName.ToLower().Contains(searchLower) ||
-            c.Email.ToLower().Contains(searchLower) ||
-            c.Phone.ToLower().Contains(searchLower) ||
-            c.City.ToLower().Contains(searchLower)
-        );
+        query = query.OrderByDescending(c => c.TotalSpent);
 
-        return matched.OrderByDescending(c => c.TotalSpent);
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return new ValensApi.Application.DTOs.Common.PaginatedList<Customer>(items, totalCount, pageNumber, pageSize);
     }
 
     public async Task<object?> GetByIdAsync(Guid id)

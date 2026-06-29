@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ValensApi.Domain")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c7f608487c2e342d303e2f77189b2112471162aa")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b5957b679c400e746b2e1cad476a90d5f884cfe5")]
 [assembly: System.Reflection.AssemblyProductAttribute("ValensApi.Domain")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ValensApi.Domain")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -20,7 +20,7 @@ public class ProductsController : BaseApiController
     }
 
     [HttpPost("list-products")]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromBody] ProductFilterDto dto)
+    public async Task<IActionResult> GetProducts([FromBody] ProductFilterDto dto)
     {
         bool isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole("Admin");
         var products = await _productService.GetAllAsync(
@@ -29,7 +29,9 @@ public class ProductsController : BaseApiController
             dto.MinPrice, 
             dto.MaxPrice, 
             dto.SortBy, 
-            isAdmin
+            isAdmin,
+            dto.PageNumber,
+            dto.PageSize
         );
         return Ok(products);
     }
@@ -55,28 +57,42 @@ public class ProductsController : BaseApiController
 
     [HttpPost("create-product")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<Product>> CreateProduct([FromBody] ProductUpsertDto dto)
+    public async Task<ActionResult<Product>> CreateProduct([FromForm] ProductUpsertDto dto)
     {
-        var product = await _productService.CreateAsync(dto);
-        return Ok(product);
+        try
+        {
+            var product = await _productService.CreateAsync(dto);
+            return Ok(product);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPost("update-product")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> UpdateProduct([FromBody] ProductUpsertDto dto)
+    public async Task<IActionResult> UpdateProduct([FromForm] ProductUpsertDto dto)
     {
         if (!dto.Id.HasValue)
         {
             return BadRequest("Product Id is required for updates.");
         }
 
-        var success = await _productService.UpdateAsync(dto.Id.Value, dto);
-        if (!success)
+        try
         {
-            return NotFound("Product not found.");
-        }
+            var success = await _productService.UpdateAsync(dto.Id.Value, dto);
+            if (!success)
+            {
+                return NotFound("Product not found.");
+            }
 
-        return NoContent();
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPost("delete-product")]

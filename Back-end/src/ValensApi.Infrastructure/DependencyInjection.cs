@@ -21,7 +21,11 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(
                 connectionString,
-                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)
+                      .EnableRetryOnFailure(
+                          maxRetryCount: 5,
+                          maxRetryDelay: System.TimeSpan.FromSeconds(30),
+                          errorNumbersToAdd: null)));
 
         // Repositories
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
@@ -33,6 +37,7 @@ public static class DependencyInjection
         // Services
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IFileStorageService, FileStorageService>();
 
         // JWT Authentication Setup
         var secret = configuration["JwtSettings:Key"] ?? "SuperSecretKeyForValensECommerceStore2026!";

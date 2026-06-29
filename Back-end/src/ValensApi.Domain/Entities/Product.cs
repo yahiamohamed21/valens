@@ -7,7 +7,9 @@ namespace ValensApi.Domain.Entities;
 public class Product : SoftDeletableEntity
 {
     public string Name { get; set; } = string.Empty;
+    public string NameAr { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string DescriptionAr { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
     
     public Guid? CategoryId { get; set; }
@@ -30,9 +32,12 @@ public class Product : SoftDeletableEntity
     // JSON lists in database
     public List<string> Images { get; set; } = new();
     public List<string> Ingredients { get; set; } = new();
+    public List<string> IngredientsAr { get; set; } = new();
     public List<string> Benefits { get; set; } = new();
+    public List<string> BenefitsAr { get; set; } = new();
 
     public string Usage { get; set; } = string.Empty;
+    public string UsageAr { get; set; } = string.Empty;
     public string ImageType { get; set; } = "powder"; // "powder", "capsule", "liquid"
     public string ImageColor { get; set; } = "#FF8A75";
 

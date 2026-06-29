@@ -17,8 +17,8 @@ public class Order : BaseEntity
     public string ShippingAddress { get; set; } = string.Empty;
     public string ShippingCity { get; set; } = string.Empty;
     
-    public string Status { get; set; } = "New"; // "New", "Processing", "Shipped", "Completed", "Cancelled"
-    public string PaymentMethod { get; set; } = "Cash on Delivery"; // "Cash on Delivery" (COD) / الدفع عند الاستلام
+    public string Status { get; set; } = "NEW ORDER"; 
+    public string PaymentMethod { get; set; } = "Cash on Delivery";
     
     public decimal Subtotal { get; set; }
     public decimal ShippingCost { get; set; }

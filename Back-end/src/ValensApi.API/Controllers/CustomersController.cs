@@ -21,9 +21,9 @@ public class CustomersController : BaseApiController
 
     [HttpPost("list-admin-customers")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<Customer>>> GetAdminCustomers([FromBody] CustomerAdminFilterDto dto)
+    public async Task<IActionResult> GetAdminCustomers([FromBody] CustomerAdminFilterDto dto)
     {
-        var customers = await _customerService.GetAllAsync(dto?.Search);
+        var customers = await _customerService.GetAllAsync(dto?.Search, dto?.PageNumber ?? 1, dto?.PageSize ?? 10);
         return Ok(customers);
     }
 

@@ -11,4 +11,6 @@ public interface IAuthService
     Task<bool> SendForgotPasswordOtpAsync(ForgotPasswordRequestDto dto);
     Task<bool> ResetPasswordWithOtpAsync(ResetPasswordWithOtpDto dto);
     Task<bool> ChangePasswordAsync(System.Guid userId, ChangePasswordDto dto);
+    Task<AuthResponseDto?> RefreshTokenAsync(TokenRequestDto dto);
+    Task<bool> RevokeTokenAsync(RevokeTokenDto dto);
 }

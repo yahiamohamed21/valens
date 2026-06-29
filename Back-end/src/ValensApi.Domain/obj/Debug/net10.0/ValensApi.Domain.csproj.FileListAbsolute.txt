@@ -21,3 +21,4 @@ C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Domain\obj\Debug\ne
 C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\refint\ValensApi.Domain.dll
 C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.pdb
 C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ref\ValensApi.Domain.dll
+D:\Valens Project\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.sourcelink.json

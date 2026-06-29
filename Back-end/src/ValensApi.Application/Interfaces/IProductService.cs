@@ -8,7 +8,7 @@ namespace ValensApi.Application.Interfaces;
 
 public interface IProductService
 {
-    Task<IEnumerable<Product>> GetAllAsync(string? category, string? search, decimal? minPrice, decimal? maxPrice, string? sortBy, bool isAdmin);
+    Task<ValensApi.Application.DTOs.Common.PaginatedList<Product>> GetAllAsync(string? category, string? search, decimal? minPrice, decimal? maxPrice, string? sortBy, bool isAdmin, int pageNumber = 1, int pageSize = 10);
     Task<Product?> GetByIdAsync(Guid id);
     Task<Product> CreateAsync(ProductUpsertDto dto);
     Task<bool> UpdateAsync(Guid id, ProductUpsertDto dto);

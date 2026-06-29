@@ -13,10 +13,12 @@ namespace ValensApi.Application.Services;
 public class SettingService : ISettingService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IFileStorageService _fileStorageService;
 
-    public SettingService(IUnitOfWork unitOfWork)
+    public SettingService(IUnitOfWork unitOfWork, IFileStorageService fileStorageService)
     {
         _unitOfWork = unitOfWork;
+        _fileStorageService = fileStorageService;
     }
 
     public async Task<object> GetStoreSettingsAsync()
@@ -67,16 +69,104 @@ public class SettingService : ISettingService
         settings.HomepageHeroSubtitle = dto.HomepageHeroSubtitle;
         settings.HomepageDiscountBannerText = dto.HomepageDiscountBannerText;
 
-        settings.HeroImage = SaveBase64Image(dto.HeroImage);
-        settings.PromoBannerImage = SaveBase64Image(dto.PromoBannerImage);
-
-        if (dto.HomepageSliderImages != null)
+        // Hero Image
+        if (dto.HeroImageFile != null)
         {
-            settings.HomepageSliderImages = dto.HomepageSliderImages
-                .Select(img => SaveBase64Image(img))
-                .Where(url => !string.IsNullOrEmpty(url))
-                .ToList();
+            if (!_fileStorageService.IsValidImage(dto.HeroImageFile, out var error))
+                throw new ArgumentException($"Hero image: {error}");
+            string newHeroImage = await _fileStorageService.SaveFileAsync(dto.HeroImageFile, "uploads");
+            if (!string.IsNullOrEmpty(settings.HeroImage))
+            {
+                _fileStorageService.DeleteFile(settings.HeroImage);
+            }
+            settings.HeroImage = newHeroImage;
         }
+        else if (!string.IsNullOrEmpty(dto.HeroImage))
+        {
+            string processedImage = SaveBase64Image(dto.HeroImage);
+            if (processedImage != settings.HeroImage)
+            {
+                if (!string.IsNullOrEmpty(settings.HeroImage))
+                {
+                    _fileStorageService.DeleteFile(settings.HeroImage);
+                }
+                settings.HeroImage = processedImage;
+            }
+        }
+
+        // Promo Banner Image
+        if (dto.PromoBannerImageFile != null)
+        {
+            if (!_fileStorageService.IsValidImage(dto.PromoBannerImageFile, out var error))
+                throw new ArgumentException($"Promo banner image: {error}");
+            string newPromoImage = await _fileStorageService.SaveFileAsync(dto.PromoBannerImageFile, "uploads");
+            if (!string.IsNullOrEmpty(settings.PromoBannerImage))
+            {
+                _fileStorageService.DeleteFile(settings.PromoBannerImage);
+            }
+            settings.PromoBannerImage = newPromoImage;
+        }
+        else if (!string.IsNullOrEmpty(dto.PromoBannerImage))
+        {
+            string processedImage = SaveBase64Image(dto.PromoBannerImage);
+            if (processedImage != settings.PromoBannerImage)
+            {
+                if (!string.IsNullOrEmpty(settings.PromoBannerImage))
+                {
+                    _fileStorageService.DeleteFile(settings.PromoBannerImage);
+                }
+                settings.PromoBannerImage = processedImage;
+            }
+        }
+
+        // Slider Images
+        var finalSliderImages = new List<string>();
+        if (dto.ExistingSliderImages != null)
+        {
+            finalSliderImages.AddRange(dto.ExistingSliderImages.Where(url => !string.IsNullOrEmpty(url)));
+        }
+
+        if (dto.HomepageSliderImageFiles != null && dto.HomepageSliderImageFiles.Count > 0)
+        {
+            foreach (var file in dto.HomepageSliderImageFiles)
+            {
+                if (!_fileStorageService.IsValidImage(file, out var error))
+                    throw new ArgumentException($"Slider image: {error}");
+                var url = await _fileStorageService.SaveFileAsync(file, "uploads");
+                if (!string.IsNullOrEmpty(url))
+                    finalSliderImages.Add(url);
+            }
+        }
+
+        if (dto.HomepageSliderImages != null && dto.HomepageSliderImages.Count > 0)
+        {
+            foreach (var imgStr in dto.HomepageSliderImages)
+            {
+                if (imgStr.StartsWith("http") || imgStr.StartsWith("/uploads"))
+                {
+                    if (!finalSliderImages.Contains(imgStr))
+                        finalSliderImages.Add(imgStr);
+                }
+                else
+                {
+                    var url = SaveBase64Image(imgStr);
+                    if (!string.IsNullOrEmpty(url) && !finalSliderImages.Contains(url))
+                        finalSliderImages.Add(url);
+                }
+            }
+        }
+
+        // Clean up old slider images no longer kept
+        if (settings.HomepageSliderImages != null)
+        {
+            var sliderImagesToDelete = settings.HomepageSliderImages.Except(finalSliderImages).ToList();
+            foreach (var oldSliderImg in sliderImagesToDelete)
+            {
+                _fileStorageService.DeleteFile(oldSliderImg);
+            }
+        }
+
+        settings.HomepageSliderImages = finalSliderImages;
 
         _unitOfWork.StoreSettings.Update(settings);
         await _unitOfWork.SaveChangesAsync();
@@ -171,5 +261,49 @@ public class SettingService : ISettingService
                 NewArrivals = products.Where(p => p.NewArrival).ToList()
             }
         };
+    }
+
+    public async Task<System.Collections.Generic.IEnumerable<GovernorateShipping>> GetGovernorateShippingsAsync()
+    {
+        var list = await _unitOfWork.GovernorateShippings.GetAllAsync();
+        return list.OrderBy(g => g.GovernorateName);
+    }
+
+    public async Task<bool> UpdateGovernorateShippingAsync(UpdateGovernorateShippingDto dto)
+    {
+        var gov = await _unitOfWork.GovernorateShippings.GetByIdAsync(dto.Id);
+        if (gov == null)
+        {
+            return false;
+        }
+
+        gov.ShippingCost = dto.ShippingCost;
+        _unitOfWork.GovernorateShippings.Update(gov);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<GovernorateShipping?> CreateGovernorateShippingAsync(CreateGovernorateShippingDto dto)
+    {
+        var exists = await _unitOfWork.GovernorateShippings.FindAsync(g => 
+            g.GovernorateName.ToLower() == dto.GovernorateName.Trim().ToLower()
+        );
+        if (exists.Any())
+        {
+            return null; // Already exists
+        }
+
+        var gov = new GovernorateShipping
+        {
+            Id = Guid.NewGuid(),
+            GovernorateName = dto.GovernorateName.Trim(),
+            ShippingCost = dto.ShippingCost,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        await _unitOfWork.GovernorateShippings.AddAsync(gov);
+        await _unitOfWork.SaveChangesAsync();
+        return gov;
     }
 }

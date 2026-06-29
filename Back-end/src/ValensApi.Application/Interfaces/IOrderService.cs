@@ -9,8 +9,11 @@ namespace ValensApi.Application.Interfaces;
 public interface IOrderService
 {
     Task<object> CreateOrderAsync(CheckoutDto dto, Guid? loggedInUserId, bool isAuthenticated);
-    Task<IEnumerable<Order>> GetMyOrdersAsync(Guid userId);
-    Task<IEnumerable<Order>> GetAllOrdersAsync(string? search, string? category);
+    Task<CheckoutProfileDto?> GetCheckoutProfileAsync(Guid userId);
+    Task<ValensApi.Application.DTOs.Common.PaginatedList<Order>> GetMyOrdersAsync(Guid userId, int pageNumber = 1, int pageSize = 10);
+    Task<ValensApi.Application.DTOs.Common.PaginatedList<Order>> GetAllOrdersAsync(string? search, string? category, int pageNumber = 1, int pageSize = 10);
+    Task<CheckoutPreviewDto> PreviewCheckoutAsync(CheckoutDto dto);
     Task<bool> UpdateStatusAsync(Guid id, string status);
+    Task<bool> UpdateStatusByNumberAsync(string orderNumber, string status);
     Task<bool> UpdateOrderDetailsAsync(UpdateOrderDto dto);
 }

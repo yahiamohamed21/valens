@@ -13,19 +13,23 @@ namespace ValensApi.Application.Services;
 public class ProductService : IProductService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IFileStorageService _fileStorageService;
 
-    public ProductService(IUnitOfWork unitOfWork)
+    public ProductService(IUnitOfWork unitOfWork, IFileStorageService fileStorageService)
     {
         _unitOfWork = unitOfWork;
+        _fileStorageService = fileStorageService;
     }
 
-    public async Task<IEnumerable<Product>> GetAllAsync(
+    public async Task<ValensApi.Application.DTOs.Common.PaginatedList<Product>> GetAllAsync(
         string? category, 
         string? search, 
         decimal? minPrice, 
         decimal? maxPrice, 
         string? sortBy, 
-        bool isAdmin)
+        bool isAdmin,
+        int pageNumber = 1,
+        int pageSize = 10)
     {
         var query = _unitOfWork.Products.GetQueryable()
             .Include(p => p.Variants)
@@ -33,7 +37,10 @@ public class ProductService : IProductService
 
         if (!isAdmin)
         {
-            query = query.Where(p => p.Visible);
+            var activeCategoryIds = _unitOfWork.Categories.GetQueryable()
+                .Where(c => c.IsActive)
+                .Select(c => (Guid?)c.Id);
+            query = query.Where(p => p.Visible && activeCategoryIds.Contains(p.CategoryId));
         }
 
         if (!string.IsNullOrEmpty(category))
@@ -45,7 +52,9 @@ public class ProductService : IProductService
         {
             var searchLower = search.ToLower();
             query = query.Where(p => p.Name.ToLower().Contains(searchLower) || 
-                                     p.Description.ToLower().Contains(searchLower));
+                                     p.NameAr.ToLower().Contains(searchLower) ||
+                                     p.Description.ToLower().Contains(searchLower) ||
+                                     p.DescriptionAr.ToLower().Contains(searchLower));
         }
 
         if (minPrice.HasValue)
@@ -67,7 +76,10 @@ public class ProductService : IProductService
             _ => query.OrderByDescending(p => p.CreatedAt)
         };
 
-        return await query.ToListAsync();
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return new ValensApi.Application.DTOs.Common.PaginatedList<Product>(items, totalCount, pageNumber, pageSize);
     }
 
     public async Task<Product?> GetByIdAsync(Guid id)
@@ -89,14 +101,51 @@ public class ProductService : IProductService
             await _unitOfWork.Categories.AddAsync(category);
             await _unitOfWork.SaveChangesAsync();
         }
+        else if (!category.IsActive)
+        {
+            throw new ArgumentException($"The category '{category.Name}' is hidden/inactive. You cannot assign products to it.");
+        }
 
-        string mainImage = SaveBase64Image(dto.MainImage);
-        var galleryImages = dto.Images.Select(img => SaveBase64Image(img)).Where(url => !string.IsNullOrEmpty(url)).ToList();
+        string mainImage = "";
+        if (dto.MainImageFile != null)
+        {
+            if (!_fileStorageService.IsValidImage(dto.MainImageFile, out var error))
+                throw new ArgumentException($"Main image: {error}");
+            mainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads");
+        }
+        else
+        {
+            mainImage = SaveBase64Image(dto.MainImage);
+        }
+
+        var galleryImages = new List<string>();
+        if (dto.ImageFiles != null && dto.ImageFiles.Count > 0)
+        {
+            foreach (var file in dto.ImageFiles)
+            {
+                if (!_fileStorageService.IsValidImage(file, out var error))
+                    throw new ArgumentException($"Gallery image: {error}");
+                var url = await _fileStorageService.SaveFileAsync(file, "uploads");
+                if (!string.IsNullOrEmpty(url))
+                    galleryImages.Add(url);
+            }
+        }
+        if (dto.Images != null && dto.Images.Count > 0)
+        {
+            foreach (var imgStr in dto.Images)
+            {
+                var url = SaveBase64Image(imgStr);
+                if (!string.IsNullOrEmpty(url) && !galleryImages.Contains(url))
+                    galleryImages.Add(url);
+            }
+        }
 
         var product = new Product
         {
             Name = dto.Name,
+            NameAr = dto.NameAr,
             Description = dto.Description,
+            DescriptionAr = dto.DescriptionAr,
             CategoryId = category.Id,
             CategoryName = category.Name,
             Featured = dto.Featured,
@@ -112,8 +161,11 @@ public class ProductService : IProductService
             MainImage = mainImage,
             Images = galleryImages,
             Ingredients = dto.Ingredients,
+            IngredientsAr = dto.IngredientsAr,
             Usage = dto.Usage,
+            UsageAr = dto.UsageAr,
             Benefits = dto.Benefits,
+            BenefitsAr = dto.BenefitsAr,
             ImageType = dto.ImageType,
             ImageColor = dto.ImageColor
         };
@@ -122,6 +174,19 @@ public class ProductService : IProductService
         {
             foreach (var vDto in dto.Variants)
             {
+                if (vDto == null) continue;
+                string variantImage = "";
+                if (vDto.ImageFile != null)
+                {
+                    if (!_fileStorageService.IsValidImage(vDto.ImageFile, out var error))
+                        throw new ArgumentException($"Variant image: {error}");
+                    variantImage = await _fileStorageService.SaveFileAsync(vDto.ImageFile, "uploads");
+                }
+                else
+                {
+                    variantImage = SaveBase64Image(vDto.Image);
+                }
+
                 var variant = new ProductVariant
                 {
                     VariantId = string.IsNullOrEmpty(vDto.Id) ? "var-" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() : vDto.Id,
@@ -131,7 +196,7 @@ public class ProductService : IProductService
                     DiscountPrice = vDto.DiscountPrice,
                     StockQuantity = vDto.StockQuantity,
                     Sku = vDto.Sku,
-                    Image = SaveBase64Image(vDto.Image),
+                    Image = variantImage,
                     IsAvailable = vDto.IsAvailable
                 };
                 product.Variants.Add(variant);
@@ -164,12 +229,85 @@ public class ProductService : IProductService
             await _unitOfWork.Categories.AddAsync(category);
             await _unitOfWork.SaveChangesAsync();
         }
+        else if (!category.IsActive)
+        {
+            throw new ArgumentException($"The category '{category.Name}' is hidden/inactive. You cannot assign products to it.");
+        }
 
-        string mainImage = SaveBase64Image(dto.MainImage);
-        var galleryImages = dto.Images.Select(img => SaveBase64Image(img)).Where(url => !string.IsNullOrEmpty(url)).ToList();
+        // Handle Main Image update & deletion
+        string mainImage = product.MainImage;
+        if (dto.MainImageFile != null)
+        {
+            if (!_fileStorageService.IsValidImage(dto.MainImageFile, out var error))
+                throw new ArgumentException($"Main image: {error}");
+            string newMainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads");
+            if (!string.IsNullOrEmpty(product.MainImage))
+            {
+                _fileStorageService.DeleteFile(product.MainImage);
+            }
+            mainImage = newMainImage;
+        }
+        else if (!string.IsNullOrEmpty(dto.MainImage))
+        {
+            string processedImage = SaveBase64Image(dto.MainImage);
+            if (processedImage != product.MainImage)
+            {
+                if (!string.IsNullOrEmpty(product.MainImage))
+                {
+                    _fileStorageService.DeleteFile(product.MainImage);
+                }
+                mainImage = processedImage;
+            }
+        }
+
+        // Handle Gallery Images update & deletion
+        var newGalleryUrls = new List<string>();
+        if (dto.ExistingImages != null)
+        {
+            newGalleryUrls.AddRange(dto.ExistingImages.Where(url => !string.IsNullOrEmpty(url)));
+        }
+
+        if (dto.ImageFiles != null && dto.ImageFiles.Count > 0)
+        {
+            foreach (var file in dto.ImageFiles)
+            {
+                if (!_fileStorageService.IsValidImage(file, out var error))
+                    throw new ArgumentException($"Gallery image: {error}");
+                var url = await _fileStorageService.SaveFileAsync(file, "uploads");
+                if (!string.IsNullOrEmpty(url))
+                    newGalleryUrls.Add(url);
+            }
+        }
+
+        if (dto.Images != null && dto.Images.Count > 0)
+        {
+            foreach (var imgStr in dto.Images)
+            {
+                if (imgStr.StartsWith("http") || imgStr.StartsWith("/uploads"))
+                {
+                    if (!newGalleryUrls.Contains(imgStr))
+                        newGalleryUrls.Add(imgStr);
+                }
+                else
+                {
+                    var url = SaveBase64Image(imgStr);
+                    if (!string.IsNullOrEmpty(url) && !newGalleryUrls.Contains(url))
+                        newGalleryUrls.Add(url);
+                }
+            }
+        }
+
+        // Clean up old gallery images that are no longer kept
+        var imagesToDelete = product.Images.Except(newGalleryUrls).ToList();
+        foreach (var oldImg in imagesToDelete)
+        {
+            _fileStorageService.DeleteFile(oldImg);
+        }
 
         product.Name = dto.Name;
+        product.NameAr = dto.NameAr;
         product.Description = dto.Description;
+        product.DescriptionAr = dto.DescriptionAr;
         product.CategoryId = category.Id;
         product.CategoryName = category.Name;
         product.Featured = dto.Featured;
@@ -183,24 +321,49 @@ public class ProductService : IProductService
         product.Stock = dto.Stock;
         product.Sku = dto.Sku;
         product.MainImage = mainImage;
-        product.Images = galleryImages;
+        product.Images = newGalleryUrls;
         product.Ingredients = dto.Ingredients;
+        product.IngredientsAr = dto.IngredientsAr;
         product.Usage = dto.Usage;
+        product.UsageAr = dto.UsageAr;
         product.Benefits = dto.Benefits;
+        product.BenefitsAr = dto.BenefitsAr;
         product.ImageType = dto.ImageType;
         product.ImageColor = dto.ImageColor;
 
-        // Remove variants
+        // Collect old variant images for cleanup
         var existingVariants = await _unitOfWork.ProductVariants.FindAsync(v => v.ProductId == id);
+        var oldVariantImages = existingVariants.Select(v => v.Image).Where(img => !string.IsNullOrEmpty(img)).ToList();
+
+        // Remove variants
         foreach (var ev in existingVariants)
         {
             _unitOfWork.ProductVariants.Delete(ev);
         }
 
+        var newVariantImages = new List<string>();
         if (dto.VariantType != "none" && dto.Variants != null)
         {
             foreach (var vDto in dto.Variants)
             {
+                if (vDto == null) continue;
+                string variantImage = "";
+                if (vDto.ImageFile != null)
+                {
+                    if (!_fileStorageService.IsValidImage(vDto.ImageFile, out var error))
+                        throw new ArgumentException($"Variant image: {error}");
+                    variantImage = await _fileStorageService.SaveFileAsync(vDto.ImageFile, "uploads");
+                }
+                else if (!string.IsNullOrEmpty(vDto.Image))
+                {
+                    variantImage = SaveBase64Image(vDto.Image);
+                }
+
+                if (!string.IsNullOrEmpty(variantImage))
+                {
+                    newVariantImages.Add(variantImage);
+                }
+
                 var variant = new ProductVariant
                 {
                     VariantId = string.IsNullOrEmpty(vDto.Id) ? "var-" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() : vDto.Id,
@@ -211,11 +374,18 @@ public class ProductService : IProductService
                     DiscountPrice = vDto.DiscountPrice,
                     StockQuantity = vDto.StockQuantity,
                     Sku = vDto.Sku,
-                    Image = SaveBase64Image(vDto.Image),
+                    Image = variantImage,
                     IsAvailable = vDto.IsAvailable
                 };
                 product.Variants.Add(variant);
             }
+        }
+
+        // Clean up variant images that are no longer referenced
+        var variantImagesToDelete = oldVariantImages.Except(newVariantImages).ToList();
+        foreach (var oldVarImg in variantImagesToDelete)
+        {
+            _fileStorageService.DeleteFile(oldVarImg);
         }
 
         _unitOfWork.Products.Update(product);

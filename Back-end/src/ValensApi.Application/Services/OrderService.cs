@@ -20,8 +20,50 @@ public class OrderService : IOrderService
         _emailService = emailService;
     }
 
-    public async Task<object> CreateOrderAsync(CheckoutDto dto, Guid? loggedInUserId, bool isAuthenticated)
+    // ── Checkout Profile ────────────────────────────────────────────────────────
+    /// <summary>
+    /// Returns the logged-in user's saved profile so the frontend can
+    /// pre-fill checkout form fields without asking the user to retype them.
+    /// Customer record takes precedence over User record for address/city
+    /// because it may have been updated after a previous order.
+    /// </summary>
+    public async Task<CheckoutProfileDto?> GetCheckoutProfileAsync(Guid userId)
     {
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
+        if (user == null) return null;
+
+        // Try to find the linked customer record (may have richer/updated data)
+        var customers = await _unitOfWork.Customers.FindAsync(c => c.UserId == userId);
+        var customer  = customers.FirstOrDefault();
+
+        return new CheckoutProfileDto
+        {
+            FullName = customer?.FullName ?? user.FullName,
+            Email    = customer?.Email    ?? user.Email,
+            Phone    = customer?.Phone    ?? user.Phone,
+            Address  = customer?.Address  ?? user.Address,
+            City     = customer?.City     ?? user.City,
+        };
+    }
+
+    // ── Create Order ────────────────────────────────────────────────────────────
+    public async Task<object> CreateOrderAsync(CheckoutDto dto, Guid? loggedInUserId, bool isAuthenticated)
+
+    {
+        // Populate DTO from User Profile if authenticated and fields are not provided
+        if (isAuthenticated && loggedInUserId.HasValue && loggedInUserId.Value != Guid.Empty)
+        {
+            var user = await _unitOfWork.Users.GetByIdAsync(loggedInUserId.Value);
+            if (user != null)
+            {
+                dto.CustomerName = string.IsNullOrWhiteSpace(dto.CustomerName) ? user.FullName : dto.CustomerName;
+                dto.CustomerEmail = string.IsNullOrWhiteSpace(dto.CustomerEmail) ? user.Email : dto.CustomerEmail;
+                dto.CustomerPhone = string.IsNullOrWhiteSpace(dto.CustomerPhone) ? user.Phone : dto.CustomerPhone;
+                dto.ShippingAddress = string.IsNullOrWhiteSpace(dto.ShippingAddress) ? user.Address : dto.ShippingAddress;
+                dto.ShippingCity = string.IsNullOrWhiteSpace(dto.ShippingCity) ? user.City : dto.ShippingCity;
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(dto.CustomerName) ||
             string.IsNullOrWhiteSpace(dto.CustomerEmail) ||
             string.IsNullOrWhiteSpace(dto.CustomerPhone) ||
@@ -231,6 +273,20 @@ public class OrderService : IOrderService
                 freeShippingThreshold = settings.FreeShippingThreshold;
             }
 
+            // Look up governorate-specific shipping cost
+            if (!string.IsNullOrWhiteSpace(dto.ShippingCity))
+            {
+                var governorateName = dto.ShippingCity.Trim();
+                var govShippings = await _unitOfWork.GovernorateShippings.FindAsync(g => 
+                    g.GovernorateName.ToLower() == governorateName.ToLower()
+                );
+                var govShipping = govShippings.FirstOrDefault();
+                if (govShipping != null)
+                {
+                    shippingCost = govShipping.ShippingCost;
+                }
+            }
+
             if (subtotal >= freeShippingThreshold)
             {
                 shippingCost = 0;
@@ -238,8 +294,22 @@ public class OrderService : IOrderService
 
             decimal total = subtotal + shippingCost - discountAmount;
 
-            // Generate Numeric Order Code (VL- followed by strictly numbers like Ticks / Timestamp)
-            string orderCode = $"VL-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+            // Generate sequential order number: VL-10001, VL-10002, ...
+            // Read the last order in the DB and increment its numeric suffix.
+            var lastOrder = await _unitOfWork.Orders.GetQueryable()
+                .OrderByDescending(o => o.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            int nextNumber = 10001; // starting seed
+            if (lastOrder != null &&
+                lastOrder.OrderNumber.StartsWith("VL-") &&
+                int.TryParse(lastOrder.OrderNumber.AsSpan(3), out int lastNum))
+            {
+                nextNumber = lastNum + 1;
+            }
+
+            string orderCode = $"VL-{nextNumber}";
+
 
             // 5. Create Order
             var order = new Order
@@ -251,7 +321,7 @@ public class OrderService : IOrderService
                 CustomerPhone = dto.CustomerPhone,
                 ShippingAddress = dto.ShippingAddress,
                 ShippingCity = dto.ShippingCity,
-                Status = "New",
+                Status = "NEW ORDER",
                 PaymentMethod = "Cash on Delivery", // COD
                 Subtotal = subtotal,
                 ShippingCost = shippingCost,
@@ -288,24 +358,28 @@ public class OrderService : IOrderService
         }
     }
 
-    public async Task<IEnumerable<Order>> GetMyOrdersAsync(Guid userId)
+    public async Task<ValensApi.Application.DTOs.Common.PaginatedList<Order>> GetMyOrdersAsync(Guid userId, int pageNumber = 1, int pageSize = 10)
     {
         var customerList = await _unitOfWork.Customers.FindAsync(c => c.UserId == userId);
         var customer = customerList.FirstOrDefault();
 
         if (customer == null)
         {
-            return new List<Order>();
+            return new ValensApi.Application.DTOs.Common.PaginatedList<Order>(new List<Order>(), 0, pageNumber, pageSize);
         }
 
-        return await _unitOfWork.Orders.GetQueryable()
+        var query = _unitOfWork.Orders.GetQueryable()
             .Include(o => o.Items)
             .Where(o => o.CustomerId == customer.Id)
-            .OrderByDescending(o => o.CreatedAt)
-            .ToListAsync();
+            .OrderByDescending(o => o.CreatedAt);
+
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return new ValensApi.Application.DTOs.Common.PaginatedList<Order>(items, totalCount, pageNumber, pageSize);
     }
 
-    public async Task<IEnumerable<Order>> GetAllOrdersAsync(string? search, string? category)
+    public async Task<ValensApi.Application.DTOs.Common.PaginatedList<Order>> GetAllOrdersAsync(string? search, string? category, int pageNumber = 1, int pageSize = 10)
     {
         var query = _unitOfWork.Orders.GetQueryable()
             .Include(o => o.Items)
@@ -334,7 +408,10 @@ public class OrderService : IOrderService
             )).ToList();
         }
 
-        return orders;
+        var totalCount = orders.Count;
+        var paginatedItems = orders.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+
+        return new ValensApi.Application.DTOs.Common.PaginatedList<Order>(paginatedItems, totalCount, pageNumber, pageSize);
     }
 
     public async Task<bool> UpdateStatusAsync(Guid id, string status)
@@ -342,6 +419,38 @@ public class OrderService : IOrderService
         var order = await _unitOfWork.Orders.GetQueryable()
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (order == null)
+        {
+            return false;
+        }
+
+        string oldStatus = order.Status;
+        order.Status = status;
+        _unitOfWork.Orders.Update(order);
+        await _unitOfWork.SaveChangesAsync();
+
+        if (status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) && 
+            !oldStatus.Equals("Confirmed", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await _emailService.SendOrderConfirmationEmailAsync(order);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending order confirmation email: {ex.Message}");
+            }
+        }
+
+        return true;
+    }
+
+    public async Task<bool> UpdateStatusByNumberAsync(string orderNumber, string status)
+    {
+        var order = await _unitOfWork.Orders.GetQueryable()
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.OrderNumber == orderNumber);
 
         if (order == null)
         {
@@ -385,5 +494,129 @@ public class OrderService : IOrderService
         _unitOfWork.Orders.Update(order);
         await _unitOfWork.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<CheckoutPreviewDto> PreviewCheckoutAsync(CheckoutDto dto)
+    {
+        decimal subtotal = 0;
+
+        foreach (var cartItem in dto.Items)
+        {
+            var product = await _unitOfWork.Products.GetQueryable()
+                .Include(p => p.Variants)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == cartItem.ProductId);
+
+            if (product == null)
+            {
+                throw new KeyNotFoundException($"Product with ID {cartItem.ProductId} was not found.");
+            }
+
+            decimal price = 0;
+
+            if (product.VariantType != "none")
+            {
+                ProductVariant? variant = null;
+                if (!string.IsNullOrEmpty(cartItem.VariantId))
+                {
+                    variant = product.Variants.FirstOrDefault(v => v.VariantId == cartItem.VariantId);
+                }
+                else if (!string.IsNullOrEmpty(cartItem.Size) || !string.IsNullOrEmpty(cartItem.Flavor))
+                {
+                    variant = product.Variants.FirstOrDefault(v =>
+                        (string.IsNullOrEmpty(cartItem.Size) || v.Size.Equals(cartItem.Size, StringComparison.OrdinalIgnoreCase)) &&
+                        (string.IsNullOrEmpty(cartItem.Flavor) || v.Flavor.Equals(cartItem.Flavor, StringComparison.OrdinalIgnoreCase))
+                    );
+                }
+
+                if (variant == null)
+                {
+                    string details = !string.IsNullOrEmpty(cartItem.VariantId) 
+                        ? $"VariantId '{cartItem.VariantId}'"
+                        : $"Size '{cartItem.Size}' and Flavor '{cartItem.Flavor}'";
+                    throw new KeyNotFoundException($"Matching variant ({details}) for product '{product.Name}' was not found.");
+                }
+
+                price = variant.DiscountPrice > 0 ? variant.DiscountPrice : variant.Price;
+            }
+            else
+            {
+                price = product.DiscountPrice > 0 ? product.DiscountPrice : product.Price;
+            }
+
+            subtotal += price * cartItem.Quantity;
+        }
+
+        // Process Coupon
+        decimal discountAmount = 0;
+        if (!string.IsNullOrEmpty(dto.CouponCode))
+        {
+            var coupons = await _unitOfWork.Coupons.FindAsync(c => c.Code.ToLower() == dto.CouponCode.ToLower());
+            var coupon = coupons.FirstOrDefault();
+
+            if (coupon != null && coupon.IsActive && coupon.ExpiryDate > DateTimeOffset.UtcNow)
+            {
+                if (coupon.MaxUsage == null || coupon.UsageCount < coupon.MaxUsage.Value)
+                {
+                    if (subtotal >= coupon.MinOrderAmount)
+                    {
+                        if (coupon.DiscountType.ToLower() == "percentage")
+                        {
+                            discountAmount = Math.Round(subtotal * (coupon.DiscountValue / 100), 2);
+                        }
+                        else
+                        {
+                            discountAmount = coupon.DiscountValue;
+                        }
+
+                        if (discountAmount > subtotal)
+                        {
+                            discountAmount = subtotal;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Calculate Shipping Cost
+        decimal shippingCost = 60;
+        decimal freeShippingThreshold = 1500;
+
+        var settingsList = await _unitOfWork.StoreSettings.GetAllAsync();
+        var settings = settingsList.FirstOrDefault();
+        if (settings != null)
+        {
+            shippingCost = settings.ShippingCost;
+            freeShippingThreshold = settings.FreeShippingThreshold;
+        }
+
+        // Look up governorate-specific shipping cost
+        if (!string.IsNullOrWhiteSpace(dto.ShippingCity))
+        {
+            var governorateName = dto.ShippingCity.Trim();
+            var govShippings = await _unitOfWork.GovernorateShippings.FindAsync(g => 
+                g.GovernorateName.ToLower() == governorateName.ToLower()
+            );
+            var govShipping = govShippings.FirstOrDefault();
+            if (govShipping != null)
+            {
+                shippingCost = govShipping.ShippingCost;
+            }
+        }
+
+        if (subtotal >= freeShippingThreshold)
+        {
+            shippingCost = 0;
+        }
+
+        decimal total = subtotal + shippingCost - discountAmount;
+
+        return new CheckoutPreviewDto
+        {
+            Subtotal = subtotal,
+            ShippingCost = shippingCost,
+            DiscountAmount = discountAmount,
+            Total = total
+        };
     }
 }
