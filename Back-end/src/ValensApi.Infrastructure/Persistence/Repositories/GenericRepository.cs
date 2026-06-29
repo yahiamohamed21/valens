@@ -53,16 +53,7 @@ public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
 
     public virtual void SoftDelete(T entity)
     {
-        if (entity is SoftDeletableEntity softDeletable)
-        {
-            softDeletable.IsDeleted = true;
-            softDeletable.DeletedAt = DateTimeOffset.UtcNow;
-            _context.Entry(entity).State = EntityState.Modified;
-        }
-        else
-        {
-            Delete(entity);
-        }
+        Delete(entity);
     }
 
     public virtual System.Linq.IQueryable<T> GetQueryable()

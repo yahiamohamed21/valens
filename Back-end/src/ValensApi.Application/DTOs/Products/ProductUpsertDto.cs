@@ -30,4 +30,19 @@ public class ProductUpsertDto
     
     public string ImageType { get; set; } = "powder";
     public string ImageColor { get; set; } = "#FF8A75";
+
+    [System.Text.Json.Serialization.JsonPropertyName("name_ar")]
+    public string? NameAr { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("description_ar")]
+    public string? DescriptionAr { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("ingredients_ar")]
+    public List<string>? IngredientsAr { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("usage_ar")]
+    public string? UsageAr { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("benefits_ar")]
+    public List<string>? BenefitsAr { get; set; }
 }

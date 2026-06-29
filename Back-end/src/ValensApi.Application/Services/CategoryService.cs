@@ -17,19 +17,31 @@ public class CategoryService : ICategoryService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IEnumerable<Category>> GetAllActiveAsync()
+    private static CategoryResponseDto MapToResponseDto(Category category)
+    {
+        return new CategoryResponseDto
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Slug = category.Slug,
+            ImageColor = category.ImageColor,
+            Visible = category.IsActive
+        };
+    }
+
+    public async Task<IEnumerable<CategoryResponseDto>> GetAllActiveAsync()
     {
         var categories = await _unitOfWork.Categories.FindAsync(c => c.IsActive);
-        return categories.OrderBy(c => c.Name);
+        return categories.OrderBy(c => c.Name).Select(MapToResponseDto);
     }
 
-    public async Task<IEnumerable<Category>> AdminGetAllAsync()
+    public async Task<IEnumerable<CategoryResponseDto>> AdminGetAllAsync()
     {
         var categories = await _unitOfWork.Categories.GetAllAsync();
-        return categories.OrderBy(c => c.Name);
+        return categories.OrderBy(c => c.Name).Select(MapToResponseDto);
     }
 
-    public async Task<Category?> CreateAsync(CategoryDto dto)
+    public async Task<CategoryResponseDto?> CreateAsync(CategoryDto dto)
     {
         var existing = await _unitOfWork.Categories.FindAsync(c => c.Name.ToLower() == dto.Name.ToLower());
         if (existing.Any())
@@ -40,12 +52,14 @@ public class CategoryService : ICategoryService
         var category = new Category
         {
             Name = dto.Name,
+            Slug = string.IsNullOrEmpty(dto.Slug) ? dto.Name.ToLower().Replace(" ", "-") : dto.Slug,
+            ImageColor = string.IsNullOrEmpty(dto.ImageColor) ? "#FF8A75" : dto.ImageColor,
             IsActive = dto.IsActive
         };
 
         await _unitOfWork.Categories.AddAsync(category);
         await _unitOfWork.SaveChangesAsync();
-        return category;
+        return MapToResponseDto(category);
     }
 
     public async Task<bool> UpdateAsync(Guid id, CategoryDto dto)
@@ -57,6 +71,8 @@ public class CategoryService : ICategoryService
         }
 
         category.Name = dto.Name;
+        category.Slug = string.IsNullOrEmpty(dto.Slug) ? dto.Name.ToLower().Replace(" ", "-") : dto.Slug;
+        category.ImageColor = string.IsNullOrEmpty(dto.ImageColor) ? "#FF8A75" : dto.ImageColor;
         category.IsActive = dto.IsActive;
 
         _unitOfWork.Categories.Update(category);

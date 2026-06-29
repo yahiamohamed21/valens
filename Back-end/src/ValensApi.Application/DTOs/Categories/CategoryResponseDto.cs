@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace ValensApi.Application.DTOs.Categories;
 
-public class UpdateCategoryDto
+public class CategoryResponseDto
 {
     [JsonPropertyName("id")]
     public Guid Id { get; set; }
@@ -18,5 +18,5 @@ public class UpdateCategoryDto
     public string ImageColor { get; set; } = "#FF8A75";
 
     [JsonPropertyName("visible")]
-    public bool IsActive { get; set; } = true;
+    public bool Visible { get; set; }
 }

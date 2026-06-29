@@ -31,7 +31,6 @@ public class StoreSettingConfiguration : IEntityTypeConfiguration<StoreSetting>
             ContactEmail = "support@valens.com",
             HomepageHeroTitle = "Premium Sports & Nutritional Supplements",
             HomepageHeroSubtitle = "Fuel your body with the highest quality formulations.",
-            HomepageDiscountBannerText = "Get 10% off your first order! Use code: FIRST10",
             HeroImage = string.Empty,
             PromoBannerImage = string.Empty,
             HomepageSliderImages = new List<string>(),

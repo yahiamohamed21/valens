@@ -49,7 +49,7 @@ public class OrdersController : BaseApiController
 
     [HttpGet("my-history")]
     [Authorize]
-    public async Task<ActionResult<IEnumerable<Order>>> GetMyOrdersHistory()
+    public async Task<ActionResult<IEnumerable<OrderResponseDto>>> GetMyOrdersHistory()
     {
         var userId = CurrentUserId;
         if (userId == Guid.Empty)
@@ -63,7 +63,7 @@ public class OrdersController : BaseApiController
 
     [HttpPost("list-admin-orders")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<Order>>> GetAdminOrders([FromBody] OrderAdminFilterDto dto)
+    public async Task<ActionResult<IEnumerable<OrderResponseDto>>> GetAdminOrders([FromBody] OrderAdminFilterDto dto)
     {
         var orders = await _orderService.GetAllOrdersAsync(dto?.Search, dto?.Category);
         return Ok(orders);

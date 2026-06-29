@@ -43,7 +43,7 @@ public class CouponsController : BaseApiController
 
     [HttpGet("list-admin")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<Coupon>>> GetAdminCoupons()
+    public async Task<ActionResult<IEnumerable<CouponResponseDto>>> GetAdminCoupons()
     {
         var coupons = await _couponService.GetAllCouponsAsync();
         return Ok(coupons);
@@ -51,7 +51,7 @@ public class CouponsController : BaseApiController
 
     [HttpPost("create-coupon")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<Coupon>> CreateCoupon([FromBody] CouponDto dto)
+    public async Task<ActionResult<CouponResponseDto>> CreateCoupon([FromBody] CouponDto dto)
     {
         var coupon = await _couponService.CreateCouponAsync(dto);
         if (coupon == null)

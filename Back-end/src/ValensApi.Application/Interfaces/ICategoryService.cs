@@ -8,9 +8,9 @@ namespace ValensApi.Application.Interfaces;
 
 public interface ICategoryService
 {
-    Task<IEnumerable<Category>> GetAllActiveAsync();
-    Task<IEnumerable<Category>> AdminGetAllAsync();
-    Task<Category?> CreateAsync(CategoryDto dto);
+    Task<IEnumerable<CategoryResponseDto>> GetAllActiveAsync();
+    Task<IEnumerable<CategoryResponseDto>> AdminGetAllAsync();
+    Task<CategoryResponseDto?> CreateAsync(CategoryDto dto);
     Task<bool> UpdateAsync(Guid id, CategoryDto dto);
     Task<bool> DeleteAsync(Guid id);
     Task<bool> ToggleActiveAsync(Guid id);

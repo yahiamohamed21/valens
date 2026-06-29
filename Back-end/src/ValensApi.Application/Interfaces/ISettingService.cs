@@ -5,8 +5,8 @@ namespace ValensApi.Application.Interfaces;
 
 public interface ISettingService
 {
-    Task<object> GetStoreSettingsAsync();
-    Task<object> GetHomepageSettingsAsync();
+    Task<StoreSettingsResponseDto> GetStoreSettingsAsync();
+    Task<HomePageSettingsResponseDto> GetHomepageSettingsAsync();
     Task<bool> UpdateStoreSettingsAsync(UpdateStoreSettingsDto dto);
     Task<bool> UpdateHomepageSettingsAsync(UpdateHomepageSettingsDto dto);
     Task<object> GetHomepageOverviewAsync();

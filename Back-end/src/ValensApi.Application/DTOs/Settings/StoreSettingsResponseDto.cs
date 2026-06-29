@@ -2,13 +2,13 @@ using System.Text.Json.Serialization;
 
 namespace ValensApi.Application.DTOs.Settings;
 
-public class UpdateStoreSettingsDto
+public class StoreSettingsResponseDto
 {
     [JsonPropertyName("brandName")]
-    public string BrandName { get; set; } = "VALENS";
+    public string BrandName { get; set; } = string.Empty;
 
     [JsonPropertyName("logoText")]
-    public string LogoText { get; set; } = "VALENS";
+    public string LogoText { get; set; } = string.Empty;
 
     [JsonPropertyName("contactEmail")]
     public string ContactEmail { get; set; } = string.Empty;
@@ -21,9 +21,6 @@ public class UpdateStoreSettingsDto
 
     [JsonPropertyName("shippingCost")]
     public decimal ShippingCost { get; set; }
-
-    [JsonPropertyName("freeShippingThreshold")]
-    public decimal FreeShippingThreshold { get; set; }
 
     [JsonPropertyName("taxRate")]
     public decimal TaxRate { get; set; }

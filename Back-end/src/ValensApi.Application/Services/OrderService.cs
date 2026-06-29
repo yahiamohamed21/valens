@@ -19,7 +19,37 @@ public class OrderService : IOrderService
         _unitOfWork = unitOfWork;
         _emailService = emailService;
     }
-
+    private static OrderResponseDto MapToResponseDto(Order order)
+    {
+        return new OrderResponseDto
+        {
+            Id = order.Id,
+            OrderNumber = order.OrderNumber,
+            CustomerName = order.CustomerName,
+            CustomerPhone = order.CustomerPhone,
+            CustomerEmail = order.CustomerEmail,
+            CustomerAddress = order.ShippingAddress,
+            CustomerCity = order.ShippingCity,
+            Notes = order.Notes,
+            TotalPrice = order.Total,
+            PaymentMethod = order.PaymentMethod,
+            ShippingMethod = order.ShippingMethod,
+            ShippingCost = order.ShippingCost,
+            DiscountAmount = order.DiscountAmount,
+            CouponCode = order.CouponCode,
+            OrderDate = order.CreatedAt,
+            Status = order.Status,
+            Items = order.Items?.Select(item => new OrderItemResponseDto
+            {
+                ProductId = item.ProductId,
+                ProductName = item.ProductName,
+                Price = item.Price,
+                Quantity = item.Quantity,
+                Size = item.Size,
+                Variant = item.Flavor
+            }).ToList() ?? new()
+        };
+    }
     public async Task<object> CreateOrderAsync(CheckoutDto dto, Guid? loggedInUserId, bool isAuthenticated)
     {
         if (string.IsNullOrWhiteSpace(dto.CustomerName) ||
@@ -32,7 +62,7 @@ public class OrderService : IOrderService
             throw new ArgumentException("All checkout fields (Name, Email, Phone, Address, City) are required and cannot be empty.");
         }
 
-        await _unitOfWork.BeginTransactionAsync();
+        await _unitOfWork.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
         try
         {
             Customer? customer = null;
@@ -251,8 +281,10 @@ public class OrderService : IOrderService
                 CustomerPhone = dto.CustomerPhone,
                 ShippingAddress = dto.ShippingAddress,
                 ShippingCity = dto.ShippingCity,
-                Status = "New",
+                Notes = dto.Notes,
+                Status = "New Order",
                 PaymentMethod = "Cash on Delivery", // COD
+                ShippingMethod = dto.ShippingMethod ?? "Standard",
                 Subtotal = subtotal,
                 ShippingCost = shippingCost,
                 DiscountAmount = discountAmount,
@@ -288,24 +320,26 @@ public class OrderService : IOrderService
         }
     }
 
-    public async Task<IEnumerable<Order>> GetMyOrdersAsync(Guid userId)
+    public async Task<IEnumerable<OrderResponseDto>> GetMyOrdersAsync(Guid userId)
     {
         var customerList = await _unitOfWork.Customers.FindAsync(c => c.UserId == userId);
         var customer = customerList.FirstOrDefault();
 
         if (customer == null)
         {
-            return new List<Order>();
+            return new List<OrderResponseDto>();
         }
 
-        return await _unitOfWork.Orders.GetQueryable()
+        var orders = await _unitOfWork.Orders.GetQueryable()
             .Include(o => o.Items)
             .Where(o => o.CustomerId == customer.Id)
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync();
+
+        return orders.Select(MapToResponseDto);
     }
 
-    public async Task<IEnumerable<Order>> GetAllOrdersAsync(string? search, string? category)
+    public async Task<IEnumerable<OrderResponseDto>> GetAllOrdersAsync(string? search, string? category)
     {
         var query = _unitOfWork.Orders.GetQueryable()
             .Include(o => o.Items)
@@ -334,7 +368,7 @@ public class OrderService : IOrderService
             )).ToList();
         }
 
-        return orders;
+        return orders.Select(MapToResponseDto);
     }
 
     public async Task<bool> UpdateStatusAsync(Guid id, string status)

@@ -18,7 +18,21 @@ public class CouponService : ICouponService
     {
         _unitOfWork = unitOfWork;
     }
-
+    private static CouponResponseDto MapToResponseDto(Coupon coupon)
+    {
+        return new CouponResponseDto
+        {
+            Id = coupon.Id,
+            Code = coupon.Code,
+            DiscountType = coupon.DiscountType.ToLower() == "percentage" ? "percentage" : "fixed",
+            DiscountValue = coupon.DiscountValue,
+            ExpiryDate = coupon.ExpiryDate,
+            UsageLimit = coupon.MaxUsage,
+            UsageCount = coupon.UsageCount,
+            MinOrderAmount = coupon.MinOrderAmount,
+            Active = coupon.IsActive
+        };
+    }
     public async Task<object> ValidateCouponAsync(ValidateCouponDto dto)
     {
         var coupons = await _unitOfWork.Coupons.FindAsync(c => c.Code.ToLower() == dto.Code.ToLower());
@@ -126,13 +140,13 @@ public class CouponService : ICouponService
         };
     }
 
-    public async Task<IEnumerable<Coupon>> GetAllCouponsAsync()
+    public async Task<IEnumerable<CouponResponseDto>> GetAllCouponsAsync()
     {
         var coupons = await _unitOfWork.Coupons.GetAllAsync();
-        return coupons.OrderByDescending(c => c.CreatedAt);
+        return coupons.OrderByDescending(c => c.CreatedAt).Select(MapToResponseDto);
     }
 
-    public async Task<Coupon?> CreateCouponAsync(CouponDto dto)
+    public async Task<CouponResponseDto?> CreateCouponAsync(CouponDto dto)
     {
         var existing = await _unitOfWork.Coupons.FindAsync(c => c.Code.ToLower() == dto.Code.ToLower());
         if (existing.Any())
@@ -154,7 +168,7 @@ public class CouponService : ICouponService
 
         await _unitOfWork.Coupons.AddAsync(coupon);
         await _unitOfWork.SaveChangesAsync();
-        return coupon;
+        return MapToResponseDto(coupon);
     }
 
     public async Task<bool> UpdateCouponAsync(Guid id, CouponDto dto)

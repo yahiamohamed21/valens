@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using ValensApi.Application.DTOs.Common;
 using ValensApi.Application.DTOs.Products;
 using ValensApi.Application.Interfaces;
 using ValensApi.Domain.Entities;
@@ -19,16 +20,77 @@ public class ProductService : IProductService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IEnumerable<Product>> GetAllAsync(
+    private static ProductResponseDto MapToResponseDto(Product product)
+    {
+        return new ProductResponseDto
+        {
+            Id = product.Id,
+            CreatedAt = product.CreatedAt,
+            UpdatedAt = product.UpdatedAt,
+            Name = product.Name,
+            Description = product.Description,
+            CategoryName = product.CategoryName,
+            CategoryId = product.CategoryId,
+            Featured = product.Featured,
+            BestSeller = product.BestSeller,
+            NewArrival = product.NewArrival,
+            Visible = product.Visible,
+            VariantType = product.VariantType,
+            Price = product.Price,
+            DiscountPrice = product.DiscountPrice,
+            Size = product.Size,
+            Stock = product.Stock,
+            Sku = product.Sku,
+            MainImage = product.MainImage,
+            Images = product.Images ?? new(),
+            Ingredients = product.Ingredients ?? new(),
+            Benefits = product.Benefits ?? new(),
+            Usage = product.Usage,
+            ImageType = product.ImageType,
+            ImageColor = product.ImageColor,
+            Variants = product.Variants?.Select(v => new ProductVariantResponseDto
+            {
+                VariantId = v.VariantId,
+                ProductId = v.ProductId,
+                Size = v.Size,
+                Flavor = v.Flavor,
+                Price = v.Price,
+                DiscountPrice = v.DiscountPrice,
+                StockQuantity = v.StockQuantity,
+                Sku = v.Sku,
+                Image = v.Image,
+                IsAvailable = v.IsAvailable
+            }).ToList() ?? new(),
+            Rating = product.Rating,
+            Reviews = product.Reviews?.Select(r => new ReviewResponseDto
+            {
+                Id = r.Id,
+                Author = r.Author,
+                Rating = r.Rating,
+                Comment = r.Comment,
+                Date = r.Date
+            }).ToList() ?? new(),
+            NameAr = product.NameAr,
+            DescriptionAr = product.DescriptionAr,
+            IngredientsAr = product.IngredientsAr ?? new(),
+            UsageAr = product.UsageAr,
+            BenefitsAr = product.BenefitsAr ?? new()
+        };
+    }
+
+    public async Task<PagedResult<ProductResponseDto>> GetAllAsync(
         string? category, 
         string? search, 
         decimal? minPrice, 
         decimal? maxPrice, 
         string? sortBy, 
+        int pageNumber,
+        int pageSize,
         bool isAdmin)
     {
         var query = _unitOfWork.Products.GetQueryable()
             .Include(p => p.Variants)
+            .Include(p => p.Reviews)
             .AsNoTracking();
 
         if (!isAdmin)
@@ -67,17 +129,36 @@ public class ProductService : IProductService
             _ => query.OrderByDescending(p => p.CreatedAt)
         };
 
-        return await query.ToListAsync();
+        int totalCount = await query.CountAsync();
+        int totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var dtos = items.Select(MapToResponseDto).ToList();
+
+        return new PagedResult<ProductResponseDto>
+        {
+            Items = dtos,
+            TotalCount = totalCount,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalPages = totalPages
+        };
     }
 
-    public async Task<Product?> GetByIdAsync(Guid id)
+    public async Task<ProductResponseDto?> GetByIdAsync(Guid id)
     {
-        return await _unitOfWork.Products.GetQueryable()
+        var product = await _unitOfWork.Products.GetQueryable()
             .Include(p => p.Variants)
+            .Include(p => p.Reviews)
             .FirstOrDefaultAsync(p => p.Id == id);
+        return product == null ? null : MapToResponseDto(product);
     }
 
-    public async Task<Product> CreateAsync(ProductUpsertDto dto)
+    public async Task<ProductResponseDto> CreateAsync(ProductUpsertDto dto)
     {
         var categoryName = dto.Category.Trim();
         var categoryList = await _unitOfWork.Categories.FindAsync(c => c.Name.ToLower() == categoryName.ToLower());
@@ -115,7 +196,12 @@ public class ProductService : IProductService
             Usage = dto.Usage,
             Benefits = dto.Benefits,
             ImageType = dto.ImageType,
-            ImageColor = dto.ImageColor
+            ImageColor = dto.ImageColor,
+            NameAr = dto.NameAr,
+            DescriptionAr = dto.DescriptionAr,
+            UsageAr = dto.UsageAr,
+            IngredientsAr = dto.IngredientsAr,
+            BenefitsAr = dto.BenefitsAr
         };
 
         if (dto.VariantType != "none" && dto.Variants != null)
@@ -140,7 +226,7 @@ public class ProductService : IProductService
 
         await _unitOfWork.Products.AddAsync(product);
         await _unitOfWork.SaveChangesAsync();
-        return product;
+        return MapToResponseDto(product);
     }
 
     public async Task<bool> UpdateAsync(Guid id, ProductUpsertDto dto)
@@ -189,6 +275,11 @@ public class ProductService : IProductService
         product.Benefits = dto.Benefits;
         product.ImageType = dto.ImageType;
         product.ImageColor = dto.ImageColor;
+        product.NameAr = dto.NameAr;
+        product.DescriptionAr = dto.DescriptionAr;
+        product.UsageAr = dto.UsageAr;
+        product.IngredientsAr = dto.IngredientsAr;
+        product.BenefitsAr = dto.BenefitsAr;
 
         // Remove variants
         var existingVariants = await _unitOfWork.ProductVariants.FindAsync(v => v.ProductId == id);
@@ -254,15 +345,16 @@ public class ProductService : IProductService
     {
         var visibleProducts = await _unitOfWork.Products.GetQueryable()
             .Include(p => p.Variants)
+            .Include(p => p.Reviews)
             .Where(p => p.Visible)
             .AsNoTracking()
             .ToListAsync();
 
         return new HomepageSectionsDto
         {
-            Featured = visibleProducts.Where(p => p.Featured).ToList(),
-            BestSellers = visibleProducts.Where(p => p.BestSeller).ToList(),
-            NewArrivals = visibleProducts.Where(p => p.NewArrival).ToList()
+            Featured = visibleProducts.Where(p => p.Featured).Select(MapToResponseDto).ToList(),
+            BestSellers = visibleProducts.Where(p => p.BestSeller).Select(MapToResponseDto).ToList(),
+            NewArrivals = visibleProducts.Where(p => p.NewArrival).Select(MapToResponseDto).ToList()
         };
     }
 

@@ -20,7 +20,7 @@ public class CategoriesController : BaseApiController
     }
 
     [HttpGet("list-active-product-categories")]
-    public async Task<ActionResult<IEnumerable<Category>>> GetActiveCategories()
+    public async Task<ActionResult<IEnumerable<CategoryResponseDto>>> GetActiveCategories()
     {
         var categories = await _categoryService.GetAllActiveAsync();
         return Ok(categories);
@@ -28,7 +28,7 @@ public class CategoriesController : BaseApiController
 
     [HttpGet("list-admin-product-categories")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<Category>>> GetAdminAllCategories()
+    public async Task<ActionResult<IEnumerable<CategoryResponseDto>>> GetAdminAllCategories()
     {
         var categories = await _categoryService.AdminGetAllAsync();
         return Ok(categories);
@@ -36,7 +36,7 @@ public class CategoriesController : BaseApiController
 
     [HttpPost("create-product-category")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<Category>> CreateCategory([FromBody] CategoryDto dto)
+    public async Task<ActionResult<CategoryResponseDto>> CreateCategory([FromBody] CategoryDto dto)
     {
         var category = await _categoryService.CreateAsync(dto);
         if (category == null)

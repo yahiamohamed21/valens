@@ -8,23 +8,23 @@
     "net10.0": []
   },
   "packageFolders": {
-    "C:\\Users\\ZaRZoR\\.nuget\\packages\\": {},
+    "C:\\Users\\3mr\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\ZaRZoR\\Desktop\\Valens\\valens\\Back-end\\src\\ValensApi.Domain\\ValensApi.Domain.csproj",
+      "projectUniqueName": "C:\\Users\\3mr\\Downloads\\valens-main\\valens-main\\Back-end\\src\\ValensApi.Domain\\ValensApi.Domain.csproj",
       "projectName": "ValensApi.Domain",
-      "projectPath": "C:\\Users\\ZaRZoR\\Desktop\\Valens\\valens\\Back-end\\src\\ValensApi.Domain\\ValensApi.Domain.csproj",
-      "packagesPath": "C:\\Users\\ZaRZoR\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\ZaRZoR\\Desktop\\Valens\\valens\\Back-end\\src\\ValensApi.Domain\\obj\\",
+      "projectPath": "C:\\Users\\3mr\\Downloads\\valens-main\\valens-main\\Back-end\\src\\ValensApi.Domain\\ValensApi.Domain.csproj",
+      "packagesPath": "C:\\Users\\3mr\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\3mr\\Downloads\\valens-main\\valens-main\\Back-end\\src\\ValensApi.Domain\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\ZaRZoR\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\3mr\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],

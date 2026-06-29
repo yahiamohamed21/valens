@@ -20,7 +20,7 @@ public class ProductsController : BaseApiController
     }
 
     [HttpPost("list-products")]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts([FromBody] ProductFilterDto dto)
+    public async Task<ActionResult<PagedResult<ProductResponseDto>>> GetProducts([FromBody] ProductFilterDto dto)
     {
         bool isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole("Admin");
         var products = await _productService.GetAllAsync(
@@ -29,6 +29,8 @@ public class ProductsController : BaseApiController
             dto.MinPrice, 
             dto.MaxPrice, 
             dto.SortBy, 
+            dto.PageNumber,
+            dto.PageSize,
             isAdmin
         );
         return Ok(products);
@@ -42,7 +44,7 @@ public class ProductsController : BaseApiController
     }
 
     [HttpPost("detail-product")]
-    public async Task<ActionResult<Product>> GetProductById([FromBody] IdRequestDto dto)
+    public async Task<ActionResult<ProductResponseDto>> GetProductById([FromBody] IdRequestDto dto)
     {
         var product = await _productService.GetByIdAsync(dto.Id);
         if (product == null)
@@ -55,7 +57,7 @@ public class ProductsController : BaseApiController
 
     [HttpPost("create-product")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<Product>> CreateProduct([FromBody] ProductUpsertDto dto)
+    public async Task<ActionResult<ProductResponseDto>> CreateProduct([FromBody] ProductUpsertDto dto)
     {
         var product = await _productService.CreateAsync(dto);
         return Ok(product);

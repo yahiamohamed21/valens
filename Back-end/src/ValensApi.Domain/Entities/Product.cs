@@ -37,4 +37,15 @@ public class Product : SoftDeletableEntity
     public string ImageColor { get; set; } = "#FF8A75";
 
     public List<ProductVariant> Variants { get; set; } = new();
+    public List<Review> Reviews { get; set; } = new();
+
+    // Average rating (calculated/cached)
+    public double Rating { get; set; }
+
+    // Arabic translation fields
+    public string? NameAr { get; set; }
+    public string? DescriptionAr { get; set; }
+    public string? UsageAr { get; set; }
+    public List<string>? IngredientsAr { get; set; }
+    public List<string>? BenefitsAr { get; set; }
 }

@@ -1,9 +1,8 @@
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace ValensApi.Application.DTOs.Settings;
 
-public class UpdateHomepageSettingsDto
+public class HomePageSettingsResponseDto
 {
     [JsonPropertyName("brandName")]
     public string BrandName { get; set; } = string.Empty;
@@ -55,14 +54,4 @@ public class UpdateHomepageSettingsDto
 
     [JsonPropertyName("promoBadge_ar")]
     public string? PromoBadgeAr { get; set; }
-
-    // Images
-    [JsonPropertyName("heroImage")]
-    public string HeroImage { get; set; } = string.Empty;
-
-    [JsonPropertyName("promoBannerImage")]
-    public string PromoBannerImage { get; set; } = string.Empty;
-
-    [JsonPropertyName("homepageSliderImages")]
-    public List<string> HomepageSliderImages { get; set; } = new();
 }

@@ -18,6 +18,7 @@ public class UnitOfWork : IUnitOfWork
     public IProductRepository Products { get; }
     public IGenericRepository<Category> Categories { get; }
     public IGenericRepository<ProductVariant> ProductVariants { get; }
+    public IGenericRepository<Review> Reviews { get; }
     public IGenericRepository<User> Users { get; }
     public IGenericRepository<Customer> Customers { get; }
     public IGenericRepository<Order> Orders { get; }
@@ -33,6 +34,7 @@ public class UnitOfWork : IUnitOfWork
         Products = products;
         Categories = new GenericRepository<Category>(context);
         ProductVariants = new GenericRepository<ProductVariant>(context);
+        Reviews = new GenericRepository<Review>(context);
         Users = new GenericRepository<User>(context);
         Customers = new GenericRepository<Customer>(context);
         Orders = new GenericRepository<Order>(context);
@@ -53,14 +55,14 @@ public class UnitOfWork : IUnitOfWork
         await _context.Database.ExecuteSqlRawAsync(sql, parameters);
     }
 
-    public async Task BeginTransactionAsync()
+    public async Task BeginTransactionAsync(System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted)
     {
         if (_currentTransaction != null)
         {
             return;
         }
 
-        _currentTransaction = await _context.Database.BeginTransactionAsync();
+        _currentTransaction = await _context.Database.BeginTransactionAsync(isolationLevel);
     }
 
     public async Task CommitTransactionAsync()
