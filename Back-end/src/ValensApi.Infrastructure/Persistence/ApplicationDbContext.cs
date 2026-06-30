@@ -29,6 +29,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<StoreSetting> StoreSettings => Set<StoreSetting>();
     public DbSet<UserOtp> UserOtps => Set<UserOtp>();
     public DbSet<GovernorateShipping> GovernorateShippings => Set<GovernorateShipping>();
+    public DbSet<OrderReturn> OrderReturns => Set<OrderReturn>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

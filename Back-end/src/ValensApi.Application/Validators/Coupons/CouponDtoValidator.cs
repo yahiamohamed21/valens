@@ -27,7 +27,8 @@ public class CouponDtoValidator : AbstractValidator<CouponDto>
             .When(x => x.DiscountType == "Percentage");
 
         RuleFor(x => x.ExpiryDate)
-            .NotEmpty().WithMessage("Expiry date is required.");
+            .GreaterThan(DateTimeOffset.UtcNow).WithMessage("Expiry date must be in the future.")
+            .When(x => x.ExpiryDate.HasValue);
 
         RuleFor(x => x.MinOrderAmount)
             .GreaterThanOrEqualTo(0).WithMessage("Minimum order amount cannot be negative.");

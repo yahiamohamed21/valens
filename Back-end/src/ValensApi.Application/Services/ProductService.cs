@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -14,11 +15,13 @@ public class ProductService : IProductService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public ProductService(IUnitOfWork unitOfWork, IFileStorageService fileStorageService)
+    public ProductService(IUnitOfWork unitOfWork, IFileStorageService fileStorageService, IHttpContextAccessor httpContextAccessor)
     {
         _unitOfWork = unitOfWork;
         _fileStorageService = fileStorageService;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<ValensApi.Application.DTOs.Common.PaginatedList<Product>> GetAllAsync(
@@ -79,14 +82,26 @@ public class ProductService : IProductService
         var totalCount = await query.CountAsync();
         var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
 
+        foreach (var item in items)
+        {
+            FormatProductUrls(item);
+        }
+
         return new ValensApi.Application.DTOs.Common.PaginatedList<Product>(items, totalCount, pageNumber, pageSize);
     }
 
     public async Task<Product?> GetByIdAsync(Guid id)
     {
-        return await _unitOfWork.Products.GetQueryable()
+        var product = await _unitOfWork.Products.GetQueryable()
             .Include(p => p.Variants)
+            .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (product != null)
+        {
+            FormatProductUrls(product);
+        }
+        return product;
     }
 
     public async Task<Product> CreateAsync(ProductUpsertDto dto)
@@ -111,11 +126,11 @@ public class ProductService : IProductService
         {
             if (!_fileStorageService.IsValidImage(dto.MainImageFile, out var error))
                 throw new ArgumentException($"Main image: {error}");
-            mainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads");
+            mainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads/products");
         }
         else
         {
-            mainImage = SaveBase64Image(dto.MainImage);
+            mainImage = SaveBase64Image(dto.MainImage, "products");
         }
 
         var galleryImages = new List<string>();
@@ -125,7 +140,7 @@ public class ProductService : IProductService
             {
                 if (!_fileStorageService.IsValidImage(file, out var error))
                     throw new ArgumentException($"Gallery image: {error}");
-                var url = await _fileStorageService.SaveFileAsync(file, "uploads");
+                var url = await _fileStorageService.SaveFileAsync(file, "uploads/products");
                 if (!string.IsNullOrEmpty(url))
                     galleryImages.Add(url);
             }
@@ -134,7 +149,7 @@ public class ProductService : IProductService
         {
             foreach (var imgStr in dto.Images)
             {
-                var url = SaveBase64Image(imgStr);
+                var url = SaveBase64Image(imgStr, "products");
                 if (!string.IsNullOrEmpty(url) && !galleryImages.Contains(url))
                     galleryImages.Add(url);
             }
@@ -180,11 +195,11 @@ public class ProductService : IProductService
                 {
                     if (!_fileStorageService.IsValidImage(vDto.ImageFile, out var error))
                         throw new ArgumentException($"Variant image: {error}");
-                    variantImage = await _fileStorageService.SaveFileAsync(vDto.ImageFile, "uploads");
+                    variantImage = await _fileStorageService.SaveFileAsync(vDto.ImageFile, "uploads/variants");
                 }
                 else
                 {
-                    variantImage = SaveBase64Image(vDto.Image);
+                    variantImage = SaveBase64Image(vDto.Image, "variants");
                 }
 
                 var variant = new ProductVariant
@@ -205,6 +220,7 @@ public class ProductService : IProductService
 
         await _unitOfWork.Products.AddAsync(product);
         await _unitOfWork.SaveChangesAsync();
+        FormatProductUrls(product);
         return product;
     }
 
@@ -240,7 +256,7 @@ public class ProductService : IProductService
         {
             if (!_fileStorageService.IsValidImage(dto.MainImageFile, out var error))
                 throw new ArgumentException($"Main image: {error}");
-            string newMainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads");
+            string newMainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads/products");
             if (!string.IsNullOrEmpty(product.MainImage))
             {
                 _fileStorageService.DeleteFile(product.MainImage);
@@ -249,7 +265,7 @@ public class ProductService : IProductService
         }
         else if (!string.IsNullOrEmpty(dto.MainImage))
         {
-            string processedImage = SaveBase64Image(dto.MainImage);
+            string processedImage = SaveBase64Image(dto.MainImage, "products");
             if (processedImage != product.MainImage)
             {
                 if (!string.IsNullOrEmpty(product.MainImage))
@@ -273,7 +289,7 @@ public class ProductService : IProductService
             {
                 if (!_fileStorageService.IsValidImage(file, out var error))
                     throw new ArgumentException($"Gallery image: {error}");
-                var url = await _fileStorageService.SaveFileAsync(file, "uploads");
+                var url = await _fileStorageService.SaveFileAsync(file, "uploads/products");
                 if (!string.IsNullOrEmpty(url))
                     newGalleryUrls.Add(url);
             }
@@ -290,7 +306,7 @@ public class ProductService : IProductService
                 }
                 else
                 {
-                    var url = SaveBase64Image(imgStr);
+                    var url = SaveBase64Image(imgStr, "products");
                     if (!string.IsNullOrEmpty(url) && !newGalleryUrls.Contains(url))
                         newGalleryUrls.Add(url);
                 }
@@ -352,11 +368,11 @@ public class ProductService : IProductService
                 {
                     if (!_fileStorageService.IsValidImage(vDto.ImageFile, out var error))
                         throw new ArgumentException($"Variant image: {error}");
-                    variantImage = await _fileStorageService.SaveFileAsync(vDto.ImageFile, "uploads");
+                    variantImage = await _fileStorageService.SaveFileAsync(vDto.ImageFile, "uploads/variants");
                 }
                 else if (!string.IsNullOrEmpty(vDto.Image))
                 {
-                    variantImage = SaveBase64Image(vDto.Image);
+                    variantImage = SaveBase64Image(vDto.Image, "variants");
                 }
 
                 if (!string.IsNullOrEmpty(variantImage))
@@ -390,6 +406,7 @@ public class ProductService : IProductService
 
         _unitOfWork.Products.Update(product);
         await _unitOfWork.SaveChangesAsync();
+        FormatProductUrls(product);
         return true;
     }
 
@@ -428,6 +445,11 @@ public class ProductService : IProductService
             .AsNoTracking()
             .ToListAsync();
 
+        foreach (var product in visibleProducts)
+        {
+            FormatProductUrls(product);
+        }
+
         return new HomepageSectionsDto
         {
             Featured = visibleProducts.Where(p => p.Featured).ToList(),
@@ -436,7 +458,7 @@ public class ProductService : IProductService
         };
     }
 
-    private string SaveBase64Image(string base64String)
+    private string SaveBase64Image(string base64String, string subFolder = "products")
     {
         if (string.IsNullOrEmpty(base64String)) return string.Empty;
 
@@ -458,7 +480,7 @@ public class ProductService : IProductService
             else if (base64String.Contains("image/gif")) extension = ".gif";
 
             string fileName = Guid.NewGuid().ToString() + extension;
-            string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", subFolder);
 
             if (!Directory.Exists(uploadsFolder))
             {
@@ -468,11 +490,45 @@ public class ProductService : IProductService
             string filePath = Path.Combine(uploadsFolder, fileName);
             System.IO.File.WriteAllBytes(filePath, imageBytes);
 
-            return "/uploads/" + fileName;
+            return $"/uploads/{subFolder}/{fileName}";
         }
         catch
         {
             return base64String;
+        }
+    }
+
+    private string GetAbsoluteUrl(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return path;
+        if (path.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return path;
+
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (request != null)
+        {
+            var baseUrl = $"{request.Scheme}://{request.Host}";
+            return baseUrl + (path.StartsWith('/') ? path : "/" + path);
+        }
+
+        return path;
+    }
+
+    private void FormatProductUrls(Product product)
+    {
+        if (product == null) return;
+        
+        product.MainImage = GetAbsoluteUrl(product.MainImage);
+        if (product.Images != null)
+        {
+            product.Images = product.Images.Select(GetAbsoluteUrl).ToList();
+        }
+        
+        if (product.Variants != null)
+        {
+            foreach (var variant in product.Variants)
+            {
+                variant.Image = GetAbsoluteUrl(variant.Image);
+            }
         }
     }
 }

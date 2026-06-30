@@ -27,6 +27,7 @@ public class UnitOfWork : IUnitOfWork
     public IGenericRepository<StoreSetting> StoreSettings { get; }
     public IGenericRepository<UserOtp> UserOtps { get; }
     public IGenericRepository<GovernorateShipping> GovernorateShippings { get; }
+    public IGenericRepository<OrderReturn> OrderReturns { get; }
 
     public UnitOfWork(ApplicationDbContext context, IProductRepository products)
     {
@@ -43,6 +44,7 @@ public class UnitOfWork : IUnitOfWork
         StoreSettings = new GenericRepository<StoreSetting>(context);
         UserOtps = new GenericRepository<UserOtp>(context);
         GovernorateShippings = new GenericRepository<GovernorateShipping>(context);
+        OrderReturns = new GenericRepository<OrderReturn>(context);
     }
 
     public async Task<int> SaveChangesAsync()
@@ -120,6 +122,27 @@ public class UnitOfWork : IUnitOfWork
                 await action();
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        });
+    }
+
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var result = await action();
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return result;
             }
             catch
             {

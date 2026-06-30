@@ -21,15 +21,20 @@ public class ReportService : IReportService
     {
         var orders = await _unitOfWork.Orders.GetQueryable()
             .Include(o => o.Items)
-            .Where(o => o.Status != "Cancelled")
+            .Where(o => o.Status != "Cancelled" && o.Status != "Cancelled") // we exclude cancelled
             .ToListAsync();
 
         var expensesList = await _unitOfWork.Expenses.GetAllAsync();
         var expenses = expensesList.ToList();
 
-        decimal totalSales = orders.Sum(o => o.Total);
+        var returnsList = await _unitOfWork.OrderReturns.GetAllAsync();
+        var returns = returnsList.ToList();
+
+        decimal totalRefunds = returns.Sum(r => r.RefundAmount);
+        decimal totalSales = orders.Sum(o => o.Total); // Gross sales
+        decimal netSales = totalSales - totalRefunds; // Net sales after returns
         decimal totalExpenses = expenses.Sum(e => e.Amount);
-        decimal netProfit = totalSales - totalExpenses;
+        decimal netProfit = netSales - totalExpenses;
         int salesCount = orders.Count;
         decimal averageOrderValue = salesCount > 0 ? Math.Round(totalSales / salesCount, 2) : 0;
 
@@ -68,6 +73,8 @@ public class ReportService : IReportService
         return new
         {
             TotalSales = totalSales,
+            NetSales = netSales,
+            TotalRefunds = totalRefunds,
             TotalExpenses = totalExpenses,
             NetProfit = netProfit,
             SalesCount = salesCount,

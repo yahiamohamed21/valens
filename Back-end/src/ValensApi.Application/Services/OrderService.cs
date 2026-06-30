@@ -48,7 +48,6 @@ public class OrderService : IOrderService
 
     // ── Create Order ────────────────────────────────────────────────────────────
     public async Task<object> CreateOrderAsync(CheckoutDto dto, Guid? loggedInUserId, bool isAuthenticated)
-
     {
         // Populate DTO from User Profile if authenticated and fields are not provided
         if (isAuthenticated && loggedInUserId.HasValue && loggedInUserId.Value != Guid.Empty)
@@ -74,8 +73,7 @@ public class OrderService : IOrderService
             throw new ArgumentException("All checkout fields (Name, Email, Phone, Address, City) are required and cannot be empty.");
         }
 
-        await _unitOfWork.BeginTransactionAsync();
-        try
+        return await _unitOfWork.ExecuteInTransactionAsync<object>(async () =>
         {
             Customer? customer = null;
 
@@ -142,7 +140,23 @@ public class OrderService : IOrderService
 
             // 2. Validate inventory & calculate prices
             decimal subtotal = 0;
+            decimal couponEligibleSubtotal = 0;
+            decimal percentageDiscountSum = 0;
             var orderItems = new List<OrderItem>();
+
+            Coupon? coupon = null;
+            if (!string.IsNullOrEmpty(dto.CouponCode))
+            {
+                var coupons = await _unitOfWork.Coupons.FindAsync(c => c.Code.ToLower() == dto.CouponCode.ToLower());
+                var tempCoupon = coupons.FirstOrDefault();
+
+                if (tempCoupon != null && tempCoupon.IsActive && 
+                    (!tempCoupon.ExpiryDate.HasValue || tempCoupon.ExpiryDate.Value > DateTimeOffset.UtcNow) &&
+                    (!tempCoupon.MaxUsage.HasValue || tempCoupon.UsageCount < tempCoupon.MaxUsage.Value))
+                {
+                    coupon = tempCoupon;
+                }
+            }
 
             foreach (var cartItem in dto.Items)
             {
@@ -152,17 +166,17 @@ public class OrderService : IOrderService
 
                 if (product == null)
                 {
-                    await _unitOfWork.RollbackTransactionAsync();
                     throw new KeyNotFoundException($"Product with ID {cartItem.ProductId} was not found.");
                 }
 
-                decimal price = 0;
-                string size = string.Empty;
+                decimal originalPrice = product.Price;
+                decimal discountPrice = product.DiscountPrice;
+                string size = product.Size;
                 string flavor = string.Empty;
+                ProductVariant? variant = null;
 
                 if (product.VariantType != "none")
                 {
-                    ProductVariant? variant = null;
                     if (!string.IsNullOrEmpty(cartItem.VariantId))
                     {
                         variant = product.Variants.FirstOrDefault(v => v.VariantId == cartItem.VariantId);
@@ -177,7 +191,6 @@ public class OrderService : IOrderService
 
                     if (variant == null)
                     {
-                        await _unitOfWork.RollbackTransactionAsync();
                         string details = !string.IsNullOrEmpty(cartItem.VariantId) 
                             ? $"VariantId '{cartItem.VariantId}'"
                             : $"Size '{cartItem.Size}' and Flavor '{cartItem.Flavor}'";
@@ -186,14 +199,14 @@ public class OrderService : IOrderService
 
                     if (variant.StockQuantity < cartItem.Quantity)
                     {
-                        await _unitOfWork.RollbackTransactionAsync();
                         throw new InvalidOperationException($"Requested quantity of '{product.Name} - {variant.Size} {variant.Flavor}' is not available. Available stock: {variant.StockQuantity}.");
                     }
 
                     variant.StockQuantity -= cartItem.Quantity;
                     product.Stock -= cartItem.Quantity;
 
-                    price = variant.DiscountPrice > 0 ? variant.DiscountPrice : variant.Price;
+                    originalPrice = variant.Price;
+                    discountPrice = variant.DiscountPrice;
                     size = variant.Size;
                     flavor = variant.Flavor;
 
@@ -203,17 +216,68 @@ public class OrderService : IOrderService
                 {
                     if (product.Stock < cartItem.Quantity)
                     {
-                        await _unitOfWork.RollbackTransactionAsync();
                         throw new InvalidOperationException($"Requested quantity of '{product.Name}' is not available. Available stock: {product.Stock}.");
                     }
 
                     product.Stock -= cartItem.Quantity;
-                    price = product.DiscountPrice > 0 ? product.DiscountPrice : product.Price;
                 }
 
                 _unitOfWork.Products.Update(product);
 
-                subtotal += price * cartItem.Quantity;
+                // Check discount eligibility
+                bool hasProductDiscount = discountPrice > 0 && discountPrice < originalPrice;
+                decimal productDiscountAmount = hasProductDiscount ? (originalPrice - discountPrice) : 0;
+
+                bool isEligibleForCoupon = true;
+                decimal itemFinalPrice = 0;
+
+                if (coupon != null)
+                {
+                    decimal couponDiscountForThisItem = 0;
+                    if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
+                    {
+                        couponDiscountForThisItem = originalPrice * (coupon.DiscountValue / 100);
+                    }
+                    else
+                    {
+                        couponDiscountForThisItem = coupon.DiscountValue;
+                    }
+
+                    if (hasProductDiscount)
+                    {
+                        if (couponDiscountForThisItem > productDiscountAmount)
+                        {
+                            isEligibleForCoupon = true;
+                            itemFinalPrice = originalPrice; // Remove product discount, apply coupon
+                        }
+                        else
+                        {
+                            isEligibleForCoupon = false;
+                            itemFinalPrice = discountPrice; // Keep product discount, cannot use coupon
+                        }
+                    }
+                    else
+                    {
+                        isEligibleForCoupon = true;
+                        itemFinalPrice = originalPrice;
+                    }
+                }
+                else
+                {
+                    isEligibleForCoupon = false;
+                    itemFinalPrice = hasProductDiscount ? discountPrice : originalPrice;
+                }
+
+                subtotal += itemFinalPrice * cartItem.Quantity;
+
+                if (coupon != null && isEligibleForCoupon)
+                {
+                    couponEligibleSubtotal += originalPrice * cartItem.Quantity;
+                    if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
+                    {
+                        percentageDiscountSum += Math.Round(originalPrice * cartItem.Quantity * (coupon.DiscountValue / 100), 2);
+                    }
+                }
 
                 orderItems.Add(new OrderItem
                 {
@@ -222,42 +286,37 @@ public class OrderService : IOrderService
                     VariantId = cartItem.VariantId ?? string.Empty,
                     Size = size,
                     Flavor = flavor,
-                    Price = price,
+                    Price = itemFinalPrice,
                     Quantity = cartItem.Quantity
                 });
             }
 
             // 3. Process Coupon
             decimal discountAmount = 0;
-            if (!string.IsNullOrEmpty(dto.CouponCode))
+            if (coupon != null)
             {
-                var coupons = await _unitOfWork.Coupons.FindAsync(c => c.Code.ToLower() == dto.CouponCode.ToLower());
-                var coupon = coupons.FirstOrDefault();
-
-                if (coupon != null && coupon.IsActive && coupon.ExpiryDate > DateTimeOffset.UtcNow)
+                if (subtotal >= coupon.MinOrderAmount)
                 {
-                    if (coupon.MaxUsage == null || coupon.UsageCount < coupon.MaxUsage.Value)
+                    if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (subtotal >= coupon.MinOrderAmount)
-                        {
-                            if (coupon.DiscountType.ToLower() == "percentage")
-                            {
-                                discountAmount = Math.Round(subtotal * (coupon.DiscountValue / 100), 2);
-                            }
-                            else
-                            {
-                                discountAmount = coupon.DiscountValue;
-                            }
-
-                            if (discountAmount > subtotal)
-                            {
-                                discountAmount = subtotal;
-                            }
-
-                            coupon.UsageCount += 1;
-                            _unitOfWork.Coupons.Update(coupon);
-                        }
+                        discountAmount = percentageDiscountSum;
                     }
+                    else
+                    {
+                        discountAmount = coupon.DiscountValue;
+                    }
+
+                    if (discountAmount > couponEligibleSubtotal)
+                    {
+                        discountAmount = couponEligibleSubtotal;
+                    }
+                    if (discountAmount > subtotal)
+                    {
+                        discountAmount = subtotal;
+                    }
+
+                    coupon.UsageCount += 1;
+                    _unitOfWork.Coupons.Update(coupon);
                 }
             }
 
@@ -287,35 +346,20 @@ public class OrderService : IOrderService
                 }
             }
 
+            // Apply free shipping if order meets threshold
             if (subtotal >= freeShippingThreshold)
             {
                 shippingCost = 0;
             }
 
-            decimal total = subtotal + shippingCost - discountAmount;
+            decimal total = subtotal - discountAmount + shippingCost;
 
-            // Generate sequential order number: VL-10001, VL-10002, ...
-            // Read the last order in the DB and increment its numeric suffix.
-            var lastOrder = await _unitOfWork.Orders.GetQueryable()
-                .OrderByDescending(o => o.CreatedAt)
-                .FirstOrDefaultAsync();
-
-            int nextNumber = 10001; // starting seed
-            if (lastOrder != null &&
-                lastOrder.OrderNumber.StartsWith("VL-") &&
-                int.TryParse(lastOrder.OrderNumber.AsSpan(3), out int lastNum))
-            {
-                nextNumber = lastNum + 1;
-            }
-
-            string orderCode = $"VL-{nextNumber}";
-
-
-            // 5. Create Order
+            // 5. Save Order
             var order = new Order
             {
-                OrderNumber = orderCode,
+                OrderNumber = "VAL-" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
                 CustomerId = customer.Id,
+                Customer = customer,
                 CustomerName = dto.CustomerName,
                 CustomerEmail = dto.CustomerEmail,
                 CustomerPhone = dto.CustomerPhone,
@@ -326,7 +370,7 @@ public class OrderService : IOrderService
                 Subtotal = subtotal,
                 ShippingCost = shippingCost,
                 DiscountAmount = discountAmount,
-                CouponCode = dto.CouponCode ?? string.Empty,
+                CouponCode = coupon?.Code ?? string.Empty,
                 Total = total,
                 Items = orderItems
             };
@@ -340,8 +384,6 @@ public class OrderService : IOrderService
             _unitOfWork.Customers.Update(customer);
             await _unitOfWork.SaveChangesAsync();
 
-            await _unitOfWork.CommitTransactionAsync();
-
             return new
             {
                 Message = "Order created successfully and is being prepared.",
@@ -350,12 +392,7 @@ public class OrderService : IOrderService
                 Total = order.Total,
                 PaymentMethod = order.PaymentMethod
             };
-        }
-        catch
-        {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+        });
     }
 
     public async Task<ValensApi.Application.DTOs.Common.PaginatedList<Order>> GetMyOrdersAsync(Guid userId, int pageNumber = 1, int pageSize = 10)
@@ -499,6 +536,22 @@ public class OrderService : IOrderService
     public async Task<CheckoutPreviewDto> PreviewCheckoutAsync(CheckoutDto dto)
     {
         decimal subtotal = 0;
+        decimal couponEligibleSubtotal = 0;
+        decimal percentageDiscountSum = 0;
+
+        Coupon? coupon = null;
+        if (!string.IsNullOrEmpty(dto.CouponCode))
+        {
+            var coupons = await _unitOfWork.Coupons.FindAsync(c => c.Code.ToLower() == dto.CouponCode.ToLower());
+            var tempCoupon = coupons.FirstOrDefault();
+
+            if (tempCoupon != null && tempCoupon.IsActive && 
+                (!tempCoupon.ExpiryDate.HasValue || tempCoupon.ExpiryDate.Value > DateTimeOffset.UtcNow) &&
+                (!tempCoupon.MaxUsage.HasValue || tempCoupon.UsageCount < tempCoupon.MaxUsage.Value))
+            {
+                coupon = tempCoupon;
+            }
+        }
 
         foreach (var cartItem in dto.Items)
         {
@@ -512,11 +565,12 @@ public class OrderService : IOrderService
                 throw new KeyNotFoundException($"Product with ID {cartItem.ProductId} was not found.");
             }
 
-            decimal price = 0;
+            decimal originalPrice = product.Price;
+            decimal discountPrice = product.DiscountPrice;
+            ProductVariant? variant = null;
 
             if (product.VariantType != "none")
             {
-                ProductVariant? variant = null;
                 if (!string.IsNullOrEmpty(cartItem.VariantId))
                 {
                     variant = product.Variants.FirstOrDefault(v => v.VariantId == cartItem.VariantId);
@@ -537,43 +591,88 @@ public class OrderService : IOrderService
                     throw new KeyNotFoundException($"Matching variant ({details}) for product '{product.Name}' was not found.");
                 }
 
-                price = variant.DiscountPrice > 0 ? variant.DiscountPrice : variant.Price;
+                originalPrice = variant.Price;
+                discountPrice = variant.DiscountPrice;
+            }
+
+            // Check discount eligibility
+            bool hasProductDiscount = discountPrice > 0 && discountPrice < originalPrice;
+            decimal productDiscountAmount = hasProductDiscount ? (originalPrice - discountPrice) : 0;
+
+            bool isEligibleForCoupon = true;
+            decimal itemFinalPrice = 0;
+
+            if (coupon != null)
+            {
+                decimal couponDiscountForThisItem = 0;
+                if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
+                {
+                    couponDiscountForThisItem = originalPrice * (coupon.DiscountValue / 100);
+                }
+                else
+                {
+                    couponDiscountForThisItem = coupon.DiscountValue;
+                }
+
+                if (hasProductDiscount)
+                {
+                    if (couponDiscountForThisItem > productDiscountAmount)
+                    {
+                        isEligibleForCoupon = true;
+                        itemFinalPrice = originalPrice; // Remove product discount, apply coupon
+                    }
+                    else
+                    {
+                        isEligibleForCoupon = false;
+                        itemFinalPrice = discountPrice; // Keep product discount, cannot use coupon
+                    }
+                }
+                else
+                {
+                    isEligibleForCoupon = true;
+                    itemFinalPrice = originalPrice;
+                }
             }
             else
             {
-                price = product.DiscountPrice > 0 ? product.DiscountPrice : product.Price;
+                isEligibleForCoupon = false;
+                itemFinalPrice = hasProductDiscount ? discountPrice : originalPrice;
             }
 
-            subtotal += price * cartItem.Quantity;
+            subtotal += itemFinalPrice * cartItem.Quantity;
+
+            if (coupon != null && isEligibleForCoupon)
+            {
+                couponEligibleSubtotal += originalPrice * cartItem.Quantity;
+                if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
+                {
+                    percentageDiscountSum += Math.Round(originalPrice * cartItem.Quantity * (coupon.DiscountValue / 100), 2);
+                }
+            }
         }
 
         // Process Coupon
         decimal discountAmount = 0;
-        if (!string.IsNullOrEmpty(dto.CouponCode))
+        if (coupon != null)
         {
-            var coupons = await _unitOfWork.Coupons.FindAsync(c => c.Code.ToLower() == dto.CouponCode.ToLower());
-            var coupon = coupons.FirstOrDefault();
-
-            if (coupon != null && coupon.IsActive && coupon.ExpiryDate > DateTimeOffset.UtcNow)
+            if (subtotal >= coupon.MinOrderAmount)
             {
-                if (coupon.MaxUsage == null || coupon.UsageCount < coupon.MaxUsage.Value)
+                if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (subtotal >= coupon.MinOrderAmount)
-                    {
-                        if (coupon.DiscountType.ToLower() == "percentage")
-                        {
-                            discountAmount = Math.Round(subtotal * (coupon.DiscountValue / 100), 2);
-                        }
-                        else
-                        {
-                            discountAmount = coupon.DiscountValue;
-                        }
+                    discountAmount = percentageDiscountSum;
+                }
+                else
+                {
+                    discountAmount = coupon.DiscountValue;
+                }
 
-                        if (discountAmount > subtotal)
-                        {
-                            discountAmount = subtotal;
-                        }
-                    }
+                if (discountAmount > couponEligibleSubtotal)
+                {
+                    discountAmount = couponEligibleSubtotal;
+                }
+                if (discountAmount > subtotal)
+                {
+                    discountAmount = subtotal;
                 }
             }
         }

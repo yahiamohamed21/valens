@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IExpenseService, ExpenseService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISettingService, SettingService>();
+        services.AddScoped<IReturnService, ReturnService>();
 
         // Register all validators from this assembly
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());

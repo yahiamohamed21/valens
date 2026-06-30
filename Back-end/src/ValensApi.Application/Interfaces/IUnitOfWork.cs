@@ -16,6 +16,7 @@ public interface IUnitOfWork : IDisposable
     IGenericRepository<StoreSetting> StoreSettings { get; }
     IGenericRepository<UserOtp> UserOtps { get; }
     IGenericRepository<GovernorateShipping> GovernorateShippings { get; }
+    IGenericRepository<OrderReturn> OrderReturns { get; }
     
     Task<int> SaveChangesAsync();
     Task ExecuteSqlRawAsync(string sql, params object[] parameters);
@@ -23,4 +24,5 @@ public interface IUnitOfWork : IDisposable
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
     Task ExecuteInTransactionAsync(Func<Task> action);
+    Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action);
 }

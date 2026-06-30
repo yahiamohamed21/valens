@@ -74,7 +74,7 @@ public class SettingService : ISettingService
         {
             if (!_fileStorageService.IsValidImage(dto.HeroImageFile, out var error))
                 throw new ArgumentException($"Hero image: {error}");
-            string newHeroImage = await _fileStorageService.SaveFileAsync(dto.HeroImageFile, "uploads");
+            string newHeroImage = await _fileStorageService.SaveFileAsync(dto.HeroImageFile, "uploads/settings");
             if (!string.IsNullOrEmpty(settings.HeroImage))
             {
                 _fileStorageService.DeleteFile(settings.HeroImage);
@@ -83,7 +83,7 @@ public class SettingService : ISettingService
         }
         else if (!string.IsNullOrEmpty(dto.HeroImage))
         {
-            string processedImage = SaveBase64Image(dto.HeroImage);
+            string processedImage = SaveBase64Image(dto.HeroImage, "settings");
             if (processedImage != settings.HeroImage)
             {
                 if (!string.IsNullOrEmpty(settings.HeroImage))
@@ -99,7 +99,7 @@ public class SettingService : ISettingService
         {
             if (!_fileStorageService.IsValidImage(dto.PromoBannerImageFile, out var error))
                 throw new ArgumentException($"Promo banner image: {error}");
-            string newPromoImage = await _fileStorageService.SaveFileAsync(dto.PromoBannerImageFile, "uploads");
+            string newPromoImage = await _fileStorageService.SaveFileAsync(dto.PromoBannerImageFile, "uploads/settings");
             if (!string.IsNullOrEmpty(settings.PromoBannerImage))
             {
                 _fileStorageService.DeleteFile(settings.PromoBannerImage);
@@ -108,7 +108,7 @@ public class SettingService : ISettingService
         }
         else if (!string.IsNullOrEmpty(dto.PromoBannerImage))
         {
-            string processedImage = SaveBase64Image(dto.PromoBannerImage);
+            string processedImage = SaveBase64Image(dto.PromoBannerImage, "settings");
             if (processedImage != settings.PromoBannerImage)
             {
                 if (!string.IsNullOrEmpty(settings.PromoBannerImage))
@@ -132,7 +132,7 @@ public class SettingService : ISettingService
             {
                 if (!_fileStorageService.IsValidImage(file, out var error))
                     throw new ArgumentException($"Slider image: {error}");
-                var url = await _fileStorageService.SaveFileAsync(file, "uploads");
+                var url = await _fileStorageService.SaveFileAsync(file, "uploads/settings");
                 if (!string.IsNullOrEmpty(url))
                     finalSliderImages.Add(url);
             }
@@ -149,7 +149,7 @@ public class SettingService : ISettingService
                 }
                 else
                 {
-                    var url = SaveBase64Image(imgStr);
+                    var url = SaveBase64Image(imgStr, "settings");
                     if (!string.IsNullOrEmpty(url) && !finalSliderImages.Contains(url))
                         finalSliderImages.Add(url);
                 }
@@ -198,7 +198,7 @@ public class SettingService : ISettingService
         return settings;
     }
 
-    private string SaveBase64Image(string base64String)
+    private string SaveBase64Image(string base64String, string subFolder = "settings")
     {
         if (string.IsNullOrEmpty(base64String)) return string.Empty;
 
@@ -220,7 +220,7 @@ public class SettingService : ISettingService
             else if (base64String.Contains("image/gif")) extension = ".gif";
 
             string fileName = Guid.NewGuid().ToString() + extension;
-            string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", subFolder);
 
             if (!Directory.Exists(uploadsFolder))
             {
@@ -230,7 +230,7 @@ public class SettingService : ISettingService
             string filePath = Path.Combine(uploadsFolder, fileName);
             System.IO.File.WriteAllBytes(filePath, imageBytes);
 
-            return "/uploads/" + fileName;
+            return $"/uploads/{subFolder}/{fileName}";
         }
         catch
         {

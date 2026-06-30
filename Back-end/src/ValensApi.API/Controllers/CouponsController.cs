@@ -43,7 +43,7 @@ public class CouponsController : BaseApiController
 
     [HttpGet("list-admin")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<IEnumerable<Coupon>>> GetAdminCoupons()
+    public async Task<ActionResult<IEnumerable<CouponDetailsDto>>> GetAdminCoupons()
     {
         var coupons = await _couponService.GetAllCouponsAsync();
         return Ok(coupons);
