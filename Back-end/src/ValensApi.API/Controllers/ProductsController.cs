@@ -57,7 +57,22 @@ public class ProductsController : BaseApiController
 
     [HttpPost("create-product")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<Product>> CreateProduct([FromForm] ProductUpsertDto dto)
+    public async Task<ActionResult<Product>> CreateProduct([FromBody] ProductUpsertDto dto)
+    {
+        try
+        {
+            var product = await _productService.CreateAsync(dto);
+            return Ok(product);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("create-product-form")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<Product>> CreateProductForm([FromForm] ProductUpsertDto dto)
     {
         try
         {
@@ -72,7 +87,32 @@ public class ProductsController : BaseApiController
 
     [HttpPost("update-product")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> UpdateProduct([FromForm] ProductUpsertDto dto)
+    public async Task<IActionResult> UpdateProduct([FromBody] ProductUpsertDto dto)
+    {
+        if (!dto.Id.HasValue)
+        {
+            return BadRequest("Product Id is required for updates.");
+        }
+
+        try
+        {
+            var success = await _productService.UpdateAsync(dto.Id.Value, dto);
+            if (!success)
+            {
+                return NotFound("Product not found.");
+            }
+
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("update-product-form")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateProductForm([FromForm] ProductUpsertDto dto)
     {
         if (!dto.Id.HasValue)
         {
