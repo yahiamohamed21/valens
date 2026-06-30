@@ -62,7 +62,7 @@ export const ThemeSettingsPanel = () => {
           
           {/* Language Selector */}
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white">
               {locale === "ar" ? "اللغة / Language" : "Language / اللغة"}
             </span>
             <div className="flex rounded-xl border border-border-color bg-card-bg p-1">
@@ -71,7 +71,7 @@ export const ThemeSettingsPanel = () => {
                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                   locale === "en"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-white"
+                    : "text-muted-text hover:text-gray-800"
                 }`}
               >
                 <span>🇺🇸</span> EN
@@ -81,7 +81,7 @@ export const ThemeSettingsPanel = () => {
                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                   locale === "ar"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-white"
+                    : "text-muted-text hover:text-gray-800"
                 }`}
               >
                 <span>🇪🇬</span> AR
@@ -91,7 +91,7 @@ export const ThemeSettingsPanel = () => {
 
           {/* Mode Toggle */}
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white">
               {locale === "ar" ? "وضع العرض" : "Display Mode"}
             </span>
             <div className="flex rounded-xl border border-border-color bg-card-bg p-1">
@@ -100,7 +100,7 @@ export const ThemeSettingsPanel = () => {
                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                   theme.mode === "dark"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-white"
+                    : "text-muted-text hover:text-gray-800"
                 }`}
               >
                 {locale === "ar" ? "داكن" : "Dark"}
@@ -110,7 +110,7 @@ export const ThemeSettingsPanel = () => {
                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                   theme.mode === "light"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-white"
+                    : "text-muted-text hover:text-gray-800"
                 }`}
               >
                 {locale === "ar" ? "فاتح" : "Light"}
@@ -120,7 +120,7 @@ export const ThemeSettingsPanel = () => {
 
           {/* Presets */}
           <div className="space-y-3">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white">
               {locale === "ar" ? "قوالب الألوان" : "Color Presets"}
             </span>
             <div className="grid grid-cols-4 gap-3">
@@ -148,7 +148,7 @@ export const ThemeSettingsPanel = () => {
 
           {/* Custom Colors */}
           <div className="space-y-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-soft-text">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white">
               {locale === "ar" ? "تخصيص الألوان" : "Custom Palette"}
             </span>
             
@@ -196,7 +196,7 @@ export const ThemeSettingsPanel = () => {
           </p>
           <button
             onClick={resetToDefault}
-            className="w-full rounded-xl border border-border-color bg-surface-sec py-3 text-xs font-bold uppercase tracking-widest text-soft-text transition-all hover:border-primary-coral hover:text-white cursor-pointer"
+            className="w-full rounded-xl border border-border-color bg-surface-sec py-3 text-xs font-bold uppercase tracking-widest text-white transition-all hover:border-primary-coral hover:text-gray-800 cursor-pointer"
           >
             {locale === "ar" ? "إعادة الضبط الافتراضي" : "Reset to Default"}
           </button>

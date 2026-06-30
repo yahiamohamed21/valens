@@ -114,8 +114,9 @@ export const useCartActions = ({ cart, setCart, coupons, setActiveCoupon }: Cart
       setActiveCoupon(coupon);
       showToast(`Coupon ${response.code} applied successfully!`, "success");
       return true;
-    } catch (error: any) {
-      showToast(error.message || "Invalid or inactive coupon code", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid or inactive coupon code";
+      showToast(message, "error");
       return false;
     }
   }, [cart, setActiveCoupon]);

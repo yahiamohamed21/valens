@@ -38,7 +38,7 @@ export default function LoginPage() {
         try {
           const claims = decodeJwt(storedToken);
           if (claims) {
-            role = claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "Customer";
+            role = (claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "Customer") as string;
           }
         } catch (error) {
           console.error("Error decoding token for login routing:", error);
@@ -86,8 +86,12 @@ export default function LoginPage() {
       showToast(`Password recovery code dispatched to ${email}`, "info");
       setEmail("");
       setActiveTab("login");
-    } catch (err: any) {
-      showToast(err.message || "Failed to send recovery code", "error");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        showToast(err.message || "Failed to send recovery code", "error");
+      } else {
+        showToast("Failed to send recovery code", "error");
+      }
     }
   };
 
@@ -119,7 +123,7 @@ export default function LoginPage() {
                 className={`rounded-lg py-2.5 text-2xs font-extrabold uppercase tracking-wider transition-luxury ${
                   activeTab === "login"
                     ? "bg-card-bg text-white shadow-lg border border-border-color/30"
-                    : "text-muted-text hover:text-white"
+                    : "text-muted-text hover:text-gray-800"
                 }`}
               >
                 Log In
@@ -129,7 +133,7 @@ export default function LoginPage() {
                 className={`rounded-lg py-2.5 text-2xs font-extrabold uppercase tracking-wider transition-luxury ${
                   activeTab === "signup"
                     ? "bg-card-bg text-white shadow-lg border border-border-color/30"
-                    : "text-muted-text hover:text-white"
+                    : "text-muted-text hover:text-gray-800"
                 }`}
               >
                 Sign Up
@@ -179,7 +183,7 @@ export default function LoginPage() {
                   id="remember_me"
                   className="rounded border-border-color bg-surface-deep text-primary-coral focus:ring-0 cursor-pointer h-4 w-4"
                 />
-                <label htmlFor="remember_me" className="text-3xs font-semibold text-soft-text hover:text-white cursor-pointer uppercase tracking-wider">
+                <label htmlFor="remember_me" className="text-3xs font-semibold text-white hover:text-gray-800 cursor-pointer uppercase tracking-wider">
                   Remember my session details
                 </label>
               </div>
@@ -264,7 +268,7 @@ export default function LoginPage() {
                   id="terms_agree"
                   className="rounded border-border-color bg-surface-deep text-primary-coral focus:ring-0 cursor-pointer h-4 w-4"
                 />
-                <label htmlFor="terms_agree" className="text-3xs font-semibold text-soft-text hover:text-white cursor-pointer uppercase tracking-wider">
+                <label htmlFor="terms_agree" className="text-3xs font-semibold text-white hover:text-gray-800 cursor-pointer uppercase tracking-wider">
                   I agree to the terms of athlete membership *
                 </label>
               </div>
@@ -306,7 +310,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("login")}
-                className="text-3xs font-black uppercase tracking-wider text-muted-text hover:text-white text-center mt-3"
+                className="text-3xs font-black uppercase tracking-wider text-muted-text hover:text-gray-800 text-center mt-3"
               >
                 Back to Authentication
               </button>

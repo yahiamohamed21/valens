@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { Icon } from "@/components/SvgIcons";
-import { api } from "@/lib/api";
+import { api, safeArray } from "@/lib/api";
 
 interface GovernorateShipping {
   id: string;
@@ -12,6 +12,14 @@ interface GovernorateShipping {
   createdAt: string;
   updatedAt: string;
 }
+
+const toStringValue = (value: unknown, fallback = ""): string =>
+  value === undefined || value === null ? fallback : String(value);
+
+const toNumberValue = (value: unknown, fallback = 0): number => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
 
 export default function AdminGovermentPage() {
   const { locale, showToast } = useApp();
@@ -32,17 +40,51 @@ export default function AdminGovermentPage() {
     setLoading(true);
     try {
       const data = await api.settings.governorates();
-      setGovernorates(data || []);
-    } catch (err: any) {
-      showToast(err.message || "Failed to load governorates", "error");
+      const normalized = safeArray<Record<string, unknown>>(data).map((item) => ({
+        id: toStringValue(item.id),
+        governorateName: toStringValue(item.governorateName || item.name || item.governorate),
+        shippingCost: toNumberValue(item.shippingCost || item.cost),
+        createdAt: toStringValue(item.createdAt || item.created_at || item.createdAtUtc),
+        updatedAt: toStringValue(item.updatedAt || item.updated_at || item.updatedAtUtc || item.createdAt || item.created_at),
+      }));
+      setGovernorates(normalized);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        showToast(err.message || "Failed to load governorates", "error");
+      } else {
+        showToast("Failed to load governorates", "error");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchGovernorates();
-  }, []);
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await api.settings.governorates();
+        const normalized = safeArray<Record<string, unknown>>(data).map((item) => ({
+          id: toStringValue(item.id),
+          governorateName: toStringValue(item.governorateName || item.name || item.governorate),
+          shippingCost: toNumberValue(item.shippingCost || item.cost),
+          createdAt: toStringValue(item.createdAt || item.created_at || item.createdAtUtc),
+          updatedAt: toStringValue(item.updatedAt || item.updated_at || item.updatedAtUtc || item.createdAt || item.created_at),
+        }));
+        setGovernorates(normalized);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          showToast(err.message || "Failed to load governorates", "error");
+        } else {
+          showToast("Failed to load governorates", "error");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void load();
+  }, [showToast]);
 
   const handleOpenCreate = () => {
     setEditingGov(null);
@@ -93,8 +135,12 @@ export default function AdminGovermentPage() {
       }
       setModalOpen(false);
       fetchGovernorates();
-    } catch (err: any) {
-      showToast(err.message || "Failed to save governorate", "error");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        showToast(err.message || "Failed to save governorate", "error");
+      } else {
+        showToast("Failed to save governorate", "error");
+      }
     } finally {
       setSaving(false);
     }
@@ -113,7 +159,7 @@ export default function AdminGovermentPage() {
     <div className={`flex flex-col gap-6 ${locale === "ar" ? "text-right" : "text-left"}`}>
       <div className="flex items-center justify-between border-b border-border-color pb-4">
         <div>
-          <span className="text-xs font-bold text-soft-text uppercase font-semibold">
+          <span className="text-xs font-bold text-white uppercase">
             {locale === "ar" ? "الشحن والتوصيل" : "Logistics & Shipping Ledger"}
           </span>
           <h1 className="text-lg font-black uppercase text-white tracking-wider mt-1">
@@ -122,7 +168,7 @@ export default function AdminGovermentPage() {
         </div>
         <button
           onClick={handleOpenCreate}
-          className="flex items-center gap-2 rounded-xl bg-primary-coral px-4 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg cursor-pointer"
+          className="flex items-center gap-2 rounded-xl bg-primary-coral px-4 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg"
         >
           <Icon name="plus" size={14} />
           {locale === "ar" ? "إضافة محافظة" : "ADD GOVERNORATE"}
@@ -197,7 +243,7 @@ export default function AdminGovermentPage() {
                     <td className="py-3.5 text-right flex justify-end gap-3">
                       <button
                         onClick={() => handleOpenEdit(gov)}
-                        className="p-1.5 rounded-lg border border-border-color bg-surface-deep text-soft-text hover:text-primary-coral cursor-pointer"
+                        className="p-1.5 rounded-lg border border-border-color bg-surface-deep text-white hover:text-primary-coral cursor-pointer"
                         title={locale === "ar" ? "تعديل السعر" : "Edit Shipping Cost"}
                       >
                         <Icon name="edit" size={14} />
@@ -217,7 +263,7 @@ export default function AdminGovermentPage() {
           <div className="w-full max-w-md rounded-3xl border border-border-color bg-card-bg p-6 shadow-2xl glass-panel animate-slide-in relative">
             <button
               onClick={() => setModalOpen(false)}
-              className="absolute right-4 top-4 text-muted-text hover:text-white cursor-pointer"
+              className="absolute right-4 top-4 text-muted-text hover:text-gray-800 cursor-pointer"
             >
               <Icon name="close" size={20} />
             </button>
@@ -273,7 +319,7 @@ export default function AdminGovermentPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-full bg-primary-coral py-3 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg cursor-pointer disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-full bg-primary-coral py-3 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg cursor-pointer disabled:opacity-50"
                 >
                   {saving ? (locale === "ar" ? "جاري الحفظ..." : "SAVING...") : (locale === "ar" ? "حفظ الإعدادات" : "SAVE SETTINGS")}
                   <Icon name="check" size={14} />
@@ -281,7 +327,7 @@ export default function AdminGovermentPage() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="rounded-full border border-border-color bg-surface-deep/60 px-5 py-3 text-xs font-black tracking-widest text-white hover:border-primary-coral transition-luxury cursor-pointer"
+                  className="rounded-full border border-border-color bg-surface-deep/60 px-5 py-3 text-xs font-black tracking-widest text-white hover:border-primary-coral transition-luxury"
                 >
                   {locale === "ar" ? "إلغاء" : "CANCEL"}
                 </button>

@@ -66,6 +66,7 @@ const cleanImageUrl = (url: string): string => {
  */
 const buildProductFormData = (prod: Partial<Product>, isUpdate: boolean): FormData => {
   const fd = new FormData();
+  const prodObj = prod as Record<string, unknown>;
 
   // Resolve English values (used as Arabic fallbacks when Arabic is empty)
   const name = prod.name || "";
@@ -81,10 +82,10 @@ const buildProductFormData = (prod: Partial<Product>, isUpdate: boolean): FormDa
 
   // ── Required string fields ──
   fd.append("name", name);
-  fd.append("nameAr", prod.name_ar || (prod as any).nameAr || name);
+  fd.append("nameAr", prod.name_ar || (prodObj.nameAr as string | undefined) || name);
   fd.append("category", prod.category || "");
   fd.append("description", description);
-  fd.append("descriptionAr", prod.description_ar || (prod as any).descriptionAr || description);
+  fd.append("descriptionAr", prod.description_ar || (prodObj.descriptionAr as string | undefined) || description);
 
   // ── Boolean fields ──
   fd.append("featured", String(prod.featured ?? false));
@@ -113,7 +114,7 @@ const buildProductFormData = (prod: Partial<Product>, isUpdate: boolean): FormDa
   fd.append("imageType", prod.imageType || "powder");
   fd.append("imageColor", prod.imageColor || "#FF8A75");
   fd.append("usage", usage);
-  fd.append("usageAr", prod.usage_ar || (prod as any).usageAr || usage);
+  fd.append("usageAr", prod.usage_ar || (prodObj.usageAr as string | undefined) || usage);
 
   // ── Main Image File upload ──
   if (prod.mainImage) {
@@ -132,7 +133,7 @@ const buildProductFormData = (prod: Partial<Product>, isUpdate: boolean): FormDa
     if (item) fd.append("ingredients", item);
   });
 
-  const ingredientsAr: string[] = prod.ingredients_ar || (prod as any).ingredientsAr || ingredients;
+  const ingredientsAr = prod.ingredients_ar || (prodObj.ingredientsAr as string[] | undefined) || ingredients;
   if (Array.isArray(ingredientsAr)) {
     ingredientsAr.forEach((item: string) => {
       if (item) fd.append("ingredientsAr", item);
@@ -143,7 +144,7 @@ const buildProductFormData = (prod: Partial<Product>, isUpdate: boolean): FormDa
     if (item) fd.append("benefits", item);
   });
 
-  const benefitsAr: string[] = prod.benefits_ar || (prod as any).benefitsAr || benefits;
+  const benefitsAr = prod.benefits_ar || (prodObj.benefitsAr as string[] | undefined) || benefits;
   if (Array.isArray(benefitsAr)) {
     benefitsAr.forEach((item: string) => {
       if (item) fd.append("benefitsAr", item);
@@ -214,8 +215,9 @@ export const useProductActions = ({ products, setProducts }: ProductActionDeps) 
       };
       setProducts((prev) => [...prev, newProduct]);
       showToast(`Product "${newProduct.name}" added`, "success");
-    } catch (error: any) {
-      showToast(error.message || "Failed to add product", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to add product";
+      showToast(message, "error");
     }
   }, [setProducts]);
 
@@ -245,8 +247,9 @@ export const useProductActions = ({ products, setProducts }: ProductActionDeps) 
         })
       );
       showToast("Product updated successfully", "success");
-    } catch (error: any) {
-      showToast(error.message || "Failed to update product", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update product";
+      showToast(message, "error");
     }
   }, [products, setProducts]);
 
@@ -255,8 +258,9 @@ export const useProductActions = ({ products, setProducts }: ProductActionDeps) 
       await api.products.delete(productId);
       setProducts((prev) => prev.filter((prod) => prod.id !== productId));
       showToast("Product deleted", "error");
-    } catch (error: any) {
-      showToast(error.message || "Failed to delete product", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete product";
+      showToast(message, "error");
     }
   }, [setProducts]);
 

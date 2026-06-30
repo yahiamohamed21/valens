@@ -1,8 +1,31 @@
-import type { Product, Category, Coupon, Customer, Expense, Order } from "@/types/store";
+import type { Product, Category, Coupon, Customer, Expense, Order, Review, HomePageSettings, StoreSettings } from "@/types/store";
 
 const BASE_URL = "http://valens-api.runasp.net";
 
-export function decodeJwt(token: string): any {
+/**
+ * Interface for JWT Payload
+ */
+interface JwtPayload {
+  exp: number;
+  iat: number;
+  [key: string]: unknown;
+}
+
+/**
+ * Interface for API Error responses
+ */
+interface ApiErrorResponse {
+  errors?: Record<string, string[]> | string | unknown;
+  message?: string;
+}
+
+/**
+ * Generic Interface for API Response wrappers (if applicable)
+ */
+/**
+ * Decodes a JWT token and returns the payload.
+ */
+export function decodeJwt(token: string): JwtPayload | null {
   if (typeof window === "undefined") return null;
   try {
     const base64Url = token.split(".")[1];
@@ -15,18 +38,21 @@ export function decodeJwt(token: string): any {
         .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
         .join("")
     );
-    return JSON.parse(jsonPayload);
+    return JSON.parse(jsonPayload) as JwtPayload;
   } catch (e) {
     console.error("Failed to decode JWT token:", e);
     return null;
   }
 }
 
-export const objectToFormData = (obj: any): FormData => {
+/**
+ * Converts an object to FormData for multipart/form-data requests.
+ */
+export const objectToFormData = (obj: Record<string, unknown>): FormData => {
   const formData = new FormData();
   if (!obj) return formData;
   
-  const appendForm = (key: string, value: any) => {
+  const appendForm = (key: string, value: unknown) => {
     if (value === null || value === undefined) return;
     
     if (typeof File !== "undefined" && value instanceof File) {
@@ -37,9 +63,10 @@ export const objectToFormData = (obj: any): FormData => {
       if (value.length === 0) return;
       value.forEach((item, index) => {
         if (item === null || item === undefined) return;
-        if (typeof item === "object" && !(typeof File !== "undefined" && item instanceof File) && !(typeof Blob !== "undefined" && item instanceof Blob)) {
-          Object.keys(item).forEach((subKey) => {
-            const val = item[subKey];
+        if (typeof item === "object" && !(item instanceof File) && !(item instanceof Blob)) {
+          const itemObj = item as Record<string, unknown>;
+          Object.keys(itemObj).forEach((subKey) => {
+            const val = itemObj[subKey];
             if (val !== null && val !== undefined) {
               appendForm(`${key}[${index}].${subKey}`, val);
             }
@@ -53,8 +80,9 @@ export const objectToFormData = (obj: any): FormData => {
     } else if (typeof value === "number") {
       formData.append(key, String(value));
     } else if (typeof value === "object" && !(value instanceof Date)) {
-      Object.keys(value).forEach((subKey) => {
-        appendForm(`${key}.${subKey}`, value[subKey]);
+      const valObj = value as Record<string, unknown>;
+      Object.keys(valObj).forEach((subKey) => {
+        appendForm(`${key}.${subKey}`, valObj[subKey]);
       });
     } else {
       formData.append(key, String(value));
@@ -68,10 +96,13 @@ export const objectToFormData = (obj: any): FormData => {
   return formData;
 };
 
+/**
+ * Base request function with generics and strict typing.
+ */
 async function request<T>(
   path: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
-  body?: any
+  body?: unknown
 ): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const headers: HeadersInit = {};
@@ -96,65 +127,170 @@ async function request<T>(
     options.body = body instanceof FormData ? body : JSON.stringify(body);
   }
 
-  const response = await fetch(url, options);
+  try {
+    const response = await fetch(url, options);
 
-  if (!response.ok) {
-    let errorMessage = `API Request failed with status ${response.status}`;
-    try {
-      const responseText = await response.text();
-      if (responseText) {
-        try {
-          const errorData = JSON.parse(responseText);
-          if (errorData.errors) {
-            errorMessage = typeof errorData.errors === "object"
-              ? Object.values(errorData.errors).flat().join(", ")
-              : JSON.stringify(errorData.errors);
-          } else {
-            errorMessage = errorData.message || responseText;
+    if (!response.ok) {
+      // Construct a more informative error message
+      let errorMessage = `API Request failed with status ${response.status}`;
+      // Attempt to extract error details from response body
+      try {
+        const responseText = await response.text();
+        if (responseText) {
+          try {
+            const errorData = JSON.parse(responseText) as ApiErrorResponse;
+            if (errorData.errors) {
+              if (typeof errorData.errors === "object") {
+                errorMessage = Object.values(errorData.errors as Record<string, string[]>).flat().join(", ");
+              } else {
+                errorMessage = String(errorData.errors);
+              }
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            } else {
+              // Fallback to raw response text if JSON parsing fails or no specific fields
+              errorMessage = responseText;
+            }
+          } catch {
+            // If response is not JSON, use raw text
+            errorMessage = responseText;
           }
-        } catch {
-          errorMessage = responseText;
         }
+      } catch {
+        // If reading response text fails, retain the generic status message
+        // No additional action needed
       }
-    } catch {}
-    throw new Error(errorMessage);
-  }
+      throw new Error(errorMessage);
 
-  // Handle 204 No Content
-  if (response.status === 204) {
-    return {} as T;
-  }
+    }
 
-  return response.json() as Promise<T>;
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    return (await response.json()) as T;
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("Failed to fetch")) {
+        throw new Error("Unable to connect to the server. Please check if the backend is running.");
+      }
+      throw error;
+    }
+    throw new Error("An unknown error occurred during the API request.");
+  }
 }
 
+/**
+ * Safely resolves arrays from .NET ReferenceHandler.Preserve wrapped objects.
+ */
+export const safeArray = <T>(val: unknown): T[] => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val as T[];
+  if (typeof val === "object" && val !== null) {
+    const obj = val as Record<string, unknown>;
+    if (obj.items) {
+      if (Array.isArray(obj.items)) return obj.items as T[];
+      if (typeof obj.items === "object" && obj.items !== null) {
+        const itemsObj = obj.items as Record<string, unknown>;
+        if (Array.isArray(itemsObj.$values)) return itemsObj.$values as T[];
+      }
+    }
+    if (Array.isArray(obj.$values)) {
+      return obj.$values as T[];
+    }
+  }
+  return [];
+};
+
+const productImageTypes = ["powder", "capsule", "liquid"] as const;
+const productVariantTypes = ["none", "size", "flavor", "both"] as const;
+const orderStatuses = [
+  "New Order",
+  "Confirmed",
+  "Preparing",
+  "Shipped / Out for Delivery",
+  "Delivered",
+  "Cancelled",
+  "Rejected",
+  "Returned",
+] as const;
+const expenseCategories = [
+  "Product purchasing cost",
+  "Shipping expenses",
+  "Marketing and ads",
+  "Packaging",
+  "Website maintenance",
+  "Staff salaries",
+  "Storage / warehouse",
+  "Delivery company fees",
+  "Miscellaneous expenses",
+] as const;
+const couponDiscountTypes = ["percentage", "fixed"] as const;
+
+const isProductImageType = (value: unknown): value is Product["imageType"] =>
+  typeof value === "string" && productImageTypes.includes(value as Product["imageType"]);
+
+const isProductVariantType = (value: unknown): value is Product["variantType"] =>
+  typeof value === "string" && productVariantTypes.includes(value as Product["variantType"]);
+
+const isOrderStatus = (value: unknown): value is Order["status"] =>
+  typeof value === "string" && orderStatuses.includes(value as Order["status"]);
+
+const isExpenseCategory = (value: unknown): value is Expense["category"] =>
+  typeof value === "string" && expenseCategories.includes(value as Expense["category"]);
+
+const isCouponDiscountType = (value: unknown): value is Coupon["discountType"] =>
+  typeof value === "string" && couponDiscountTypes.includes(value as Coupon["discountType"]);
+
+const toStringValue = (value: unknown, fallback = ""): string =>
+  value === undefined || value === null ? fallback : String(value);
+
+const toNumberValue = (value: unknown, fallback = 0): number => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
+const toBooleanValue = (value: unknown, fallback = false): boolean =>
+  value === undefined || value === null ? fallback : Boolean(value);
+
+const mapApiReviewToClient = (review: Record<string, unknown>): Review => ({
+  id: toStringValue(review.id),
+  author: toStringValue(review.author),
+  rating: toNumberValue(review.rating),
+  comment: toStringValue(review.comment),
+  date: toStringValue(review.date, new Date().toISOString()),
+});
+
+/**
+ * API service definition
+ */
 export const api = {
   auth: {
-    login: (body: any) => request<any>("/api/auth/login-user", "POST", body),
-    registerCustomer: (body: any) =>
-      request<any>("/api/auth/register-customer", "POST", body),
+    login: (body: Record<string, unknown>) => request<{ token: string }>("/api/auth/login-user", "POST", body),
+    registerCustomer: (body: Record<string, unknown>) =>
+      request<{ token?: string }>("/api/auth/register-customer", "POST", body),
     forgotPassword: (body: { email: string }) =>
-      request<any>("/api/auth/forgot-password", "POST", body),
-    resetPasswordOtp: (body: any) =>
-      request<any>("/api/auth/reset-password-otp", "POST", body),
-    changeCustomerPassword: (body: any) =>
-      request<any>("/api/auth/change-customer-password", "POST", body),
-    changeAdminPassword: (body: any) =>
-      request<any>("/api/auth/change-admin-password", "POST", body),
-    refreshToken: (body: any) =>
-      request<any>("/api/auth/refresh-token", "POST", body),
-    revokeToken: (body: any) =>
-      request<any>("/api/auth/revoke-token", "POST", body),
+      request<unknown>("/api/auth/forgot-password", "POST", body),
+    resetPasswordOtp: (body: Record<string, unknown>) =>
+      request<unknown>("/api/auth/reset-password-otp", "POST", body),
+    changeCustomerPassword: (body: Record<string, unknown>) =>
+      request<void>("/api/auth/change-customer-password", "POST", body),
+    changeAdminPassword: (body: Record<string, unknown>) =>
+      request<void>("/api/auth/change-admin-password", "POST", body),
+    refreshToken: (body: Record<string, unknown>) =>
+      request<{ token: string }>("/api/auth/refresh-token", "POST", body),
+    revokeToken: (body: Record<string, unknown>) =>
+      request<void>("/api/auth/revoke-token", "POST", body),
   },
 
   categories: {
     listActive: () =>
-      request<any[]>("/api/categories/list-active-product-categories", "GET"),
+      request<unknown[]>("/api/categories/list-active-product-categories", "GET"),
     listAdmin: () =>
-      request<any[]>("/api/categories/list-admin-product-categories", "GET"),
-    create: (body: any) =>
-      request<any>("/api/categories/create-product-category", "POST", body),
-    update: (body: any) =>
+      request<unknown[]>("/api/categories/list-admin-product-categories", "GET"),
+    create: (body: Record<string, unknown>) =>
+      request<{ id?: string; name?: string; slug?: string; imageColor?: string; visible?: boolean }>("/api/categories/create-product-category", "POST", body),
+    update: (body: Record<string, unknown>) =>
       request<void>("/api/categories/update-product-category", "POST", body),
     delete: (id: string) =>
       request<void>("/api/categories/delete-product-category", "POST", { id }),
@@ -163,12 +299,12 @@ export const api = {
   },
 
   coupons: {
-    validate: (body: any) =>
-      request<any>("/api/coupons/validate-coupon", "POST", body),
-    listAdmin: () => request<any[]>("/api/coupons/list-admin", "GET"),
-    create: (body: any) =>
-      request<any>("/api/coupons/create-coupon", "POST", body),
-    update: (body: any) =>
+    validate: (body: Record<string, unknown>) =>
+      request<{ code: string; discountType: string; discountValue: number | string; minOrderAmount: number | string }>("/api/coupons/validate-coupon", "POST", body),
+    listAdmin: () => request<unknown[]>("/api/coupons/list-admin", "GET"),
+    create: (body: Record<string, unknown>) =>
+      request<{ id?: string; usageCount?: number }>("/api/coupons/create-coupon", "POST", body),
+    update: (body: Record<string, unknown>) =>
       request<void>("/api/coupons/update-coupon", "POST", body),
     delete: (id: string) =>
       request<void>("/api/coupons/delete-coupon", "POST", { id }),
@@ -177,52 +313,52 @@ export const api = {
   },
 
   customers: {
-    listAdmin: (body: any = {}) =>
-      request<any>("/api/customers/list-admin-customers", "POST", body),
+    listAdmin: (body: Record<string, unknown> = {}) =>
+      request<unknown>("/api/customers/list-admin-customers", "POST", body),
     detailAdmin: (id: string) =>
-      request<any>("/api/customers/detail-admin-customer", "POST", { id }),
-    updateProfile: (body: any) =>
+      request<unknown>("/api/customers/detail-admin-customer", "POST", { id }),
+    updateProfile: (body: Record<string, unknown>) =>
       request<void>("/api/customers/update-profile", "PUT", body),
   },
 
   expenses: {
-    listAdmin: (body: any = {}) =>
-      request<any>("/api/expenses/list-admin-expenses", "POST", body),
-    create: (body: any) =>
-      request<any>("/api/expenses/create-expense", "POST", body),
-    update: (body: any) =>
+    listAdmin: (body: Record<string, unknown> = {}) =>
+      request<unknown>("/api/expenses/list-admin-expenses", "POST", body),
+    create: (body: Record<string, unknown>) =>
+      request<{ id?: string }>("/api/expenses/create-expense", "POST", body),
+    update: (body: Record<string, unknown>) =>
       request<void>("/api/expenses/update-expense", "POST", body),
     delete: (id: string) =>
       request<void>("/api/expenses/delete-expense", "POST", { id }),
   },
 
   orders: {
-    checkout: (body: any) =>
-      request<any>("/api/orders/checkout-order", "POST", body),
+    checkout: (body: Record<string, unknown>) =>
+      request<Record<string, unknown>>("/api/orders/checkout-order", "POST", body),
     myHistory: (pageNumber = 1, pageSize = 100) =>
-      request<any>(`/api/orders/my-history?pageNumber=${pageNumber}&pageSize=${pageSize}`, "GET"),
-    listAdmin: (body: any = {}) =>
-      request<any>("/api/orders/list-admin-orders", "POST", body),
-    updateStatus: (body: any) =>
+      request<unknown>(`/api/orders/my-history?pageNumber=${pageNumber}&pageSize=${pageSize}`, "GET"),
+    listAdmin: (body: Record<string, unknown> = {}) =>
+      request<unknown>("/api/orders/list-admin-orders", "POST", body),
+    updateStatus: (body: Record<string, unknown>) =>
       request<void>("/api/orders/update-order-status", "POST", body),
-    updateDetails: (body: any) =>
+    updateDetails: (body: Record<string, unknown>) =>
       request<void>("/api/orders/update-order-details", "POST", body),
-    previewCheckout: (body: any) =>
-      request<any>("/api/orders/preview-checkout", "POST", body),
-    updateStatusByNumber: (body: any) =>
+    previewCheckout: (body: Record<string, unknown>) =>
+      request<unknown>("/api/orders/preview-checkout", "POST", body),
+    updateStatusByNumber: (body: Record<string, unknown>) =>
       request<void>("/api/orders/update-order-status-by-number", "POST", body),
   },
 
   products: {
-    list: (body: any = {}) =>
-      request<any>("/api/products/list-products", "POST", body),
+    list: (body: Record<string, unknown> = {}) =>
+      request<unknown>("/api/products/list-products", "POST", body),
     listHomepageSections: () =>
-      request<any>("/api/products/list-homepage-sections", "POST"),
+      request<unknown>("/api/products/list-homepage-sections", "POST"),
     detail: (id: string) =>
-      request<any>("/api/products/detail-product", "POST", { id }),
-    create: (body: any) =>
-      request<any>("/api/products/create-product", "POST", body),
-    update: (body: any) =>
+      request<unknown>("/api/products/detail-product", "POST", { id }),
+    create: (body: Record<string, unknown> | FormData) =>
+      request<{ id?: string; stock?: number }>("/api/products/create-product", "POST", body),
+    update: (body: Record<string, unknown> | FormData) =>
       request<void>("/api/products/update-product", "POST", body),
     delete: (id: string) =>
       request<void>("/api/products/delete-product", "POST", { id }),
@@ -232,157 +368,193 @@ export const api = {
 
   reports: {
     dashboardSummary: () =>
-      request<any>("/api/reports/dashboard-summary", "GET"),
+      request<unknown>("/api/reports/dashboard-summary", "GET"),
   },
 
   settings: {
-    storeConfig: () => request<any>("/api/settings/store-config", "GET"),
-    homepageConfig: () => request<any>("/api/settings/homepage-config", "GET"),
-    updateStoreConfig: (body: any) =>
+    storeConfig: () => request<StoreSettings>("/api/settings/store-config", "GET"),
+    homepageConfig: () => request<HomePageSettings>("/api/settings/homepage-config", "GET"),
+    updateStoreConfig: (body: StoreSettings | Record<string, unknown>) =>
       request<void>("/api/settings/update-store-config", "PUT", body),
-    updateHomepageConfig: (body: any) =>
-      request<void>("/api/settings/update-homepage-config", "PUT", body instanceof FormData ? body : objectToFormData(body)),
+    updateHomepageConfig: (body: HomePageSettings | Record<string, unknown> | FormData) =>
+      request<void>("/api/settings/update-homepage-config", "PUT", body instanceof FormData ? body : objectToFormData(body as Record<string, unknown>)),
     homepageOverview: () =>
-      request<any>("/api/settings/homepage-overview", "POST", {}),
-    governorates: () => request<any[]>("/api/settings/governorates", "GET"),
-    updateGovernorateShipping: (body: any) =>
+      request<Record<string, unknown>>("/api/settings/homepage-overview", "POST", {}),
+    governorates: () => request<{ id: string; governorateName: string }[]>("/api/settings/governorates", "GET"),
+    updateGovernorateShipping: (body: Record<string, unknown>) =>
       request<void>("/api/settings/update-governorate-shipping", "PUT", body),
-    createGovernorateShipping: (body: any) =>
-      request<any>("/api/settings/create-governorate-shipping", "POST", body),
-    createAdminAccount: (body: any) =>
-      request<any>("/api/settings/create-admin-account", "POST", body),
+    createGovernorateShipping: (body: Record<string, unknown>) =>
+      request<unknown>("/api/settings/create-governorate-shipping", "POST", body),
+    createAdminAccount: (body: Record<string, unknown>) =>
+      request<unknown>("/api/settings/create-admin-account", "POST", body),
   },
 };
 
-// Helper to safely resolve standard arrays or .NET ReferenceHandler.Preserve wrapped arrays
-export const safeArray = (val: any): any[] => {
-  if (!val) return [];
-  if (Array.isArray(val)) return val;
-  if (typeof val === "object") {
-    if (val.items) {
-      if (Array.isArray(val.items)) return val.items;
-      if (typeof val.items === "object" && Array.isArray((val.items as any).$values)) {
-        return (val.items as any).$values;
-      }
-    }
-    if (Array.isArray((val as any).$values)) {
-      return (val as any).$values;
-    }
-  }
-  return [];
-};
-
-export const mapApiProductToClient = (p: any): Product => ({
-  id: p.id || "",
-  name: p.name || "",
-  category: typeof p.category === "object" && p.category !== null ? (p.category.name || "") : (p.category || p.categoryName || ""),
-  price: Number(p.price) || 0,
-  discountPrice: p.discountPrice !== undefined && p.discountPrice !== null ? Number(p.discountPrice) : undefined,
-  size: p.size || "",
-  variants: safeArray(p.variants).map((v: any) => ({
-    id: v.id || "",
-    size: v.size || "",
-    flavor: v.flavor || "",
-    price: Number(v.price) || 0,
-    discountPrice: v.discountPrice !== undefined && v.discountPrice !== null ? Number(v.discountPrice) : undefined,
-    stockQuantity: Number(v.stockQuantity) || 0,
-    sku: v.sku || "",
-    image: v.image || "",
-    isAvailable: v.isAvailable !== undefined ? v.isAvailable : true,
+/**
+ * Mappers for API to Client models with strict types
+ */
+export const mapApiProductToClient = (p: Record<string, unknown>): Product => ({
+  id: toStringValue(p.id),
+  name: toStringValue(p.name),
+  category:
+    typeof p.category === "object" && p.category !== null
+      ? toStringValue((p.category as Record<string, unknown>).name)
+      : toStringValue(p.category ?? (p as Record<string, unknown>).categoryName),
+  price: toNumberValue(p.price),
+  discountPrice:
+    p.discountPrice !== undefined && p.discountPrice !== null
+      ? toNumberValue((p as Record<string, unknown>).discountPrice)
+      : undefined,
+  size: toStringValue(p.size),
+  variants: safeArray<Record<string, unknown>>(p.variants).map((v) => ({
+    id: toStringValue(v.id),
+    size: toStringValue(v.size),
+    flavor: toStringValue(v.flavor),
+    price: toNumberValue(v.price),
+    discountPrice:
+      v.discountPrice !== undefined && v.discountPrice !== null
+        ? toNumberValue(v.discountPrice)
+        : undefined,
+    stockQuantity: toNumberValue(v.stockQuantity),
+    sku: toStringValue(v.sku),
+    image: toStringValue(v.image),
+    isAvailable: v.isAvailable !== undefined ? Boolean(v.isAvailable) : true,
   })),
-  stock: Number(p.stock) || 0,
-  stockStatus: p.stockStatus || (Number(p.stock) > 10 ? "In Stock" : (Number(p.stock) > 0 ? "Low Stock" : "Out of Stock")),
-  sku: p.sku || "",
-  description: p.description || "",
-  ingredients: safeArray(p.ingredients),
-  usage: p.usage || "",
-  benefits: safeArray(p.benefits),
-  rating: p.rating || 5,
-  reviews: safeArray(p.reviews),
-  featured: p.featured || false,
-  bestSeller: p.bestSeller || false,
-  newArrival: p.newArrival || false,
-  visible: p.visible !== undefined ? p.visible : (p.isActive !== undefined ? p.isActive : true),
-  imageColor: p.imageColor || "#FF8A75",
-  imageType: p.imageType || "powder",
-  images: safeArray(p.images),
-  mainImage: p.mainImage || "",
-  variantType: p.variantType || "none",
-  name_ar: p.nameAr || p.name_ar || "",
-  description_ar: p.descriptionAr || p.description_ar || "",
-  ingredients_ar: safeArray(p.ingredientsAr || p.ingredients_ar),
-  usage_ar: p.usageAr || p.usage_ar || "",
-  benefits_ar: safeArray(p.benefitsAr || p.benefits_ar),
+  stock: toNumberValue(p.stock),
+  stockStatus: ((): Product["stockStatus"] => {
+    const status = toStringValue(p.stockStatus);
+    if (status === "In Stock" || status === "Low Stock" || status === "Out of Stock") {
+      return status;
+    }
+    const stock = toNumberValue(p.stock);
+    return stock > 10 ? "In Stock" : stock > 0 ? "Low Stock" : "Out of Stock";
+  })(),
+  sku: toStringValue(p.sku),
+  description: toStringValue(p.description),
+  ingredients: safeArray<string>(p.ingredients),
+  usage: toStringValue(p.usage),
+  benefits: safeArray<string>(p.benefits),
+  rating: toNumberValue(p.rating, 5),
+  reviews: safeArray<Record<string, unknown>>(p.reviews).map(mapApiReviewToClient),
+  featured: toBooleanValue(p.featured),
+  bestSeller: toBooleanValue(p.bestSeller),
+  newArrival: toBooleanValue(p.newArrival),
+  visible:
+    p.visible !== undefined
+      ? Boolean(p.visible)
+      : p.isActive !== undefined
+      ? Boolean(p.isActive)
+      : true,
+  imageColor: toStringValue(p.imageColor, "#FF8A75"),
+  imageType: isProductImageType(p.imageType) ? p.imageType : "powder",
+  images: safeArray<string>(p.images),
+  mainImage: toStringValue(p.mainImage),
+  variantType: isProductVariantType(p.variantType) ? p.variantType : "none",
+  name_ar: toStringValue((p as Record<string, unknown>).nameAr ?? (p as Record<string, unknown>).name_ar),
+  description_ar: toStringValue((p as Record<string, unknown>).descriptionAr ?? (p as Record<string, unknown>).description_ar),
+  ingredients_ar: safeArray<string>((p as Record<string, unknown>).ingredientsAr ?? (p as Record<string, unknown>).ingredients_ar),
+  usage_ar: toStringValue((p as Record<string, unknown>).usageAr ?? (p as Record<string, unknown>).usage_ar),
+  benefits_ar: safeArray<string>((p as Record<string, unknown>).benefitsAr ?? (p as Record<string, unknown>).benefits_ar),
 });
 
-export const mapApiCategoryToClient = (cat: any): Category => ({
-  id: cat.id || "",
-  name: cat.name || "",
-  slug: cat.slug || cat.name?.toLowerCase().replace(/\s+/g, "-") || "",
-  imageColor: cat.imageColor || "#FF8A75",
-  visible: cat.visible !== undefined ? cat.visible : (cat.isActive !== undefined ? cat.isActive : true),
+export const mapApiCategoryToClient = (cat: Record<string, unknown>): Category => ({
+  id: toStringValue(cat.id),
+  name: toStringValue(cat.name),
+  slug: toStringValue(cat.slug) || toStringValue(cat.name).toLowerCase().replace(/\s+/g, "-"),
+  imageColor: toStringValue(cat.imageColor, "#FF8A75"),
+  visible:
+    cat.visible !== undefined
+      ? Boolean(cat.visible)
+      : cat.isActive !== undefined
+      ? Boolean(cat.isActive)
+      : true,
 });
 
-export const mapApiCouponToClient = (c: any): Coupon => ({
-  id: c.id || "",
-  code: c.code || "",
-  discountType: c.discountType || "percentage",
-  discountValue: Number(c.discountValue) || 0,
-  expiryDate: c.expiryDate || "",
-  usageLimit: Number(c.usageLimit) || 0,
-  usageCount: Number(c.usageCount) || 0,
-  minOrderAmount: Number(c.minOrderAmount) || 0,
-  active: c.active !== undefined ? c.active : (c.isActive !== undefined ? c.isActive : true),
+export const mapApiCouponToClient = (c: Record<string, unknown>): Coupon => ({
+  id: toStringValue(c.id),
+  code: toStringValue(c.code),
+  discountType: isCouponDiscountType(c.discountType) ? c.discountType : "percentage",
+  discountValue: toNumberValue(c.discountValue),
+  expiryDate: toStringValue(c.expiryDate),
+  usageLimit: toNumberValue(c.usageLimit),
+  usageCount: toNumberValue(c.usageCount),
+  minOrderAmount: toNumberValue(c.minOrderAmount),
+  active:
+    c.active !== undefined
+      ? Boolean(c.active)
+      : c.isActive !== undefined
+      ? Boolean(c.isActive)
+      : true,
 });
 
-export const mapApiCustomerToClient = (c: any): Customer => ({
-  id: c.id || "",
-  name: c.fullName || c.name || "",
-  email: c.email || "",
-  phone: c.phone || "",
-  address: c.address || c.shippingAddress || "",
-  city: c.city || c.shippingCity || "",
-  orderCount: Number(c.orderCount !== undefined ? c.orderCount : c.ordersCount) || 0,
-  totalSpent: Number(c.totalSpent) || 0,
-  joinDate: c.joinDate || c.createdAt || new Date().toISOString().split("T")[0],
+export const mapApiCustomerToClient = (c: Record<string, unknown>): Customer => ({
+  id: toStringValue(c.id),
+  name: toStringValue((c as Record<string, unknown>).fullName ?? c.name),
+  email: toStringValue(c.email),
+  phone: toStringValue(c.phone),
+  address: toStringValue((c as Record<string, unknown>).address ?? (c as Record<string, unknown>).shippingAddress),
+  city: toStringValue((c as Record<string, unknown>).city ?? (c as Record<string, unknown>).shippingCity),
+  orderCount: toNumberValue((c as Record<string, unknown>).orderCount ?? (c as Record<string, unknown>).ordersCount),
+  totalSpent: toNumberValue(c.totalSpent),
+  joinDate: toStringValue((c as Record<string, unknown>).joinDate ?? (c as Record<string, unknown>).createdAt, new Date().toISOString().split("T")[0]),
 });
 
-export const mapApiExpenseToClient = (e: any): Expense => ({
-  id: e.id || "",
-  title: e.title || "",
-  category: e.category || "Miscellaneous expenses",
-  amount: Number(e.amount) || 0,
-  date: e.date || new Date().toISOString(),
-  paymentMethod: e.paymentMethod || "Bank Transfer",
-  notes: e.notes || "",
+export const mapApiExpenseToClient = (e: Record<string, unknown>): Expense => ({
+  id: toStringValue(e.id),
+  title: toStringValue(e.title),
+  category: isExpenseCategory(e.category)
+    ? e.category
+    : "Miscellaneous expenses",
+  amount: toNumberValue(e.amount),
+  date: toStringValue(e.date, new Date().toISOString()),
+  paymentMethod: toStringValue(e.paymentMethod, "Bank Transfer"),
+  notes: toStringValue(e.notes),
 });
 
-export const mapApiOrderToClient = (ord: any): Order => ({
-  id: ord.id || ord.orderName || ord.orderNumber || "",
-  orderName: ord.orderName || ord.orderNumber || ord.id || "",
-  customerName: ord.customerName || "",
-  customerPhone: ord.customerPhone || "",
-  customerEmail: ord.customerEmail || "",
-  customerAddress: ord.customerAddress || ord.shippingAddress || "",
-  customerCity: ord.customerCity || ord.shippingCity || "",
-  notes: ord.notes || "",
-  items: safeArray(ord.items).map((item: any) => ({
-    productId: item.productId || "",
-    productName: item.productName || item.product?.name || "",
-    price: Number(item.price) || 0,
-    quantity: Number(item.quantity) || 1,
-    size: item.size || "",
-    variant: item.variant || item.flavor || "",
-    imageColor: item.imageColor || item.product?.imageColor || "#FF8A75",
-    imageType: item.imageType || item.product?.imageType || "powder",
-    image: item.image || item.product?.mainImage || "",
-  })),
-  totalPrice: ord.totalPrice !== undefined ? Number(ord.totalPrice) : (ord.total !== undefined ? Number(ord.total) : 0),
-  paymentMethod: ord.paymentMethod || "Cash On Delivery",
-  shippingMethod: ord.shippingMethod || "Standard Shipping",
-  shippingCost: Number(ord.shippingCost) || 0,
-  discountAmount: Number(ord.discountAmount) || 0,
-  couponCode: ord.couponCode || "",
-  orderDate: ord.orderDate || ord.createdAt || new Date().toISOString(),
-  status: ord.status || "New Order",
+export const mapApiOrderToClient = (ord: Record<string, unknown>): Order => ({
+  id: toStringValue((ord as Record<string, unknown>).id ?? (ord as Record<string, unknown>).orderName ?? (ord as Record<string, unknown>).orderNumber),
+  orderName: toStringValue((ord as Record<string, unknown>).orderName ?? (ord as Record<string, unknown>).orderNumber ?? (ord as Record<string, unknown>).id),
+  customerName: toStringValue(ord.customerName),
+  customerPhone: toStringValue(ord.customerPhone),
+  customerEmail: toStringValue(ord.customerEmail),
+  customerAddress: toStringValue((ord as Record<string, unknown>).customerAddress ?? (ord as Record<string, unknown>).shippingAddress),
+  customerCity: toStringValue((ord as Record<string, unknown>).customerCity ?? (ord as Record<string, unknown>).shippingCity),
+  notes: toStringValue(ord.notes),
+  items: safeArray<Record<string, unknown>>(ord.items).map((item) => {
+    const productObj =
+      typeof item.product === "object" && item.product !== null
+        ? (item.product as Record<string, unknown>)
+        : undefined;
+
+    return {
+      productId: toStringValue(item.productId),
+      productName:
+        toStringValue(item.productName) || toStringValue(productObj?.name),
+      price: toNumberValue(item.price),
+      quantity: toNumberValue(item.quantity, 1),
+      size: toStringValue(item.size),
+      variant: toStringValue(item.variant ?? item.flavor),
+      imageColor:
+        toStringValue(item.imageColor) ||
+        toStringValue(productObj?.imageColor, "#FF8A75"),
+      imageType:
+        isProductImageType(item.imageType)
+          ? item.imageType
+          : isProductImageType(productObj?.imageType)
+          ? productObj.imageType
+          : "powder",
+      image: toStringValue(item.image ?? productObj?.mainImage),
+    };
+  }),
+  totalPrice:
+    (ord as Record<string, unknown>).totalPrice !== undefined
+      ? toNumberValue((ord as Record<string, unknown>).totalPrice)
+      : toNumberValue((ord as Record<string, unknown>).total),
+  paymentMethod: toStringValue(ord.paymentMethod, "Cash On Delivery"),
+  shippingMethod: toStringValue(ord.shippingMethod, "Standard Shipping"),
+  status: isOrderStatus(ord.status) ? ord.status : "New Order",
+  shippingCost: toNumberValue((ord as Record<string, unknown>).shippingCost),
+  discountAmount: toNumberValue((ord as Record<string, unknown>).discountAmount),
+  couponCode: toStringValue((ord as Record<string, unknown>).couponCode),
+  orderDate: toStringValue((ord as Record<string, unknown>).orderDate ?? (ord as Record<string, unknown>).createdAt, new Date().toISOString()),
 });

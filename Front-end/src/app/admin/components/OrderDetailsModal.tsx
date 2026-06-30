@@ -21,7 +21,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
       <div className="w-full max-w-xl rounded-3xl border border-border-color bg-card-bg p-6 shadow-2xl glass-panel animate-slide-in relative">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-muted-text hover:text-white"
+          className="absolute right-4 top-4 text-muted-text hover:text-gray-800"
         >
           <Icon name="close" size={20} />
         </button>
@@ -114,7 +114,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   </span>
                 </div>
               </div>
-              <span className="font-bold text-soft-text text-right flex flex-col items-end">
+              <span className="font-bold text-white text-right flex flex-col items-end">
                 <span>{(item.price * item.quantity).toLocaleString()} EGP</span>
                 <span className="text-4xs text-muted-text font-normal">({item.price.toLocaleString()} EGP each)</span>
               </span>
@@ -123,7 +123,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
         </div>
 
         {/* Calculations summaries */}
-        <div className="flex flex-col gap-2 border-t border-border-color pt-4 text-xs text-soft-text mb-6">
+        <div className="flex flex-col gap-2 border-t border-border-color pt-4 text-xs text-white mb-6">
           <div className="flex justify-between">
             <span>Coupons Discount</span>
             <span className="text-success-green">
@@ -173,7 +173,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
           <button
             onClick={onClose}
-            className="rounded-full border border-border-color bg-surface-deep px-5 py-2.5 text-2xs font-extrabold text-soft-text hover:text-white"
+            className="rounded-full border border-border-color bg-surface-deep px-5 py-2.5 text-2xs font-extrabold text-white hover:text-gray-800"
           >
             CLOSE LEDGER
           </button>

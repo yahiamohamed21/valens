@@ -7,7 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
 import { showToast } from "@/lib/toast";
-import { api } from "@/lib/api";
+import { api, safeArray } from "@/lib/api";
 
 export default function UserDashboard() {
   const {
@@ -47,15 +47,20 @@ export default function UserDashboard() {
     loadGovs();
   }, []);
 
+  const defaultName = currentCustomer?.name ?? "";
+  const defaultPhone = currentCustomer?.phone ?? "";
+  const defaultAddress = currentCustomer?.address ?? "";
+  const defaultCity = currentCustomer?.city ?? "";
+
   // Sync state with customer details when currentCustomer loads
   useEffect(() => {
     if (currentCustomer) {
-      setName(currentCustomer.name);
-      setPhone(currentCustomer.phone);
-      setAddress(currentCustomer.address);
-      setCity(currentCustomer.city);
+      setName(defaultName);
+      setPhone(defaultPhone);
+      setAddress(defaultAddress);
+      setCity(defaultCity);
     }
-  }, [currentCustomer]);
+  }, [currentCustomer, defaultName, defaultPhone, defaultAddress, defaultCity]);
 
   // If not logged in, show access prompt
   useEffect(() => {
@@ -153,7 +158,7 @@ export default function UserDashboard() {
       case "Returned":
         return "border-rose-500/20 bg-rose-500/5 text-rose-500";
       default:
-        return "border-border-color bg-surface-deep text-soft-text";
+        return "border-border-color bg-surface-deep text-white";
     }
   };
 
@@ -182,7 +187,7 @@ export default function UserDashboard() {
           </div>
           <button
             onClick={handleLogout}
-            className="self-start md:self-auto flex items-center gap-2 rounded-full border border-border-color bg-surface-deep px-5 py-2.5 text-2xs font-extrabold tracking-widest text-soft-text hover:text-white hover:border-rose-500/40 hover:bg-rose-500/5 transition-all duration-300 cursor-pointer"
+            className="self-start md:self-auto flex items-center gap-2 rounded-full border border-border-color bg-surface-deep px-5 py-2.5 text-2xs font-extrabold tracking-widest text-white hover:text-gray-800 hover:border-rose-500/40 hover:bg-rose-500/5 transition-all duration-300 cursor-pointer"
           >
             LOGOUT PROFILE
             <Icon name="logout" size={14} />
@@ -446,7 +451,7 @@ export default function UserDashboard() {
                                   showToast(`Order ${order.orderName || order.id} cancelled.`, "info");
                                 }
                               }}
-                              className="rounded-full border border-rose-500/20 bg-rose-500/5 px-2.5 py-1 text-4xs font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500 hover:text-white transition-all duration-300 cursor-pointer"
+                              className="rounded-full border border-rose-500/20 bg-rose-500/5 px-2.5 py-1 text-4xs font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500 hover:text-gray-800 transition-all duration-300 cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -470,7 +475,7 @@ export default function UserDashboard() {
                                 </span>
                               </div>
                             </div>
-                            <span className="font-semibold text-soft-text text-right shrink-0">
+                            <span className="font-semibold text-white text-right shrink-0">
                               {item.quantity} x {Math.round(item.price).toLocaleString()} EGP
                             </span>
                           </div>

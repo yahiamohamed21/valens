@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useState, useMemo } from "react";
+import Image from "next/image";
+import { useParams } from "next/navigation";
 import { useApp, Product, Review } from "@/context/AppContext";
 import { ProductImage } from "@/components/ProductCard";
 import { Navbar } from "@/components/Navbar";
@@ -11,8 +12,7 @@ import Link from "next/link";
 
 export default function ProductDetailsPage() {
   const params = useParams();
-  const router = useRouter();
-  const { products, addToCart } = useApp();
+  const { products, addToCart, locale } = useApp();
   
   const id = params?.id as string;
   const product = useMemo(() => products.find((p: Product) => p.id === id), [products, id]);
@@ -23,8 +23,8 @@ export default function ProductDetailsPage() {
   const [activeAccordion, setActiveAccordion] = useState<string>("benefits");
 
   // Selection states
-  const [selectedSize, setSelectedSize] = useState("");
-  const [selectedFlavor, setSelectedFlavor] = useState("");
+  const [selectedSize, setSelectedSize] = useState(() => product?.variants?.[0]?.size || "");
+  const [selectedFlavor, setSelectedFlavor] = useState(() => product?.variants?.[0]?.flavor || "");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Find all unique sizes and flavors for the active product
@@ -53,21 +53,6 @@ export default function ProductDetailsPage() {
       });
     }
     return list;
-  }, [product]);
-
-  // Pre-populate selectors when product details page loads
-  useEffect(() => {
-    if (product) {
-      if (product.variants && product.variants.length > 0) {
-        setSelectedSize(product.variants[0].size || "");
-        setSelectedFlavor(product.variants[0].flavor || "");
-      } else {
-        setSelectedSize("");
-        setSelectedFlavor("");
-      }
-      setSelectedImageIndex(0);
-      setActiveTab("front");
-    }
   }, [product]);
 
   // Derive active variant
@@ -159,10 +144,12 @@ export default function ProductDetailsPage() {
               {activeTab === "front" && (
                 <div className="h-full w-full flex items-center justify-center relative">
                   {(matchedVariant?.image || productImages[selectedImageIndex]) ? (
-                    <img 
-                      src={matchedVariant?.image || productImages[selectedImageIndex]} 
-                      alt={product.name} 
-                      className="h-96 w-full object-contain drop-shadow-[0_15px_15px_rgba(0,0,0,0.6)]" 
+                    <Image
+                      src={matchedVariant?.image || productImages[selectedImageIndex]}
+                      alt={product.name}
+                      width={640}
+                      height={384}
+                      className="h-96 w-full object-contain drop-shadow-[0_15px_15px_rgba(0,0,0,0.6)]"
                     />
                   ) : (
                     <ProductImage color={product.imageColor} type={product.imageType} glow={true} className="h-96 w-full" />
@@ -171,7 +158,7 @@ export default function ProductDetailsPage() {
               )}
 
               {activeTab === "label" && (
-                <div className="w-full max-w-md bg-surface-deep border border-border-color rounded-2xl p-6 font-mono text-xs text-soft-text text-left leading-relaxed">
+                <div className="w-full max-w-md bg-surface-deep border border-border-color rounded-2xl p-6 font-mono text-xs text-white text-left leading-relaxed">
                   <div className="border-b border-border-color pb-3 mb-3 text-center">
                     <span className="text-sm font-black tracking-widest text-white uppercase">{product.name}</span>
                     <span className="block text-4xs text-muted-text mt-1 uppercase tracking-widest">Active Ingredient Spectrum</span>
@@ -238,7 +225,13 @@ export default function ProductDetailsPage() {
                       selectedImageIndex === idx ? "border-primary-coral scale-105" : "border-border-color hover:border-white"
                     }`}
                   >
-                    <img src={img} className="h-full w-full object-contain" />
+                    <Image
+                      src={img}
+                      alt={`Product variation ${idx + 1}`}
+                      width={160}
+                      height={192}
+                      className="h-full w-full object-contain"
+                    />
                   </button>
                 ))}
               </div>
@@ -251,7 +244,7 @@ export default function ProductDetailsPage() {
                 className={`rounded-xl border p-3 text-xs font-bold uppercase tracking-wider transition-luxury flex flex-col items-center gap-1.5 ${
                   activeTab === "front"
                     ? "border-primary-coral bg-primary-coral/5 text-primary-coral"
-                    : "border-border-color bg-card-bg text-muted-text hover:text-white"
+                    : "border-border-color bg-card-bg text-muted-text hover:text-gray-800"
                 }`}
               >
                 <Icon name="box" size={14} />
@@ -262,7 +255,7 @@ export default function ProductDetailsPage() {
                 className={`rounded-xl border p-3 text-xs font-bold uppercase tracking-wider transition-luxury flex flex-col items-center gap-1.5 ${
                   activeTab === "label"
                     ? "border-primary-coral bg-primary-coral/5 text-primary-coral"
-                    : "border-border-color bg-card-bg text-muted-text hover:text-white"
+                    : "border-border-color bg-card-bg text-muted-text hover:text-gray-800"
                 }`}
               >
                 <Icon name="tag" size={14} />
@@ -273,7 +266,7 @@ export default function ProductDetailsPage() {
                 className={`rounded-xl border p-3 text-xs font-bold uppercase tracking-wider transition-luxury flex flex-col items-center gap-1.5 ${
                   activeTab === "facts"
                     ? "border-primary-coral bg-primary-coral/5 text-primary-coral"
-                    : "border-border-color bg-card-bg text-muted-text hover:text-white"
+                    : "border-border-color bg-card-bg text-muted-text hover:text-gray-800"
                 }`}
               >
                 <Icon name="report" size={14} />
@@ -302,18 +295,18 @@ export default function ProductDetailsPage() {
             <div className="mt-6 flex items-baseline gap-4">
               {hasDiscount ? (
                 <>
-                  <span className="text-3xl font-black text-primary-coral">{Math.round(currentPrice).toLocaleString()} EGP</span>
-                  <span className="text-lg text-muted-text line-through">{Math.round(originalPrice).toLocaleString()} EGP</span>
+                  <span className="text-3xl font-black text-primary-coral">{Math.round(currentPrice).toLocaleString(locale)} EGP</span>
+                  <span className="text-lg text-muted-text line-through">{Math.round(originalPrice).toLocaleString(locale)} EGP</span>
                   <span className="rounded-full bg-accent-orange px-2.5 py-0.5 text-3xs font-extrabold text-white">
-                    SAVE {Math.round(originalPrice - currentPrice).toLocaleString()} EGP
+                    SAVE {Math.round(originalPrice - currentPrice).toLocaleString(locale)} EGP
                   </span>
                 </>
               ) : (
-                <span className="text-3xl font-black text-white">{Math.round(currentPrice).toLocaleString()} EGP</span>
+                <span className="text-3xl font-black text-white">{Math.round(currentPrice).toLocaleString(locale)} EGP</span>
               )}
             </div>
 
-            <p className="mt-6 text-sm leading-relaxed text-soft-text">
+            <p className="mt-6 text-sm leading-relaxed text-white">
               {product.description}
             </p>
 
@@ -336,7 +329,7 @@ export default function ProductDetailsPage() {
                           className={`rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-luxury ${
                             selectedSize === size
                               ? "border-primary-coral bg-primary-coral/10 text-primary-coral"
-                              : "border-border-color bg-card-bg text-soft-text hover:text-white"
+                              : "border-border-color bg-card-bg text-white hover:text-gray-800"
                           }`}
                         >
                           {size}
@@ -360,7 +353,7 @@ export default function ProductDetailsPage() {
                           className={`rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-luxury ${
                             selectedFlavor === flavor
                               ? "border-primary-coral bg-primary-coral/10 text-primary-coral"
-                              : "border-border-color bg-card-bg text-soft-text hover:text-white"
+                              : "border-border-color bg-card-bg text-white hover:text-gray-800"
                           }`}
                         >
                           {flavor}
@@ -399,14 +392,14 @@ export default function ProductDetailsPage() {
                 <div className="flex items-center justify-between rounded-full border border-border-color bg-surface-deep p-1.5 w-full sm:w-36">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface-sec text-soft-text hover:text-white"
+                    className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface-sec text-white hover:text-gray-800"
                   >
                     <Icon name="minus" size={14} />
                   </button>
                   <span className="text-sm font-black text-white">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface-sec text-soft-text hover:text-white"
+                    className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-surface-sec text-white hover:text-gray-800"
                   >
                     <Icon name="plus" size={14} />
                   </button>
@@ -442,7 +435,7 @@ export default function ProductDetailsPage() {
                   <Icon name={activeAccordion === "benefits" ? "chevron-up" : "chevron-down"} size={16} />
                 </button>
                 {activeAccordion === "benefits" && (
-                  <div className="px-4 pb-4 text-xs text-soft-text border-t border-border-color/30 pt-3 leading-relaxed flex flex-col gap-2.5">
+                  <div className="px-4 pb-4 text-xs text-white border-t border-border-color/30 pt-3 leading-relaxed flex flex-col gap-2.5">
                     {product.benefits.map((b: string, i: number) => (
                       <div key={i} className="flex items-start gap-2.5">
                         <Icon name="check" size={14} className="text-success-green mt-0.5 shrink-0" />
@@ -463,7 +456,7 @@ export default function ProductDetailsPage() {
                   <Icon name={activeAccordion === "usage" ? "chevron-up" : "chevron-down"} size={16} />
                 </button>
                 {activeAccordion === "usage" && (
-                  <div className="px-4 pb-4 text-xs text-soft-text border-t border-border-color/30 pt-3 leading-relaxed">
+                  <div className="px-4 pb-4 text-xs text-white border-t border-border-color/30 pt-3 leading-relaxed">
                     <p className="bg-main-bg p-3 border border-border-color rounded-lg">{product.usage}</p>
                   </div>
                 )}
@@ -498,7 +491,7 @@ export default function ProductDetailsPage() {
                     </div>
                     <span className="text-3xs text-muted-text font-bold uppercase">{rev.date}</span>
                   </div>
-                  <p className="text-xs text-soft-text leading-relaxed font-bold">
+                  <p className="text-xs text-white leading-relaxed font-bold">
                     {rev.comment}
                   </p>
                 </div>
@@ -520,7 +513,13 @@ export default function ProductDetailsPage() {
                 <div key={prod.id} className="group relative flex flex-col rounded-2xl border border-border-color bg-card-bg p-4 transition-luxury hover:border-primary-coral/40 hover:bg-surface-sec">
                   <div className="mb-4 mt-2 h-44 overflow-hidden flex items-center justify-center bg-surface-deep/40 rounded-xl">
                     {prod.mainImage ? (
-                      <img src={prod.mainImage} alt={prod.name} className="h-full w-full object-contain" />
+                      <Image
+                        src={prod.mainImage}
+                        alt={prod.name}
+                        width={240}
+                        height={176}
+                        className="h-full w-full object-contain"
+                      />
                     ) : (
                       <ProductImage color={prod.imageColor} type={prod.imageType} glow={false} className="h-44 w-full" />
                     )}
@@ -532,7 +531,7 @@ export default function ProductDetailsPage() {
                     </h4>
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t border-border-color pt-3">
-                    <span className="text-sm font-extrabold text-primary-coral">{Math.round(prod.discountPrice || prod.price).toLocaleString()} EGP</span>
+                    <span className="text-sm font-extrabold text-primary-coral">{Math.round(prod.discountPrice || prod.price).toLocaleString(locale)} EGP</span>
                     <Link
                       href={`/products/${prod.id}`}
                       className="text-3xs font-bold uppercase tracking-widest text-white hover:text-primary-coral transition-luxury"

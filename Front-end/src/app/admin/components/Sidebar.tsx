@@ -61,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen })
               {sidebarOpen ? "VALENS ADMIN" : "VL"}
             </span>
           </Link>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-text hover:text-white">
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-text hover:text-primary-coral">
             <Icon name={sidebarOpen ? "chevron-left" : "menu"} size={16} />
           </button>
         </div>
@@ -75,7 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen })
                 locale === "ar" ? "flex-row-reverse text-right" : ""
               } ${isActive(tab.id)
                   ? "bg-primary-coral/10 text-primary-coral border border-primary-coral/20"
-                  : "text-soft-text hover:bg-surface-sec hover:text-white"}
+                  : "text-white hover:bg-surface-sec hover:text-gray-800"}
                 `}
             >
               <Icon name={tab.icon as any} size={18} />
@@ -85,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen })
       </div>
       {/* Exit back to store */}
       <div className="p-4 border-t border-border-color">
-        <Link href="/" className={`flex items-center justify-center gap-2 rounded-xl border border-border-color bg-surface-sec py-2.5 text-xs font-bold uppercase tracking-wider text-soft-text hover:text-white hover:border-primary-coral transition-luxury w-full ${
+        <Link href="/" className={`flex items-center justify-center gap-2 rounded-xl border border-border-color bg-surface-sec py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:text-gray-800 hover:border-primary-coral transition-luxury w-full ${
           locale === "ar" ? "flex-row-reverse" : ""
         }`}>
           <Icon name="logout" size={14} />

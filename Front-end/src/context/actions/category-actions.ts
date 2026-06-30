@@ -26,8 +26,9 @@ export const useCategoryActions = ({ categories, setCategories }: CategoryAction
       };
       setCategories((prev) => [...prev, newCat]);
       showToast(`Category "${newCat.name}" created`, "success");
-    } catch (error: any) {
-      showToast(error.message || "Failed to create category", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create category";
+      showToast(message, "error");
     }
   }, [setCategories]);
 
@@ -62,8 +63,9 @@ export const useCategoryActions = ({ categories, setCategories }: CategoryAction
         })
       );
       showToast("Category updated", "success");
-    } catch (error: any) {
-      showToast(error.message || "Failed to update category", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update category";
+      showToast(message, "error");
     }
   }, [categories, setCategories]);
 
@@ -72,8 +74,9 @@ export const useCategoryActions = ({ categories, setCategories }: CategoryAction
       await api.categories.delete(categoryId);
       setCategories((prev) => prev.filter((cat) => cat.id !== categoryId));
       showToast("Category removed", "error");
-    } catch (error: any) {
-      showToast(error.message || "Failed to delete category", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete category";
+      showToast(message, "error");
     }
   }, [setCategories]);
 

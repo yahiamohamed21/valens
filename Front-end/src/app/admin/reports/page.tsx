@@ -22,7 +22,7 @@ export default function AdminReportsPage() {
     <div className="flex flex-col gap-6">
       {/* Date Filters bar */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border-color pb-4">
-        <span className="text-xs font-bold text-soft-text uppercase font-semibold">Brand Diagnostic Reports</span>
+        <span className="text-xs font-bold text-white uppercase font-semibold">Brand Diagnostic Reports</span>
 
         <div className="flex items-center gap-3">
           <span className="text-3xs font-black uppercase tracking-widest text-muted-text">Range:</span>
@@ -49,12 +49,12 @@ export default function AdminReportsPage() {
         <div className="rounded-2xl border border-border-color bg-card-bg p-6 flex flex-col gap-4">
           <h3 className="text-xs font-black uppercase tracking-widest text-white border-b border-border-color pb-3">Net Profit Calculations</h3>
 
-          <div className="flex justify-between items-center text-xs text-soft-text border-b border-border-color/30 pb-3">
+          <div className="flex justify-between items-center text-xs text-white border-b border-border-color/30 pb-3">
             <span>Gross Sales Revenues</span>
             <span className="font-extrabold text-white">{Math.round(totals.totalSales).toLocaleString()} EGP</span>
           </div>
 
-          <div className="flex justify-between items-center text-xs text-soft-text border-b border-border-color/30 pb-3">
+          <div className="flex justify-between items-center text-xs text-white border-b border-border-color/30 pb-3">
             <span>Operational Business Expenses</span>
             <span className="font-extrabold text-accent-orange">-{Math.round(totals.totalExpenses).toLocaleString()} EGP</span>
           </div>
@@ -81,7 +81,7 @@ export default function AdminReportsPage() {
             <div className="flex flex-col gap-3 max-h-56 overflow-y-auto pr-1">
               {expensesByCategory.map(([category, amount]) => (
                 <div key={category} className="flex flex-col gap-1.5">
-                  <div className="flex justify-between text-3xs font-bold text-soft-text uppercase">
+                  <div className="flex justify-between text-3xs font-bold text-white uppercase">
                     <span>{category}</span>
                     <span>{Math.round(amount).toLocaleString()} EGP ({((amount / Math.max(1, totals.totalExpenses)) * 100).toFixed(0)}%)</span>
                   </div>

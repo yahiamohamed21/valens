@@ -30,8 +30,9 @@ export const useCouponActions = ({ coupons, setCoupons }: CouponActionDeps) => {
 
       setCoupons((prev) => [...prev, newCoup]);
       showToast(`Coupon code ${newCoup.code} created`, "success");
-    } catch (error: any) {
-      showToast(error.message || "Failed to create coupon", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create coupon";
+      showToast(message, "error");
     }
   }, [setCoupons]);
 
@@ -67,8 +68,9 @@ export const useCouponActions = ({ coupons, setCoupons }: CouponActionDeps) => {
         })
       );
       showToast("Coupon updated", "success");
-    } catch (error: any) {
-      showToast(error.message || "Failed to update coupon", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update coupon";
+      showToast(message, "error");
     }
   }, [coupons, setCoupons]);
 
@@ -77,8 +79,9 @@ export const useCouponActions = ({ coupons, setCoupons }: CouponActionDeps) => {
       await api.coupons.delete(couponId);
       setCoupons((prev) => prev.filter((c) => c.id !== couponId));
       showToast("Coupon deleted", "error");
-    } catch (error: any) {
-      showToast(error.message || "Failed to delete coupon", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete coupon";
+      showToast(message, "error");
     }
   }, [setCoupons]);
 

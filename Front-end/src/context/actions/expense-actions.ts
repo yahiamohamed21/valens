@@ -28,8 +28,9 @@ export const useExpenseActions = ({ expenses, setExpenses }: ExpenseActionDeps) 
 
       setExpenses((prev) => [newExp, ...prev]);
       showToast(`Expense for "${newExp.title}" added`, "success");
-    } catch (error: any) {
-      showToast(error.message || "Failed to add expense", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to add expense";
+      showToast(message, "error");
     }
   }, [setExpenses]);
 
@@ -58,8 +59,9 @@ export const useExpenseActions = ({ expenses, setExpenses }: ExpenseActionDeps) 
         })
       );
       showToast("Expense item updated", "success");
-    } catch (error: any) {
-      showToast(error.message || "Failed to update expense", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update expense";
+      showToast(message, "error");
     }
   }, [expenses, setExpenses]);
 
@@ -68,8 +70,9 @@ export const useExpenseActions = ({ expenses, setExpenses }: ExpenseActionDeps) 
       await api.expenses.delete(expenseId);
       setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
       showToast("Expense item deleted", "error");
-    } catch (error: any) {
-      showToast(error.message || "Failed to delete expense", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to delete expense";
+      showToast(message, "error");
     }
   }, [setExpenses]);
 

@@ -15,22 +15,21 @@ export default function AdminLayout({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [checkingAuth] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const storedToken = localStorage.getItem("valens_jwt_token");
+    const claims = decodeJwt(storedToken);
+    const role = claims?.role || claims?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+    return !(role && role.toString().toLowerCase() === "admin");
+  });
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedToken = localStorage.getItem("valens_jwt_token");
-      if (!storedToken) {
-        router.push("/login");
-        return;
-      }
-      const claims = decodeJwt(storedToken);
-      const role = claims?.role || claims?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-      if (!role || role.toString().toLowerCase() !== "admin") {
-        router.push("/login");
-        return;
-      }
-      setCheckingAuth(false);
+    if (typeof window === "undefined") return;
+    const storedToken = localStorage.getItem("valens_jwt_token");
+    const claims = decodeJwt(storedToken);
+    const role = claims?.role || claims?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+    if (!role || role.toString().toLowerCase() !== "admin") {
+      router.push("/login");
     }
   }, [router]);
 
@@ -82,7 +81,7 @@ export default function AdminLayout({
           {/* Language Switcher */}
           <button
             onClick={() => changeLanguage(locale === "en" ? "ar" : "en")}
-            className="text-2xs font-extrabold tracking-widest text-soft-text hover:text-primary-coral border border-border-color/30 rounded-full px-3 py-1.5 bg-surface-deep hover:bg-surface-deep/80 transition-luxury uppercase cursor-pointer"
+            className="text-2xs font-extrabold tracking-widest text-white hover:text-primary-coral border border-border-color/30 rounded-full px-3 py-1.5 bg-surface-deep hover:bg-surface-deep/80 transition-luxury uppercase cursor-pointer"
           >
             {locale === "en" ? "العربية" : "English"}
           </button>

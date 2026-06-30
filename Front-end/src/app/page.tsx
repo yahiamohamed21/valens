@@ -55,13 +55,13 @@ export default function Home() {
               <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl uppercase leading-[1.1]">
                 {heroTitleText}
               </h1>
-              <p className="mt-6 text-base leading-relaxed text-soft-text sm:text-lg">
+              <p className="mt-6 text-base leading-relaxed text-white sm:text-lg">
                 {heroSubtitleText}
               </p>
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <Link
                   href={homePageSettings.heroCtaLink}
-                  className="flex items-center justify-center gap-2 rounded-full bg-primary-coral px-8 py-4 text-sm font-black tracking-widest text-main-bg transition-luxury hover:bg-white hover:scale-105 shadow-[0_4px_20px_rgba(255,138,117,0.3)] hover:shadow-[0_4px_30px_rgba(255,255,255,0.4)]"
+                  className="flex items-center justify-center gap-2 rounded-full bg-primary-coral px-8 py-4 text-sm font-black tracking-widest text-main-bg transition-luxury hover:bg-gray-600 hover:scale-105 shadow-[0_4px_20px_rgba(255,138,117,0.3)] hover:shadow-[0_4px_30px_rgba(255,255,255,0.4)]"
                 >
                   {heroCtaTextVal}
                   <Icon name="arrow-right" size={16} />
@@ -147,7 +147,7 @@ export default function Home() {
                     className="absolute -top-1 left-1/2 h-1 w-8 -translate-x-1/2 rounded-full opacity-0 transition-luxury group-hover:opacity-100 blur-[1px]"
                     style={{ backgroundColor: cat.imageColor }}
                   />
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-deep border border-border-color text-soft-text group-hover:text-white transition-luxury">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-deep border border-border-color text-white group-hover:text-gray-800 transition-luxury">
                     <Icon name="category" size={24} style={{ color: cat.imageColor }} />
                   </div>
                   <h3 className="mt-4 text-sm font-extrabold uppercase tracking-widest text-white group-hover:text-primary-coral transition-luxury">
@@ -178,7 +178,7 @@ export default function Home() {
             </div>
             <Link
               href="/products"
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-coral hover:text-white transition-luxury"
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-coral hover:text-gray-800 transition-luxury"
             >
               {locale === "ar" ? "عرض جميع المكملات" : "VIEW ALL SUPPLEMENTS"}
               <Icon name="arrow-right" size={14} className={locale === "ar" ? "rotate-180" : ""} />
@@ -258,7 +258,7 @@ export default function Home() {
                 <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white uppercase sm:text-4xl">
                   {locale === "ar" && homePageSettings.firstBannerTitle_ar ? homePageSettings.firstBannerTitle_ar : homePageSettings.firstBannerTitle}
                 </h2>
-                <p className="mt-6 text-sm leading-relaxed text-soft-text">
+                <p className="mt-6 text-sm leading-relaxed text-white">
                   {locale === "ar" && homePageSettings.firstBannerSubtitle_ar ? homePageSettings.firstBannerSubtitle_ar : homePageSettings.firstBannerSubtitle}
                 </p>
                 <div className="mt-8 w-full">
@@ -269,7 +269,7 @@ export default function Home() {
                       ? "\"لقد أنشأنا Valens لأننا سئمنا من التركيبات ضعيفة الجرعات، والألوان الاصطناعية، والادعاءات المشكوك فيها. كل غرام نصيغه يخدم غرضًا بيولوجيًا حقيقيًا.\""
                       : "\"We created Valens because we were tired of under-dosed formulas, synthetic dyes, and sketchy claims. Every gram we formulate serves a biological purpose.\""
                     }
-                    <span className="block mt-2 font-bold not-italic text-soft-text">
+                    <span className="block mt-2 font-bold not-italic text-white">
                       {locale === "ar" ? "— د. ماركوس فانس، كبير المسؤولين العلميين" : "— Dr. Marcus Vance, Chief Science Officer"}
                     </span>
                   </blockquote>

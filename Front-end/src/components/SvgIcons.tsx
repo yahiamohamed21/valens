@@ -5,6 +5,8 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
     | "search"
     | "cart"
     | "user"
+    | "chevron-double-left"
+    | "chevron-double-right"
     | "settings"
     | "products"
     | "orders"
@@ -125,10 +127,24 @@ export const Icon: React.FC<IconProps> = ({ name, size = 20, className, ...props
           <path d="m15 18-6-6 6-6" />
         </svg>
       );
+    case "chevron-double-left":
+      return (
+        <svg {...commonProps}>
+          <path d="m19 18-6-6 6-6" />
+          <path d="m13 18-6-6 6-6" />
+        </svg>
+      );
     case "chevron-right":
       return (
         <svg {...commonProps}>
           <path d="m9 18 6-6-9-6" />
+        </svg>
+      );
+    case "chevron-double-right":
+      return (
+        <svg {...commonProps}>
+          <path d="m9 6 6 6-9 6" />
+          <path d="m15 6 6 6-9 6" />
         </svg>
       );
     case "star":

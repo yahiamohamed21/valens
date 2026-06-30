@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
@@ -9,7 +10,18 @@ import { showToast } from "@/lib/toast";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
 import { ProductImage } from "@/components/ProductCard";
-import { api } from "@/lib/api";
+import { api, safeArray } from "@/lib/api";
+
+type OrderConfirmation = {
+  orderName?: string;
+  id?: string;
+  customerEmail?: string;
+  customerName?: string;
+  customerAddress?: string;
+  customerCity?: string;
+  paymentMethod?: string;
+  totalPrice?: number;
+};
 
 export default function CheckoutPage() {
   const {
@@ -23,13 +35,23 @@ export default function CheckoutPage() {
   } = useApp();
   const router = useRouter();
 
+  // Get logged-in user profile if exists
+  const currentCustomer = useMemo(() => {
+    return customers.find(
+      (c) => c.email.toLowerCase() === (currentUserEmail || "").toLowerCase()
+    );
+  }, [customers, currentUserEmail]);
+
+  const defaultFirstName = currentCustomer?.name?.split(" ")[0] ?? "";
+  const defaultLastName = currentCustomer?.name ? currentCustomer.name.split(" ").slice(1).join(" ") : "";
+
   // Form Fields
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
+  const [firstName, setFirstName] = useState(defaultFirstName);
+  const [lastName, setLastName] = useState(defaultLastName);
+  const [phone, setPhone] = useState(currentCustomer?.phone ?? "");
+  const [email, setEmail] = useState(currentCustomer?.email ?? "");
+  const [address, setAddress] = useState(currentCustomer?.address ?? "");
+  const [city, setCity] = useState(currentCustomer?.city ?? "");
   const [notes, setNotes] = useState("");
   const [governorates, setGovernorates] = useState<{ id: string; governorateName: string; shippingCost: number }[]>([]);
 
@@ -38,7 +60,12 @@ export default function CheckoutPage() {
     const loadGovs = async () => {
       try {
         const data = await api.settings.governorates();
-        setGovernorates(data || []);
+        const normalized = safeArray<Record<string, unknown>>(data).map((item) => ({
+          id: String(item.id ?? ""),
+          governorateName: String(item.governorateName ?? item.name ?? ""),
+          shippingCost: Number(item.shippingCost ?? item.cost ?? 0),
+        }));
+        setGovernorates(normalized);
       } catch (err) {
         console.error("Failed to load governorates for checkout dropdown", err);
       }
@@ -46,39 +73,18 @@ export default function CheckoutPage() {
     loadGovs();
   }, []);
 
-  // Get logged-in user profile if exists
-  const currentCustomer = useMemo(() => {
-    return customers.find(
-      (c) => c.email.toLowerCase() === (currentUserEmail || "").toLowerCase()
-    );
-  }, [customers, currentUserEmail]);
-
-  // Autofill fields if customer is logged in
-  useEffect(() => {
-    if (currentCustomer) {
-      if (currentCustomer.name) {
-        const parts = currentCustomer.name.split(" ");
-        setFirstName(parts[0] || "");
-        setLastName(parts.slice(1).join(" ") || "");
-      }
-      if (currentCustomer.phone) setPhone(currentCustomer.phone);
-      if (currentCustomer.email) setEmail(currentCustomer.email);
-      if (currentCustomer.address) setAddress(currentCustomer.address);
-      if (currentCustomer.city) setCity(currentCustomer.city);
-    }
-  }, [currentCustomer]);
-
   // Options
-  const [shippingMethod, setShippingMethod] = useState("Standard Express");
+  const paymentOptions = ["Credit Card", "Cash on Delivery"];
   const [paymentMethod, setPaymentMethod] = useState("Credit Card");
 
   // Credit Card mock inputs
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
+  const shippingMethod = "Standard Express";
 
   // Success Modal State
-  const [placedOrder, setPlacedOrder] = useState<any | null>(null);
+  const [placedOrder, setPlacedOrder] = useState<OrderConfirmation | null>(null);
 
   // Cart Calculations
   const subtotal = cart.reduce((acc, item) => {
@@ -150,8 +156,8 @@ export default function CheckoutPage() {
     try {
       const newOrder = await placeOrder(orderPayload);
       setPlacedOrder(newOrder);
-    } catch (err) {
-      // Errors are handled inside placeOrder with a toast
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -296,7 +302,7 @@ export default function CheckoutPage() {
                       key={method}
                       className={`flex-1 flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition-luxury uppercase ${paymentMethod === method
                         ? "border-primary-coral bg-primary-coral/5 text-primary-coral font-bold"
-                        : "border-border-color bg-surface-deep text-soft-text font-semibold"
+                        : "border-border-color bg-surface-deep text-white font-semibold"
                         }`}
                     >
                       <input
@@ -332,13 +338,21 @@ export default function CheckoutPage() {
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-10 bg-surface-deep border border-border-color rounded-lg p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
                           {item.image ? (
-                            <img src={item.image} alt={item.product.name} className="h-full w-full object-contain" />
+                            <Image
+                              src={item.image}
+                              alt={item.product.name}
+                              width={40}
+                              height={48}
+                              className="h-full w-full object-contain"
+                            />
                           ) : (
                             <ProductImage color={item.product.imageColor} type={item.product.imageType} glow={false} className="h-8 w-full" />
                           )}
                         </div>
                         <div className="min-w-0">
-                          <span className="block text-2xs font-bold text-white truncate max-w-[150px]">{item.product.name}</span>
+                          <span className="block text-2xs font-bold text-white truncate max-w-37.5">
+                            {item.product.name}
+                          </span>
                           <span className="block text-4xs text-muted-text uppercase font-semibold">
                             Qty: {item.quantity}
                             {item.selectedSize && ` • ${item.selectedSize}`}
@@ -346,7 +360,7 @@ export default function CheckoutPage() {
                           </span>
                         </div>
                       </div>
-                      <span className="text-xs font-black text-soft-text">
+                      <span className="text-xs font-black text-white">
                         {(itemPrice * item.quantity).toLocaleString()} EGP
                       </span>
                     </div>
@@ -355,7 +369,7 @@ export default function CheckoutPage() {
               </div>
 
               {/* pricing recap */}
-              <div className="flex justify-between items-center text-2xs text-soft-text mb-2.5">
+              <div className="flex justify-between items-center text-2xs text-white mb-2.5">
                 <span>Items Subtotal</span>
                 <span className="font-bold text-white">{subtotal.toLocaleString()} EGP</span>
               </div>
@@ -365,11 +379,11 @@ export default function CheckoutPage() {
                   <span>-{discountAmount.toLocaleString()} EGP</span>
                 </div>
               )}
-              <div className="flex justify-between items-center text-2xs text-soft-text mb-2.5">
+              <div className="flex justify-between items-center text-2xs text-white mb-2.5">
                 <span>Shipping Fee</span>
                 <span>{shippingCost === 0 ? "FREE" : `${shippingCost.toLocaleString()} EGP`}</span>
               </div>
-              <div className="flex justify-between items-center text-2xs text-soft-text mb-4">
+              <div className="flex justify-between items-center text-2xs text-white mb-4">
                 <span>Sales Tax ({storeSettings.taxRate}%)</span>
                 <span className="font-bold text-white">{taxAmount.toLocaleString()} EGP</span>
               </div>
@@ -395,7 +409,7 @@ export default function CheckoutPage() {
 
         {/* Order success notification overlay */}
         {placedOrder && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-main-bg/95 backdrop-blur-md p-4">
+          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-main-bg/95 backdrop-blur-md p-4">
             <div className="w-full max-w-xl rounded-3xl border border-border-color bg-card-bg p-8 text-center shadow-2xl glass-panel relative overflow-hidden animate-slide-in">
               <div className="absolute top-0 right-0 h-40 w-40 rounded-full bg-primary-coral/5 blur-[50px] pointer-events-none" />
 
@@ -406,12 +420,12 @@ export default function CheckoutPage() {
 
               <span className="text-2xs font-extrabold uppercase tracking-widest text-primary-coral">Order Finalized</span>
               <h2 className="mt-2 text-2xl font-black uppercase tracking-wider text-white">ATHLETE Stack REGISTERED</h2>
-              <p className="mt-4 text-xs text-soft-text max-w-md mx-auto leading-relaxed">
+              <p className="mt-4 text-xs text-white max-w-md mx-auto leading-relaxed">
                 Thank you, your order <span className="text-white font-bold">{placedOrder.orderName || placedOrder.id}</span> has been processed successfully. A confirmation email has been dispatched to {placedOrder.customerEmail}.
               </p>
 
               {/* Details box */}
-              <div className="rounded-2xl border border-border-color bg-surface-deep/80 p-5 text-left text-xs text-soft-text my-6 flex flex-col gap-2.5">
+              <div className="rounded-2xl border border-border-color bg-surface-deep/80 p-5 text-left text-xs text-white my-6 flex flex-col gap-2.5">
                 <div className="flex justify-between border-b border-border-color/30 pb-2">
                   <span>Customer Name</span>
                   <span className="font-extrabold text-white">{placedOrder.customerName}</span>
@@ -461,7 +475,7 @@ export default function CheckoutPage() {
                     setPlacedOrder(null);
                     router.push("/admin"); // Redirects to admin to see the order immediately!
                   }}
-                  className="rounded-full border border-border-color bg-surface-deep/30 px-8 py-3.5 text-xs font-black tracking-widest text-soft-text hover:text-white hover:border-primary-coral transition-luxury cursor-pointer"
+                  className="rounded-full border border-border-color bg-surface-deep/30 px-8 py-3.5 text-xs font-black tracking-widest text-white hover:text-gray-800 hover:border-primary-coral transition-luxury cursor-pointer"
                 >
                   VIEW ADMIN PANEL
                 </button>

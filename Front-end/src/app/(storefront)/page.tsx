@@ -34,7 +34,7 @@ export default function HomePage() {
             <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl uppercase leading-[1.1]">
               {homePageSettings.heroTitle}
             </h1>
-            <p className="mt-6 text-base leading-relaxed text-soft-text sm:text-lg">
+            <p className="mt-6 text-base leading-relaxed text-white sm:text-lg">
               {homePageSettings.heroSubtitle}
             </p>
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
@@ -122,7 +122,7 @@ export default function HomePage() {
                 
                 {/* Icon box */}
                 <div
-                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-deep border border-border-color text-soft-text group-hover:text-white transition-luxury"
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-deep border border-border-color text-white group-hover:text-gray-800 transition-luxury"
                   style={{ boxShadow: `0 0 10px rgba(0,0,0,0.3)` }}
                 >
                   <Icon name="category" size={24} style={{ color: cat.imageColor }} />
@@ -150,7 +150,7 @@ export default function HomePage() {
           </div>
           <Link
             href="/products"
-            className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-coral hover:text-white transition-luxury"
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-coral hover:text-gray-800 transition-luxury"
           >
             VIEW ALL SUPPLEMENTS
             <Icon name="arrow-right" size={14} />
@@ -217,13 +217,13 @@ export default function HomePage() {
               <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white uppercase sm:text-4xl">
                 {homePageSettings.firstBannerTitle}
               </h2>
-              <p className="mt-6 text-sm leading-relaxed text-soft-text">
+              <p className="mt-6 text-sm leading-relaxed text-white">
                 {homePageSettings.firstBannerSubtitle}
               </p>
               <div className="mt-8">
                 <blockquote className="border-l-2 border-primary-coral pl-4 text-xs italic text-muted-text">
                   "We created Valens because we were tired of under-dosed formulas, synthetic dyes, and sketchy claims. Every gram we formulate serves a biological purpose."
-                  <span className="block mt-2 font-bold not-italic text-soft-text">— Dr. Marcus Vance, Chief Science Officer</span>
+                  <span className="block mt-2 font-bold not-italic text-white">— Dr. Marcus Vance, Chief Science Officer</span>
                 </blockquote>
               </div>
               <div className="mt-8">
@@ -282,7 +282,7 @@ export default function HomePage() {
                   <Icon key={i} name="star" size={12} />
                 ))}
               </div>
-              <p className="text-xs italic leading-relaxed text-soft-text">
+              <p className="text-xs italic leading-relaxed text-white">
                 "ISO-WHEY mixes completely clear with no chalkiness. My muscle recovery has improved noticeably and there is absolutely no stomach bloat. Highly recommend the Chocolate flavor!"
               </p>
               <div className="mt-4 flex items-center gap-3">
@@ -302,7 +302,7 @@ export default function HomePage() {
                   <Icon key={i} name="star" size={12} />
                 ))}
               </div>
-              <p className="text-xs italic leading-relaxed text-soft-text">
+              <p className="text-xs italic leading-relaxed text-white">
                 "The PRE-CHARGE Elite provides the cleanest surge of power I've ever felt. No jittery skin, just total, locked-in concentration for my three-hour training blocks. Unrivaled."
               </p>
               <div className="mt-4 flex items-center gap-3">
@@ -322,7 +322,7 @@ export default function HomePage() {
                   <Icon key={i} name="star" size={12} />
                 ))}
               </div>
-              <p className="text-xs italic leading-relaxed text-soft-text">
+              <p className="text-xs italic leading-relaxed text-white">
                 "Deep Sleep & Recover has changed the game for me. I sleep deeper, track more REM on my watch, and wake up without that heavy groggy feeling. An absolute staple."
               </p>
               <div className="mt-4 flex items-center gap-3">

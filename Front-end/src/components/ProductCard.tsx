@@ -449,7 +449,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   />
                 ))}
               </div>
-              <span className="text-[10px] font-bold text-soft-text ml-1">({product.reviews.length || 120} {locale === "ar" ? "تقييم" : "Reviews"})</span>
+              <span className="text-[10px] font-bold text-white ml-1">({product.reviews.length || 120} {locale === "ar" ? "تقييم" : "Reviews"})</span>
             </div>
 
             {/* Description */}
@@ -464,7 +464,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               className={`w-full flex items-center justify-center gap-2 rounded-lg py-2.5 px-4 mt-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-500 ${
                 product.stockStatus === "Out of Stock"
                   ? "bg-border-color text-muted-text cursor-not-allowed"
-                  : "bg-primary-coral text-main-bg hover:bg-white hover:text-main-bg shadow-[0_0_15px_rgba(255,138,117,0.2)] hover:shadow-[0_0_25px_rgba(255,255,255,0.5)] cursor-pointer"
+                  : "bg-primary-coral text-main-bg hover:bg-gray-600 hover:text-main-bg shadow-[0_0_15px_rgba(255,138,117,0.2)] hover:shadow-[0_0_25px_rgba(255,255,255,0.5)] cursor-pointer"
               }`}
             >
               <Icon name="cart" size={14} />

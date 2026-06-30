@@ -30,7 +30,7 @@ export default function AboutPage() {
             <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl uppercase leading-tight drop-shadow-[0_0_30px_rgb(var(--rt-primary)/0.3)]">
               THE VALENS MANIFESTO
             </h1>
-            <p className="mt-6 text-base leading-relaxed text-soft-text sm:text-lg">
+            <p className="mt-6 text-base leading-relaxed text-white sm:text-lg">
               We did not build Valens to join the supplement industry. We built it to escape it. In a market flooded with proprietary blends, artificial fillers, and deceptive under-dosed formulas, we stand for pure, clinical performance.
             </p>
           </div>
@@ -57,7 +57,7 @@ export default function AboutPage() {
               <h3 className="text-lg font-black uppercase tracking-wider text-white group-hover:text-primary-coral transition-colors duration-500">
                 100% LABEL TRANSPARENCY
               </h3>
-              <p className="mt-4 text-xs leading-relaxed text-soft-text font-bold">
+              <p className="mt-4 text-xs leading-relaxed text-white font-bold">
                 No hidden proprietary blends, no mystery matrices, and no magic formulas. We list the exact milligram count of every single ingredient on the label. You deserve to know exactly what is going into your body, and in what dose.
               </p>
             </div>
@@ -70,7 +70,7 @@ export default function AboutPage() {
               <h3 className="text-lg font-black uppercase tracking-wider text-white group-hover:text-accent-orange transition-colors duration-500">
                 CLINICAL EFFICACY DOSAGES
               </h3>
-              <p className="mt-4 text-xs leading-relaxed text-soft-text font-bold">
+              <p className="mt-4 text-xs leading-relaxed text-white font-bold">
                 We formulate our products using dosages proven by independent clinical trials. When peer-reviewed science shows that a compound yields performance boosts at 6,000mg, we provide exactly 6,000mg—not a token dusting for label marketing.
               </p>
             </div>
@@ -83,7 +83,7 @@ export default function AboutPage() {
               <h3 className="text-lg font-black uppercase tracking-wider text-white group-hover:text-success-green transition-colors duration-500">
                 THIRD-PARTY LAB TESTED
               </h3>
-              <p className="mt-4 text-xs leading-relaxed text-soft-text font-bold">
+              <p className="mt-4 text-xs leading-relaxed text-white font-bold">
                 Raw ingredients enter our facility, and pure performance leaves. Every batch undergoes strict independent testing for heavy metals, purity, micro-toxins, and profile accuracy. The Certificates of Analysis (COAs) are made fully public.
               </p>
             </div>
@@ -109,7 +109,7 @@ export default function AboutPage() {
                     <th scope="col" className="px-6 py-4 text-muted-text">Standard Supplements</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border-color text-xs text-soft-text font-bold">
+                <tbody className="divide-y divide-border-color text-xs text-white font-bold">
                   <tr className="hover:bg-border-color/30 transition-colors">
                     <td className="px-6 py-4 text-white uppercase font-black">Proprietary Blends</td>
                     <td className="px-6 py-4 text-success-green">0% — Zero Proprietary Formulas</td>
@@ -163,12 +163,12 @@ export default function AboutPage() {
               <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white uppercase sm:text-4xl">
                 ENGINEERED FOR ELITE RESULTS
               </h2>
-              <p className="mt-6 text-sm leading-relaxed text-soft-text font-bold">
+              <p className="mt-6 text-sm leading-relaxed text-white font-bold">
                 Valens was born in the lab. Founded by clinical researchers and professional strength coaches, we set out to build products that we could confidently prescribe to our elite competitors. We do not design for margins or mass-market shelves; we design for metabolic optimization, biological recovery, and raw power.
               </p>
               <div className="mt-8 border-l-2 border-primary-coral pl-6 italic text-muted-text text-sm leading-relaxed">
                 &ldquo;Our athletes are pushing their bodies to absolute extremes. If we give them formulas packed with proprietary fillers or under-dosed ingredients, we aren&apos;t just failing their training; we are failing their health. Valens is our answer.&rdquo;
-                <span className="block mt-2 font-bold not-italic text-soft-text text-xs">— Dr. Marcus Vance, Chief Science Officer</span>
+                <span className="block mt-2 font-bold not-italic text-white text-xs">— Dr. Marcus Vance, Chief Science Officer</span>
               </div>
               <div className="mt-10">
                 <Link

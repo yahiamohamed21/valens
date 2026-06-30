@@ -11,6 +11,7 @@ export default function AdminCouponsPage() {
     addCoupon,
     editCoupon,
     deleteCoupon,
+    locale,
   } = useApp();
 
   // Coupon modal state
@@ -56,9 +57,11 @@ export default function AdminCouponsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={`flex flex-col gap-6 ${locale === "ar" ? "text-right" : "text-left"}`}>
       <div className="flex items-center justify-between border-b border-border-color pb-4">
-        <span className="text-xs font-bold text-soft-text uppercase font-semibold">Promotional Discounts Builder</span>
+        <span className="text-xs font-bold text-white uppercase">
+          {locale === "ar" ? "كوبونات الخصم وقواعد العروض" : "Promotional Discounts Builder"}
+        </span>
         <button
           onClick={() => {
             setEditingCouponId(null);
@@ -71,10 +74,10 @@ export default function AdminCouponsPage() {
             setCoupActive(true);
             setCouponModalOpen(true);
           }}
-          className="flex items-center gap-2 rounded-xl bg-primary-coral px-4 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg"
+          className="flex items-center cursor-pointer gap-2 rounded-xl bg-primary-coral px-4 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg"
         >
-          <Icon name="plus" size={14} />
-          ADD COUPON
+          <Icon className="cursor-pointer" name="plus" size={14} />
+          {locale === "ar" ? "إضافة كوبون" : "ADD COUPON"}
         </button>
       </div>
 
@@ -84,13 +87,13 @@ export default function AdminCouponsPage() {
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border-color text-muted-text uppercase tracking-wider">
-                <th className="pb-3 font-extrabold">Promo Code</th>
-                <th className="pb-3 font-extrabold">Discount Value</th>
-                <th className="pb-3 font-extrabold">Min Total Limit</th>
-                <th className="pb-3 font-extrabold">Expiry Term</th>
-                <th className="pb-3 font-extrabold">Usage Stats</th>
-                <th className="pb-3 font-extrabold">Status</th>
-                <th className="pb-3 font-extrabold text-right">Actions</th>
+                <th className="pb-3 font-extrabold">{locale === "ar" ? "كود الخصم" : "Promo Code"}</th>
+                <th className="pb-3 font-extrabold">{locale === "ar" ? "قيمة الخصم" : "Discount Value"}</th>
+                <th className="pb-3 font-extrabold">{locale === "ar" ? "الحد الأدنى للطلب" : "Min Total Limit"}</th>
+                <th className="pb-3 font-extrabold">{locale === "ar" ? "تاريخ الانتهاء" : "Expiry Term"}</th>
+                <th className="pb-3 font-extrabold">{locale === "ar" ? "إحصائيات الاستخدام" : "Usage Stats"}</th>
+                <th className="pb-3 font-extrabold">{locale === "ar" ? "الحالة" : "Status"}</th>
+                <th className="pb-3 font-extrabold text-right">{locale === "ar" ? "إجراءات" : "Actions"}</th>
               </tr>
             </thead>
             <tbody>
@@ -98,9 +101,13 @@ export default function AdminCouponsPage() {
                 <tr key={c.id} className="border-b border-border-color/30 last:border-0 hover:bg-surface-deep/20">
                   <td className="py-3.5 font-bold text-white font-mono">{c.code}</td>
                   <td className="py-3.5 font-bold">
-                    {c.discountType === "percentage" ? `${c.discountValue}% Off` : `${c.discountValue} EGP Fixed`}
+                    {c.discountType === "percentage"
+                      ? (locale === "ar" ? `خصم ${c.discountValue}%` : `${c.discountValue}% Off`)
+                      : (locale === "ar" ? `${c.discountValue} ج.م ثابت` : `${c.discountValue} EGP Fixed`)}
                   </td>
-                  <td className="py-3.5 text-muted-text font-bold">{c.minOrderAmount} EGP min</td>
+                  <td className="py-3.5 text-muted-text font-bold">
+                    {c.minOrderAmount} {locale === "ar" ? "ج.م كحد أدنى" : "EGP min"}
+                  </td>
                   <td className="py-3.5 text-3xs font-semibold text-muted-text">{c.expiryDate}</td>
                   <td className="py-3.5">
                     {c.usageCount} / {c.usageLimit}
@@ -110,15 +117,17 @@ export default function AdminCouponsPage() {
                         ? "bg-success-green/10 text-success-green"
                         : "bg-red-500/10 text-red-500"
                       }`}>
-                      {c.active && new Date(c.expiryDate) > new Date() ? "ACTIVE" : "EXPIRED/INACTIVE"}
+                      {c.active && new Date(c.expiryDate) > new Date()
+                        ? (locale === "ar" ? "نشط" : "ACTIVE")
+                        : (locale === "ar" ? "منتهي/غير نشط" : "EXPIRED/INACTIVE")}
                     </span>
                   </td>
                   <td className="py-3.5 text-right flex justify-end gap-3.5">
                     <button
                       onClick={() => editCoupon(c.id, { active: !c.active })}
-                      className="rounded-lg border border-border-color bg-surface-deep px-3 py-1.5 text-2xs font-extrabold text-soft-text hover:text-white"
+                      className="rounded-lg border border-border-color cursor-pointer bg-surface-deep px-3 py-1.5 text-2xs font-extrabold text-white hover:text-gray-800"
                     >
-                      Toggle
+                      {locale === "ar" ? "تبديل" : "Toggle"}
                     </button>
                     <button
                       onClick={() => {
@@ -132,15 +141,18 @@ export default function AdminCouponsPage() {
                         setCoupActive(c.active);
                         setCouponModalOpen(true);
                       }}
-                      className="p-1.5 rounded-lg border border-border-color bg-surface-deep text-soft-text hover:text-primary-coral"
+                      className="p-1.5 rounded-lg cursor-pointer border border-border-color bg-surface-deep text-white hover:text-primary-coral"
                     >
                       <Icon name="edit" size={14} />
                     </button>
                     <button
-                      onClick={() => showConfirmToast(`Delete coupon ${c.code}?`, () => deleteCoupon(c.id))}
-                      className="p-1.5 rounded-lg border border-border-color bg-surface-deep text-muted-text hover:text-accent-orange"
+                      onClick={() => showConfirmToast(
+                        locale === "ar" ? `حذف كوبون ${c.code}؟` : `Delete coupon ${c.code}?`,
+                        () => deleteCoupon(c.id)
+                      )}
+                      className="p-1.5 rounded-lg cursor-pointer border border-border-color bg-surface-deep text-muted-text hover:text-accent-orange"
                     >
-                      <Icon name="trash" size={14} />
+                      <Icon className="cursor-pointer" name="trash" size={14} />
                     </button>
                   </td>
                 </tr>
@@ -156,17 +168,21 @@ export default function AdminCouponsPage() {
           <div className="w-full max-w-md rounded-3xl border border-border-color bg-card-bg p-6 shadow-2xl glass-panel animate-slide-in relative">
             <button
               onClick={() => setCouponModalOpen(false)}
-              className="absolute right-4 top-4 text-muted-text hover:text-white"
+              className="absolute cursor-pointer right-4 top-4 text-muted-text hover:text-gray-800"
             >
-              <Icon name="close" size={20} />
+              <Icon className="cursor-pointer" name="close" size={20} />
             </button>
             <h2 className="text-base font-black uppercase tracking-wider text-white border-b border-border-color pb-3 mb-5">
-              {editingCouponId ? "Modify Coupon Rules" : "Create Promo Coupon"}
+              {editingCouponId
+                ? (locale === "ar" ? "تعديل قواعد الكوبون" : "Modify Coupon Rules")
+                : (locale === "ar" ? "إنشاء كوبون خصم" : "Create Promo Coupon")}
             </h2>
 
             <form onSubmit={handleCouponSubmit} className="flex flex-col gap-4">
               <div>
-                <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Coupon Code *</label>
+                <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">
+                  {locale === "ar" ? "كود الكوبون *" : "Coupon Code *"}
+                </label>
                 <input
                   type="text"
                   required
@@ -179,18 +195,22 @@ export default function AdminCouponsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Discount Type</label>
+                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">
+                    {locale === "ar" ? "نوع الخصم" : "Discount Type"}
+                  </label>
                   <select
                     value={coupType}
-                    onChange={(e) => setCoupType(e.target.value as any)}
+                    onChange={(e) => setCoupType(e.target.value as "percentage" | "fixed")}
                     className="w-full rounded-xl border border-border-color bg-surface-deep px-3 py-2 text-xs text-white"
                   >
-                    <option value="percentage">Percentage (%)</option>
-                    <option value="fixed">Fixed ($)</option>
+                    <option value="percentage">{locale === "ar" ? "نسبة (%)" : "Percentage (%)"}</option>
+                    <option value="fixed">{locale === "ar" ? "قيمة ثابتة ($)" : "Fixed ($)"}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Discount Value *</label>
+                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">
+                    {locale === "ar" ? "قيمة الخصم *" : "Discount Value *"}
+                  </label>
                   <input
                     type="number"
                     required
@@ -203,7 +223,9 @@ export default function AdminCouponsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Min Order (EGP)</label>
+                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">
+                    {locale === "ar" ? "الحد الأدنى للطلب (ج.م)" : "Min Order (EGP)"}
+                  </label>
                   <input
                     type="number"
                     value={coupMinOrder}
@@ -212,7 +234,9 @@ export default function AdminCouponsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Usage Limit</label>
+                  <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">
+                    {locale === "ar" ? "الحد الأقصى للاستخدام" : "Usage Limit"}
+                  </label>
                   <input
                     type="number"
                     value={coupLimit}
@@ -223,7 +247,9 @@ export default function AdminCouponsPage() {
               </div>
 
               <div>
-                <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Expiry Date *</label>
+                <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">
+                  {locale === "ar" ? "تاريخ الانتهاء *" : "Expiry Date *"}
+                </label>
                 <input
                   type="date"
                   required
@@ -240,15 +266,15 @@ export default function AdminCouponsPage() {
                   onChange={(e) => setCoupActive(e.target.checked)}
                   className="rounded border-border-color bg-surface-deep text-primary-coral focus:ring-0 h-4 w-4"
                 />
-                Active immediately
+                {locale === "ar" ? "تفعيل فوري" : "Active immediately"}
               </label>
 
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg mt-4"
+                className="flex w-full items-center justify-center gap-2 cursor-pointer rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg mt-4"
               >
-                SAVE COUPON
-                <Icon name="check" size={14} />
+                {locale === "ar" ? "حفظ الكوبون" : "SAVE COUPON"}
+                <Icon className="cursor-pointer" name="check" size={14} />
               </button>
             </form>
           </div>

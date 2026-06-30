@@ -50,7 +50,7 @@ export const useOrderActions = ({
         };
       });
 
-      const response = await api.orders.checkout({
+      const response = (await api.orders.checkout({
         customerName: orderData.customerName,
         customerEmail: orderData.customerEmail,
         customerPhone: orderData.customerPhone,
@@ -58,7 +58,40 @@ export const useOrderActions = ({
         shippingCity: orderData.customerCity,
         couponCode: orderData.couponCode || undefined,
         items: checkoutItems,
-      });
+      })) as {
+        id?: string;
+        orderName?: string;
+        orderNumber?: string;
+        customerName?: string;
+        customerPhone?: string;
+        customerEmail?: string;
+        customerAddress?: string;
+        shippingAddress?: string;
+        customerCity?: string;
+        shippingCity?: string;
+        notes?: string;
+        items?: {
+          productId?: string;
+          productName?: string;
+          product?: { name?: string };
+          price?: number;
+          quantity?: number;
+          size?: string;
+          variant?: string;
+          flavor?: string;
+          imageColor?: string;
+          imageType?: "powder" | "capsule" | "liquid";
+          image?: string;
+        }[];
+        totalPrice?: number;
+        paymentMethod?: string;
+        shippingMethod?: string;
+        shippingCost?: number;
+        discountAmount?: number;
+        couponCode?: string;
+        orderDate?: string;
+        status?: Order["status"];
+      };
 
       const newOrder: Order = {
         id: response.id || response.orderName || response.orderNumber || `VL-${Date.now()}`,
@@ -69,7 +102,7 @@ export const useOrderActions = ({
         customerAddress: response.customerAddress || response.shippingAddress || orderData.customerAddress,
         customerCity: response.customerCity || response.shippingCity || orderData.customerCity,
         notes: response.notes || orderData.notes,
-        items: response.items?.map((item: any) => ({
+        items: response.items?.map((item) => ({
           productId: item.productId || "",
           productName: item.productName || item.product?.name || "",
           price: item.price || 0,
@@ -166,8 +199,9 @@ export const useOrderActions = ({
       }
       showToast(`Order ${newOrder.id} placed successfully!`, "success");
       return newOrder;
-    } catch (error: any) {
-      showToast(error.message || "Failed to place order", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to place order";
+      showToast(message, "error");
       throw error;
     }
   }, [
@@ -195,8 +229,9 @@ export const useOrderActions = ({
         })
       );
       showToast(`Order ${orderId} marked as ${status}`, "info");
-    } catch (error: any) {
-      showToast(error.message || "Failed to update order status", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update order status";
+      showToast(message, "error");
     }
   }, [setOrders]);
 

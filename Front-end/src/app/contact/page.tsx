@@ -42,7 +42,7 @@ export default function ContactPage() {
           <h1 className="mt-2 text-3xl font-black uppercase tracking-wider text-white">
             ATHLETE SUPPORT DESK
           </h1>
-          <p className="mt-2 text-xs text-soft-text max-w-md mx-auto leading-relaxed">
+          <p className="mt-2 text-xs text-white max-w-md mx-auto leading-relaxed">
             Have questions about dynamic ingredients, formulation dosages, order tracking, or bulk laboratory acquisitions? Submit your request.
           </p>
         </div>
@@ -60,7 +60,7 @@ export default function ContactPage() {
               </div>
               <div>
                 <h4 className="text-xs font-black uppercase tracking-widest text-white">HEADQUARTERS</h4>
-                <p className="mt-2 text-xs text-soft-text leading-relaxed">
+                <p className="mt-2 text-xs text-white leading-relaxed">
                   {storeSettings.address}
                 </p>
               </div>
@@ -72,10 +72,10 @@ export default function ContactPage() {
               </div>
               <div>
                 <h4 className="text-xs font-black uppercase tracking-widest text-white">DIRECT CHANNELS</h4>
-                <p className="mt-2 text-xs text-soft-text leading-relaxed">
+                <p className="mt-2 text-xs text-white leading-relaxed">
                   Support Email: <a href={`mailto:${storeSettings.contactEmail}`} className="text-primary-coral hover:underline">{storeSettings.contactEmail}</a>
                 </p>
-                <p className="mt-1 text-xs text-soft-text">
+                <p className="mt-1 text-xs text-white">
                   Athlete Hotline: <span className="text-white font-bold">{storeSettings.contactPhone}</span>
                 </p>
               </div>
@@ -87,10 +87,10 @@ export default function ContactPage() {
               </div>
               <div>
                 <h4 className="text-xs font-black uppercase tracking-widest text-white">LAB OPENING HOURS</h4>
-                <p className="mt-2 text-xs text-soft-text">
+                <p className="mt-2 text-xs text-white">
                   Monday – Friday: <span className="text-white">08:00 – 18:00 EST</span>
                 </p>
-                <p className="mt-1 text-xs text-soft-text">
+                <p className="mt-1 text-xs text-white">
                   Saturday – Sunday: <span className="text-white">09:00 – 14:00 EST</span>
                 </p>
               </div>

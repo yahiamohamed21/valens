@@ -15,8 +15,9 @@ export const useSettingsActions = ({ setHomePageSettings, setStoreSettings }: Se
       await api.settings.updateHomepageConfig(newSettings);
       setHomePageSettings(newSettings);
       showToast("Homepage layout updated", "success");
-    } catch (error: any) {
-      showToast(error.message || "Failed to update homepage settings", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update homepage settings";
+      showToast(message, "error");
     }
   }, [setHomePageSettings]);
 
@@ -30,8 +31,9 @@ export const useSettingsActions = ({ setHomePageSettings, setStoreSettings }: Se
       await api.settings.updateStoreConfig(dto);
       setStoreSettings(newSettings);
       showToast("Global store settings updated", "success");
-    } catch (error: any) {
-      showToast(error.message || "Failed to update store settings", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update store settings";
+      showToast(message, "error");
     }
   }, [setStoreSettings]);
 

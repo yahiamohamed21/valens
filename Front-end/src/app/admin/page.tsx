@@ -197,7 +197,7 @@ export default function AdminDashboard() {
 
           <Link
             href="/admin/products"
-            className="mt-6 text-center text-2xs font-extrabold uppercase tracking-widest text-primary-coral hover:text-white"
+            className="mt-6 text-center text-2xs font-extrabold uppercase tracking-widest text-primary-coral hover:text-gray-800"
           >
             {locale === "ar" ? "إدارة كتالوج المنتجات >" : "MANAGE PRODUCTS CATALOG >"}
           </Link>
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
                   <td className="py-3.5">
                     <button
                       onClick={() => setSelectedOrderDetails(ord)}
-                      className="text-2xs font-black uppercase text-primary-coral hover:text-white"
+                      className="text-2xs font-black uppercase text-primary-coral hover:text-gray-800"
                     >
                       {locale === "ar" ? "التفاصيل" : "Details"}
                     </button>

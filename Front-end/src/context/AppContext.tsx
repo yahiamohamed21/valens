@@ -142,22 +142,40 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       const data = await api.settings.homepageOverview();
       if (data) {
-        if (data.products) setProducts(safeArray(data.products).map(mapApiProductToClient));
-        if (data.categories) setCategories(safeArray(data.categories).map(mapApiCategoryToClient));
-        if (data.homePageSettings || data.homepageConfig) setHomePageSettings(data.homePageSettings || data.homepageConfig);
-        if (data.storeSettings || data.storeConfig) setStoreSettings(data.storeSettings || data.storeConfig);
+        if (data.products) {
+          setProducts(safeArray<Record<string, unknown>>(data.products).map(mapApiProductToClient));
+        }
+        if (data.categories) {
+          setCategories(safeArray<Record<string, unknown>>(data.categories).map(mapApiCategoryToClient));
+        }
+        const homeConfig = data.homePageSettings || data.homepageConfig;
+        if (homeConfig) {
+          setHomePageSettings(homeConfig as HomePageSettings);
+        }
+        const storeConfig = data.storeSettings || data.storeConfig;
+        if (storeConfig) {
+          setStoreSettings(storeConfig as StoreSettings);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch public homepage overview, falling back to active lists:", err);
       try {
         const prodList = await api.products.list({});
-        if (prodList) setProducts(safeArray(prodList).map(mapApiProductToClient));
+        if (prodList) {
+          setProducts(safeArray<Record<string, unknown>>(prodList).map(mapApiProductToClient));
+        }
         const catList = await api.categories.listActive();
-        if (catList) setCategories(safeArray(catList).map(mapApiCategoryToClient));
+        if (catList) {
+          setCategories(safeArray<Record<string, unknown>>(catList).map(mapApiCategoryToClient));
+        }
         const storeConf = await api.settings.storeConfig();
-        if (storeConf) setStoreSettings(storeConf);
+        if (storeConf) {
+          setStoreSettings(storeConf);
+        }
         const homeConf = await api.settings.homepageConfig();
-        if (homeConf) setHomePageSettings(homeConf);
+        if (homeConf) {
+          setHomePageSettings(homeConf);
+        }
       } catch (fallbackErr) {
         console.error("All fetch fallbacks failed:", fallbackErr);
       }
@@ -227,8 +245,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setToken(storedToken);
         const claims = decodeJwt(storedToken);
         if (claims) {
-          const email = claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"];
-          const role = claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+          const email = (claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"]) as string | undefined;
+          const role = (claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]) as "Admin" | "Customer" | undefined;
           setCurrentUserEmail(email || null);
           setCurrentUserRole(role || null);
         }
@@ -276,8 +294,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setToken(jwtToken);
         const claims = decodeJwt(jwtToken);
         if (claims) {
-          const parsedEmail = claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || email;
-          const parsedRole = claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "Customer";
+          const parsedEmail = (claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || email) as string;
+          const parsedRole = (claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "Customer") as "Admin" | "Customer";
           setCurrentUserEmail(parsedEmail);
           setCurrentUserRole(parsedRole);
         } else {
@@ -288,8 +306,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return true;
       }
       return false;
-    } catch (err: any) {
-      showToast(err.message || "Failed to authenticate", "error");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to authenticate";
+      showToast(message, "error");
       return false;
     }
   }, []);
@@ -308,7 +327,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setToken(jwtToken);
         const claims = decodeJwt(jwtToken);
         if (claims) {
-          const parsedEmail = claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || email;
+          const parsedEmail = (claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || email) as string;
           setCurrentUserEmail(parsedEmail);
           setCurrentUserRole("Customer");
         } else {
@@ -319,8 +338,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return true;
       }
       return true;
-    } catch (err: any) {
-      showToast(err.message || "Registration failed", "error");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Registration failed";
+      showToast(message, "error");
       return false;
     }
   }, []);
@@ -353,8 +373,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
       setCustomers(updated);
       showToast("Profile updated successfully", "success");
-    } catch (err: any) {
-      showToast(err.message || "Failed to update profile", "error");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update profile";
+      showToast(message, "error");
     }
   }, [customers]);
 

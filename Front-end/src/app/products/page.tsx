@@ -157,7 +157,7 @@ export default function ProductsPage() {
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className={`absolute top-1/2 -translate-y-1/2 text-muted-text hover:text-white ${
+                className={`absolute top-1/2 -translate-y-1/2 text-muted-text hover:text-gray-600 ${
                   locale === "ar" ? "left-4" : "right-4"
                 }`}
               >
@@ -180,7 +180,7 @@ export default function ProductsPage() {
                 </span>
                 <button
                   onClick={resetFilters}
-                  className="text-[10px] font-extrabold uppercase tracking-wide text-primary-coral hover:text-white transition-all duration-500 ease-out cursor-pointer"
+                  className="text-[10px] font-extrabold uppercase tracking-wide text-primary-coral hover:text-gray-800 transition-all duration-500 ease-out cursor-pointer"
                 >
                   {locale === "ar" ? "إعادة ضبط الكل" : "Reset All"}
                 </button>
@@ -199,7 +199,7 @@ export default function ProductsPage() {
                     } ${
                       selectedCategory === "all"
                         ? "bg-primary-coral/10 text-primary-coral border-primary-coral/20"
-                        : "bg-surface-deep text-soft-text hover:bg-surface-sec"
+                        : "bg-surface-deep text-white hover:bg-surface-sec"
                     }`}
                   >
                     {locale === "ar" ? "جميع التركيبات" : "All Formulas"}
@@ -216,7 +216,7 @@ export default function ProductsPage() {
                       } ${
                         selectedCategory === cat.slug
                           ? "bg-primary-coral/10 text-primary-coral border-primary-coral/20"
-                          : "bg-surface-deep text-soft-text hover:bg-surface-sec"
+                          : "bg-surface-deep text-white hover:bg-surface-sec"
                       }`}
                     >
                       {getCategoryName(cat.name)}
@@ -235,7 +235,7 @@ export default function ProductsPage() {
                     {locale === "ar" ? "الحد الأقصى للسعر" : "Max Price"}
                   </h4>
                   <span className="text-sm font-black text-primary-coral">
-                    {maxPrice.toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
+                    {maxPrice.toLocaleString(locale)} {locale === "ar" ? "ج.م" : "EGP"}
                   </span>
                 </div>
                 <input
@@ -263,7 +263,7 @@ export default function ProductsPage() {
                   {["In Stock", "Low Stock", "Out of Stock"].map((status: string) => (
                     <label
                       key={status}
-                      className={`flex items-center gap-3 cursor-pointer text-xs font-semibold text-soft-text hover:text-white uppercase tracking-wider ${
+                      className={`flex items-center gap-3 cursor-pointer text-xs font-semibold text-white hover:text-gray-800 uppercase tracking-wider ${
                         locale === "ar" ? "flex-row-reverse justify-end" : ""
                       }`}
                     >
@@ -295,7 +295,7 @@ export default function ProductsPage() {
 
             {/* Sorting & Result Count Bar */}
             <div className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-border-color bg-card-bg p-4 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
-              <span className="text-xs font-bold text-soft-text">
+              <span className="text-xs font-bold text-white">
                 {locale === "ar" 
                   ? `عرض ${filteredProducts.length} مكملاً`
                   : `Showing ${filteredProducts.length} supplements`

@@ -109,7 +109,7 @@ export function Carousel({
             >
               {title}
             </h2>
-            <p className="mt-4 text-sm leading-6 text-soft-text sm:text-base">
+            <p className="mt-4 text-sm leading-6 text-white sm:text-base">
               {description}
             </p>
           </div>
