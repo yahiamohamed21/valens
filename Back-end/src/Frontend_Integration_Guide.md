@@ -503,9 +503,60 @@
   }
   ```
 * **Response Payload:** Returns full `Product` schema including its `variants` list.
+### 6.4 Create Product (Admin Only)
 
-### 6.4 Create Product (Admin Only)
+#### A. JSON Method (Default/Recommended for Frontend)
 * **Endpoint:** `POST /api/products/create-product`
+* **Headers:** `Authorization: Bearer <Admin Token>`
+* **Content-Type:** `application/json`
+* **Request Payload (`ProductUpsertDto`):**
+  ```json
+  {
+    "name": "Whey Premium",
+    "nameAr": "واي بريميوم",
+    "category": "Proteins",
+    "description": "Premium Whey isolate",
+    "descriptionAr": "واي بروتين معزول فاخر",
+    "featured": true,
+    "bestSeller": false,
+    "newArrival": true,
+    "visible": true,
+    "variantType": "size", // "size", "flavor", "both", or "none"
+    "price": 1200.00, // (Only if variantType is "none")
+    "discountPrice": 1080.00, // (Only if variantType is "none")
+    "size": "", // (Only if variantType is "none")
+    "stock": 50, // (Only if variantType is "none")
+    "sku": "W-PREM-1",
+    "imageType": "powder", // "powder", "capsule", "liquid", "bar", etc.
+    "imageColor": "#FF8A75",
+    "mainImage": "data:image/jpeg;base64,...(base64 string)...", // Main product image
+    "images": [
+      "data:image/jpeg;base64,...(base64 string)..."
+    ], // Gallery images
+    "ingredients": ["Beta Alanine", "Whey Isolate"],
+    "ingredientsAr": ["بيتا ألانين", "واي بروتين معزول"],
+    "usage": "Mix 1 scoop with water",
+    "usageAr": "اخلط مكيالًا واحدًا بالماء",
+    "benefits": ["Build Muscle", "Recover Faster"],
+    "benefitsAr": ["بناء العضلات", "الاستشفاء السريع"],
+    "variants": [
+      {
+        "size": "1kg",
+        "flavor": "",
+        "price": 1200.00,
+        "discountPrice": 1080.00,
+        "stockQuantity": 30,
+        "sku": "WP-1KG",
+        "isAvailable": true,
+        "image": "data:image/jpeg;base64,...(base64 string)..."
+      }
+    ]
+  }
+  ```
+* **Response Payload:** Returns the created `Product` object.
+
+#### B. Multipart/Form-Data Method (For Direct File Uploads)
+* **Endpoint:** `POST /api/products/create-product-form`
 * **Headers:** `Authorization: Bearer <Admin Token>`
 * **Content-Type:** `multipart/form-data`
 * **FormData Fields Structure:**
@@ -515,16 +566,18 @@
   - `description`: "Premium Whey isolate"
   - `descriptionAr`: "واي بروتين معزول فاخر"
   - `variantType`: "size" (or "flavor", "both", "none")
-  - `price`: 1200.00 *(Only required if variantType is "none")*
-  - `discountPrice`: 1080.00 *(Only required if variantType is "none")*
-  - `stock`: 50 *(Only required if variantType is "none")*
+  - `price`: 1200.00 *(Only if variantType is "none")*
+  - `discountPrice`: 1080.00 *(Only if variantType is "none")*
+  - `stock`: 50 *(Only if variantType is "none")*
   - `sku`: "W-PREM-1"
   - `imageType`: "powder" (powder, capsule, liquid, bar, tablet, other)
   - `imageColor`: "#FF8A75"
   - `mainImageFile`: *(File upload)*
   - `imageFiles`: *(Multiple File uploads)*
+  - `ingredients`: "Beta Alanine"
+  - `ingredients`: "Whey Isolate" *(Append multiple values under the same key)*
   - `ingredientsAr`: "بيتا ألانين"
-  - `ingredientsAr`: "واي بروتين" *(Append multiple values under the same key)*
+  - `ingredientsAr`: "واي بروتين"
   - **Nested Variants array (when variantType != "none"):**
     - `variants[0].size`: "1kg"
     - `variants[0].price`: 1200.00
@@ -533,19 +586,29 @@
     - `variants[0].sku`: "WP-1KG"
     - `variants[0].isAvailable`: true
     - `variants[0].imageFile`: *(File upload)*
-    - `variants[1].size`: "2kg"
-    - `variants[1].price`: 2200.00
-    - ...
 * **Response Payload:** Returns the created `Product` object.
 
 ### 6.5 Update Product (Admin Only)
+
+#### A. JSON Method (Default/Recommended for Frontend)
 * **Endpoint:** `POST /api/products/update-product`
 * **Headers:** `Authorization: Bearer <Admin Token>`
-* **Content-Type:** `multipart/form-data`
-* **FormData Fields:** Send all fields listed in Create, plus:
-  - `id`: "8e9b55bd-fa94-4cf4-910d-6a86d11598d6"
-  - `existingImages`: "/uploads/image-1.jpg" *(List of existing server URLs to preserve)*
+* **Content-Type:** `application/json`
+* **Request Payload:** Same structure as Create JSON, plus:
+  - `id`: "8e9b55bd-fa94-4cf4-910d-6a86d11598d6" (Required)
+  - `existingImages`: ["/uploads/products/image-1.jpg"] *(List of existing server URLs to preserve)*
   - `variants[0].id`: "var-1704256799000" *(Include existing variant IDs to update them, omit ID to add a new variant)*
+* **Response:** `204 NoContent` on success.
+
+#### B. Multipart/Form-Data Method (For Direct File Uploads)
+* **Endpoint:** `POST /api/products/update-product-form`
+* **Headers:** `Authorization: Bearer <Admin Token>`
+* **Content-Type:** `multipart/form-data`
+* **FormData Fields:** Send all fields listed in Create Form-Data, plus:
+  - `id`: "8e9b55bd-fa94-4cf4-910d-6a86d11598d6" (Required)
+  - `existingImages`: "/uploads/products/image-1.jpg" *(List of existing server URLs to preserve)*
+  - `variants[0].id`: "var-1704256799000" *(Include existing variant IDs to update them, omit ID to add a new variant)*
+* **Response:** `204 NoContent` on success.
 
 ### 6.6 Delete Product
 * **Endpoint:** `POST /api/products/delete-product`
