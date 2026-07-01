@@ -31,11 +31,25 @@ public class ReviewsController : BaseApiController
         if (product == null)
             return NotFound("Product not found.");
 
+        var customerEmail = dto.CustomerEmail.Trim().ToLower();
+        
+        // Verify the customer has purchased this product
+        var hasPurchased = await _unitOfWork.Orders.GetQueryable()
+            .AnyAsync(o => o.CustomerEmail.ToLower() == customerEmail
+                      && o.Status != "CANCELLED"
+                      && o.Status != "REJECTED"
+                      && o.Items.Any(i => i.ProductId == productId));
+
+        if (!hasPurchased)
+        {
+            return BadRequest("You can only review or rate products you have purchased / يمكنك فقط تقييم المنتجات التي قمت بشرائها بالفعل");
+        }
+
         var review = new ProductReview
         {
             ProductId = productId,
             CustomerName = dto.CustomerName.Trim(),
-            CustomerEmail = dto.CustomerEmail.Trim().ToLower(),
+            CustomerEmail = customerEmail,
             Rating = dto.Rating,
             Comment = dto.Comment?.Trim() ?? string.Empty,
             IsApproved = true // default approved, can be moderated in admin
