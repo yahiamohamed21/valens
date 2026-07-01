@@ -20,6 +20,7 @@ public class ReviewsController : BaseApiController
     }
 
     [HttpPost("products/{productId:guid}")]
+    [Authorize]
     public async Task<IActionResult> AddReview(Guid productId, [FromBody] CreateReviewDto dto)
     {
         if (!ModelState.IsValid)
@@ -31,7 +32,13 @@ public class ReviewsController : BaseApiController
         if (product == null)
             return NotFound("Product not found.");
 
-        var customerEmail = dto.CustomerEmail.Trim().ToLower();
+        var tokenEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value?.Trim().ToLower();
+        if (string.IsNullOrEmpty(tokenEmail))
+        {
+            return Unauthorized("You must be logged in to rate or review / يجب عليك تسجيل الدخول أولاً للتقييم");
+        }
+
+        var customerEmail = tokenEmail;
         
         // Verify the customer has purchased this product
         var hasPurchased = await _unitOfWork.Orders.GetQueryable()
@@ -52,7 +59,7 @@ public class ReviewsController : BaseApiController
             CustomerEmail = customerEmail,
             Rating = dto.Rating,
             Comment = dto.Comment?.Trim() ?? string.Empty,
-            IsApproved = true // default approved, can be moderated in admin
+            IsApproved = true 
         };
 
         await _unitOfWork.ProductReviews.AddAsync(review);

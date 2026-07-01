@@ -508,7 +508,7 @@ export const api = {
 
   reviews: {
     submitReview: (productId: string, body: Record<string, unknown>) =>
-      request<unknown>(`/api/reviews/products/${productId}`, "POST", body, false),
+      request<unknown>(`/api/reviews/products/${productId}`, "POST", body),
     listAdmin: () => request<unknown>("/api/reviews/admin", "GET"),
     toggleApprove: (id: string) => request<unknown>(`/api/reviews/admin/${id}/toggle-approve`, "PATCH"),
     delete: (id: string) => request<unknown>(`/api/reviews/admin/${id}`, "DELETE"),
