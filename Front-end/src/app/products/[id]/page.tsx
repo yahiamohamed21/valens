@@ -521,10 +521,11 @@ export default function ProductDetailsPage() {
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
+                    disabled={submittingDirectRating}
                     onClick={() => {
                       handleDirectRate(star);
                     }}
-                    className="text-primary-coral hover:scale-125 transition-transform duration-200 cursor-pointer"
+                    className="text-primary-coral hover:scale-125 transition-transform duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     title={locale === "ar" ? `تقييم ${star} نجوم` : `Rate ${star} Stars`}
                   >
                     <Icon
