@@ -183,10 +183,10 @@ export default function AdminReviewsPage() {
             <button
               key={filter}
               onClick={() => setStatusFilter(filter)}
-              className={`rounded-xl border px-4 py-2 text-xs font-bold uppercase tracking-wider transition-luxury cursor-pointer ${
+              className={`rounded-xl border px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 cursor-pointer ${
                 statusFilter === filter
                   ? "border-primary-coral bg-primary-coral/10 text-primary-coral"
-                  : "border-border-color bg-card-bg text-muted-text hover:text-white"
+                  : "border-border-color bg-card-bg text-muted-text hover:text-primary-coral hover:border-primary-coral/40 dark:hover:text-white"
               }`}
             >
               {labels[filter]}

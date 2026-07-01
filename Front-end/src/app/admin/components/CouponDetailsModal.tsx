@@ -195,7 +195,7 @@ export const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
         <div className="flex justify-end gap-3 mt-6 border-t border-border-color pt-4">
           <button
             onClick={onClose}
-            className="rounded-full border border-border-color bg-surface-deep px-6 py-2.5 text-2xs font-extrabold text-white hover:text-gray-800 transition-all cursor-pointer uppercase"
+            className="rounded-full border border-border-color bg-surface-deep px-6 py-2.5 text-2xs font-extrabold text-[#180f0d] dark:text-white hover:bg-white hover:text-[#180f0d] transition-all duration-300 cursor-pointer uppercase"
           >
             {locale === "ar" ? "إغلاق Ledger" : "Close Ledger"}
           </button>

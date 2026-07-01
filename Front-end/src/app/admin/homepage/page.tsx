@@ -1090,7 +1090,7 @@ export default function AdminHomepageCmsPage() {
             <button
               type="button"
               onClick={() => setIsBannerModalOpen(false)}
-              className="absolute right-5 top-5 text-muted-text hover:text-white cursor-pointer"
+              className="absolute right-5 top-5 text-muted-text hover:text-primary-coral dark:hover:text-white cursor-pointer"
             >
               <Icon name="close" size={24} />
             </button>
@@ -1205,7 +1205,7 @@ export default function AdminHomepageCmsPage() {
             <button
               type="button"
               onClick={() => setIsStoryModalOpen(false)}
-              className="absolute right-5 top-5 text-muted-text hover:text-white cursor-pointer"
+              className="absolute right-5 top-5 text-muted-text hover:text-primary-coral dark:hover:text-white cursor-pointer"
             >
               <Icon name="close" size={24} />
             </button>

@@ -34,7 +34,8 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
     | "box"
     | "logout"
     | "lock"
-    | "location";
+    | "location"
+    | "mail";
   size?: number | string;
 }
 
@@ -281,6 +282,13 @@ export const Icon: React.FC<IconProps> = ({ name, size = 20, className, ...props
         <svg {...commonProps}>
           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
           <circle cx="12" cy="10" r="3" />
+        </svg>
+      );
+    case "mail":
+      return (
+        <svg {...commonProps}>
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+          <polyline points="22,6 12,13 2,6" />
         </svg>
       );
     default:

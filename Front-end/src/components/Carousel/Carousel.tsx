@@ -8,7 +8,7 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
-import type { CarouselItem as CarouselItemType } from "@/data/mockCarouselData";
+import type { CarouselItem as CarouselItemType } from "@/types/store";
 import { Icon } from "@/components/SvgIcons";
 import { CarouselItem } from "./CarouselItem";
 import styles from "./carousel.module.css";

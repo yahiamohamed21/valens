@@ -160,15 +160,11 @@ export interface Expense {
   id: string;
   title: string;
   category:
-    | "Product purchasing cost"
-    | "Shipping expenses"
-    | "Marketing and ads"
-    | "Packaging"
-    | "Website maintenance"
-    | "Staff salaries"
-    | "Storage / warehouse"
-    | "Delivery company fees"
-    | "Miscellaneous expenses";
+    | "Advertising"
+    | "Salaries"
+    | "Shipping"
+    | "Rent"
+    | "Other";
   amount: number;
   date: string;
   paymentMethod: string;
@@ -219,6 +215,18 @@ export interface HomeBanner {
   isActive: boolean;
   displayOrder: number;
   altText?: string;
+}
+
+export interface CarouselItem {
+  id: string;
+  title: string;
+  imageUrl: string;
+  imageAlt: string;
+  description?: string;
+  category?: string;
+  title_ar?: string;
+  category_ar?: string;
+  description_ar?: string;
 }
 
 export interface HomeStory {

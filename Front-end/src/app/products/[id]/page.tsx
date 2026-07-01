@@ -127,8 +127,8 @@ export default function ProductDetailsPage() {
 
   const product = localProduct || cachedProduct;
 
-  // Gallery tabs: "front", "label", "facts"
-  const [activeTab, setActiveTab] = useState<"front" | "label" | "facts">("front");
+  // Gallery tabs: "front", "label"
+  const [activeTab, setActiveTab] = useState<"front" | "label">("front");
   const [quantity, setQuantity] = useState(1);
   const [activeAccordion, setActiveAccordion] = useState<string>("benefits");
 
@@ -209,83 +209,18 @@ export default function ProductDetailsPage() {
     );
   }, [product, selectedSize, selectedFlavor]);
 
-  if (loadingDetails && !product) {
+  if (loadingDetails) {
     return (
-      <div className="flex min-h-screen flex-col bg-main-bg text-foreground font-sans">
+      <div className="flex min-h-screen flex-col bg-main-bg text-foreground font-sans animate-fade-in">
         <Navbar />
-        <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Back Link Skeleton */}
-          <div className="h-4 w-32 bg-surface-deep/40 rounded animate-pulse mb-8" />
-
-          {/* Product Split Columns Skeleton */}
-          <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 mb-16">
-            
-            {/* Left Column: Image Gallery & Facts */}
-            <div className="lg:col-span-6 flex flex-col gap-6">
-              <div className="relative rounded-3xl border border-border-color bg-card-bg/60 p-8 flex flex-col items-center justify-center min-h-[400px] overflow-hidden glass-panel animate-pulse">
-                <div className="h-80 w-56 bg-surface-deep/30 rounded-2xl" />
-              </div>
-
-              {/* Gallery tabs skeletons */}
-              <div className="flex justify-center gap-3 animate-pulse">
-                <div className="h-10 w-24 bg-surface-deep/40 rounded-xl" />
-                <div className="h-10 w-24 bg-surface-deep/40 rounded-xl" />
-                <div className="h-10 w-24 bg-surface-deep/40 rounded-xl" />
-              </div>
-            </div>
-
-            {/* Right Column: Product Info & Purchase Form */}
-            <div className="lg:col-span-6 flex flex-col gap-6">
-              <div className="flex flex-col gap-3 animate-pulse">
-                {/* Category Tag */}
-                <div className="h-4 w-20 bg-surface-deep/50 rounded" />
-                
-                {/* Product Title */}
-                <div className="h-10 w-3/4 bg-surface-deep/60 rounded" />
-                
-                {/* Ratings */}
-                <div className="flex items-center gap-1">
-                  <div className="flex gap-0.5">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="h-3 w-3 bg-surface-deep/40 rounded-full" />
-                    ))}
-                  </div>
-                  <div className="h-3 w-20 bg-surface-deep/40 rounded ml-2" />
-                </div>
-
-                {/* Price Tag */}
-                <div className="h-8 w-32 bg-primary-coral/10 dark:bg-primary-coral/20 rounded-lg mt-2" />
-              </div>
-
-              {/* Selector sections */}
-              <div className="border-t border-b border-border-color/30 py-6 flex flex-col gap-6 animate-pulse">
-                {/* Size Selectors */}
-                <div className="flex flex-col gap-2.5">
-                  <div className="h-3.5 w-16 bg-surface-deep/40 rounded" />
-                  <div className="flex gap-2">
-                    <div className="h-10 w-16 bg-surface-deep/30 rounded-xl" />
-                    <div className="h-10 w-16 bg-surface-deep/30 rounded-xl" />
-                  </div>
-                </div>
-
-                {/* Flavor Selectors */}
-                <div className="flex flex-col gap-2.5">
-                  <div className="h-3.5 w-20 bg-surface-deep/40 rounded" />
-                  <div className="flex gap-2">
-                    <div className="h-10 w-24 bg-surface-deep/30 rounded-xl" />
-                    <div className="h-10 w-24 bg-surface-deep/30 rounded-xl" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Quantity and Cart Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 animate-pulse">
-                <div className="h-14 w-32 bg-surface-deep/30 rounded-full" />
-                <div className="h-14 flex-1 bg-primary-coral/10 dark:bg-primary-coral/20 rounded-full" />
-              </div>
-            </div>
-
-          </div>
+        <main className="flex-1 flex flex-col items-center justify-center py-24 text-center">
+          <span className="h-10 w-10 animate-spin rounded-full border-4 border-primary-coral border-t-transparent inline-block mb-4 shadow-[0_0_15px_rgba(255,138,117,0.4)]" />
+          <h2 className="text-sm font-black uppercase tracking-widest text-white">
+            {locale === "ar" ? "جاري تحميل تفاصيل المنتج..." : "Loading Product Details..."}
+          </h2>
+          <p className="mt-2 text-4xs text-muted-text uppercase tracking-widest">
+            {locale === "ar" ? "جاري جلب أحدث المواصفات المخبرية" : "Fetching clinical specifications..."}
+          </p>
         </main>
         <Footer />
       </div>
@@ -306,7 +241,7 @@ export default function ProductDetailsPage() {
           </p>
           <Link
             href="/products"
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300"
           >
             RETURN TO SHOP
           </Link>
@@ -409,41 +344,7 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              {activeTab === "facts" && (
-                <div className="w-full max-w-sm border-2 border-white bg-black p-4 text-white text-left font-sans select-none">
-                  <div className="border-b-4 border-white pb-1">
-                    <h3 className="text-xl font-black uppercase leading-none tracking-tight">Supplement Facts</h3>
-                    <span className="text-3xs">Serving Size 1 Scoop ({product.size === "120 Capsules" || product.size === "90 Capsules" ? "3-4 Capsules" : "15-30g"})</span>
-                  </div>
-                  <div className="border-b-2 border-white text-3xs py-1 flex justify-between font-bold">
-                    <span>Amount Per Serving</span>
-                    <span>% Daily Value*</span>
-                  </div>
-                  <div className="border-b border-white py-1 flex justify-between text-2xs font-semibold">
-                    <span>Calories</span>
-                    <span>{product.category === "Protein" ? "120" : "15"}</span>
-                  </div>
-                  <div className="border-b border-white py-1 flex justify-between text-2xs">
-                    <span>Total Fat {product.category === "Protein" ? "0.5g" : "0g"}</span>
-                    <span>{product.category === "Protein" ? "1%" : "0%"}</span>
-                  </div>
-                  <div className="border-b border-white py-1 flex justify-between text-2xs">
-                    <span>Total Carbohydrates {product.category === "Protein" ? "1g" : "0g"}</span>
-                    <span>{product.category === "Protein" ? "<1%" : "0%"}</span>
-                  </div>
-                  <div className="border-b border-white py-1 flex justify-between text-2xs">
-                    <span>Sodium 120mg</span>
-                    <span>5%</span>
-                  </div>
-                  <div className="border-b-4 border-white py-1 flex justify-between text-2xs font-bold">
-                    <span>Protein {product.category === "Protein" ? "26g" : "0g"}</span>
-                    <span>{product.category === "Protein" ? "52%" : "0%"}</span>
-                  </div>
-                  <p className="text-4xs pt-2 leading-none">
-                    * Percent Daily Values are based on a 2,000 calorie diet. Your daily values may be higher or lower depending on your calorie needs.
-                  </p>
-                </div>
-              )}
+
             </div>
 
             {/* Custom Gallery Image Thumbnails */}
@@ -472,14 +373,13 @@ export default function ProductDetailsPage() {
               </div>
             )}
 
-            {/* Gallery Thumbnail Toggles */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => setActiveTab("front")}
                 className={`rounded-xl border p-3 text-xs font-bold uppercase tracking-wider transition-luxury flex flex-col items-center gap-1.5 ${
                   activeTab === "front"
                     ? "border-primary-coral bg-primary-coral/5 text-primary-coral"
-                    : "border-border-color bg-card-bg text-muted-text hover:text-gray-800"
+                    : "border-border-color bg-card-bg text-muted-text hover:text-primary-coral hover:border-primary-coral/40 dark:hover:text-white"
                 }`}
               >
                 <Icon name="box" size={14} />
@@ -490,22 +390,11 @@ export default function ProductDetailsPage() {
                 className={`rounded-xl border p-3 text-xs font-bold uppercase tracking-wider transition-luxury flex flex-col items-center gap-1.5 ${
                   activeTab === "label"
                     ? "border-primary-coral bg-primary-coral/5 text-primary-coral"
-                    : "border-border-color bg-card-bg text-muted-text hover:text-gray-800"
+                    : "border-border-color bg-card-bg text-muted-text hover:text-primary-coral hover:border-primary-coral/40 dark:hover:text-white"
                 }`}
               >
                 <Icon name="tag" size={14} />
                 Ingredients
-              </button>
-              <button
-                onClick={() => setActiveTab("facts")}
-                className={`rounded-xl border p-3 text-xs font-bold uppercase tracking-wider transition-luxury flex flex-col items-center gap-1.5 ${
-                  activeTab === "facts"
-                    ? "border-primary-coral bg-primary-coral/5 text-primary-coral"
-                    : "border-border-color bg-card-bg text-muted-text hover:text-gray-800"
-                }`}
-              >
-                <Icon name="report" size={14} />
-                Nutrition facts
               </button>
             </div>
           </div>
@@ -683,7 +572,7 @@ export default function ProductDetailsPage() {
                   className={`flex flex-1 items-center justify-center gap-2 rounded-full py-4 text-sm font-black tracking-widest transition-luxury shadow-xl ${
                     isOutOfStock
                       ? "bg-border-color text-muted-text cursor-not-allowed"
-                      : "bg-primary-coral text-main-bg hover:bg-white hover:scale-102 hover:shadow-[0_0_20px_rgba(255,138,117,0.3)]"
+                      : "bg-primary-coral text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 hover:shadow-[0_0_20px_rgba(255,255,255,0.45)] cursor-pointer"
                   }`}
                 >
                   <Icon name="cart" size={18} />
@@ -893,11 +782,9 @@ export default function ProductDetailsPage() {
                 <div key={prod.id} className="group relative flex flex-col rounded-2xl border border-border-color bg-card-bg p-4 transition-luxury hover:border-primary-coral/40 hover:bg-surface-sec">
                   <div className="mb-4 mt-2 h-44 overflow-hidden flex items-center justify-center bg-surface-deep/40 rounded-xl">
                     {prod.mainImage ? (
-                      <Image
+                      <img
                         src={prod.mainImage}
                         alt={prod.name}
-                        width={240}
-                        height={176}
                         className="h-full w-full object-contain"
                       />
                     ) : (

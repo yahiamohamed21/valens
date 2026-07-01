@@ -45,13 +45,13 @@ export default function CartPage() {
       discountAmount = activeCoupon.discountValue;
     }
   }
-
   // Shipping cost
-  const shippingCost = storeSettings.shippingCost;
+  const shippingCost = Number(storeSettings?.shippingCost) || 0;
 
   // Tax calculation
+  const taxRate = Number(storeSettings?.taxRate) || 0;
   const taxableAmount = Math.max(0, subtotal - discountAmount);
-  const taxAmount = (taxableAmount * storeSettings.taxRate) / 100;
+  const taxAmount = (taxableAmount * taxRate) / 100;
 
   // Final Total
   const finalTotal = taxableAmount + shippingCost + taxAmount;
@@ -212,7 +212,7 @@ export default function CartPage() {
 
                 {/* Tax */}
                 <div className="flex justify-between items-center text-xs text-white mb-4">
-                  <span>Sales Tax ({storeSettings.taxRate}%)</span>
+                  <span>Sales Tax ({storeSettings?.taxRate || 0}%)</span>
                   <span className="font-bold text-white">{taxAmount.toLocaleString()} EGP</span>
                 </div>
 

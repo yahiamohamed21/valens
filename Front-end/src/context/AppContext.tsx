@@ -43,6 +43,7 @@ import type {
   HomeStory,
   HomeCuratedProduct,
   OrderReturn,
+  CarouselItem,
 } from "@/types/store";
 
 export type {
@@ -61,6 +62,7 @@ export type {
   HomeStory,
   HomeCuratedProduct,
   OrderReturn,
+  CarouselItem,
 } from "@/types/store";
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -345,7 +347,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (data.categories) {
           setCategories(safeArray<Record<string, unknown>>(data.categories).map(mapApiCategoryToClient));
         }
-        const homeConfig = data.settings || data.Settings || data.homePageSettings || data.homepageConfig;
+        const homeConfig = (data.settings || data.Settings || data.homePageSettings || data.homepageConfig) as any;
         if (homeConfig) {
           setHomePageSettings({
             brandName: "Valens",
@@ -394,17 +396,17 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setHomePageSettings({
             brandName: "Valens",
             logoText: "VALENS",
-            heroTitle: homeConf.homepageHeroTitle || "FORGED IN SCIENCE, UNLEASHED IN PERFORMANCE",
-            heroSubtitle: homeConf.homepageHeroSubtitle || "Fuel your body with the highest quality formulations.",
-            heroCtaText: "SHOP PERFORMANCE",
-            heroCtaLink: "/products",
-            firstBannerTitle: homeConf.homepageHeroTitle || "Purity & Potency",
-            firstBannerSubtitle: homeConf.homepageHeroSubtitle || "Clinically dosed ingredients to elevate performance.",
-            firstBannerCtaText: "SHOP NOW",
-            promoBadge: homeConf.homepageDiscountBannerText || "VALENS LABS",
-            heroTitle_ar: homeConf.homepageHeroTitle_ar || homeConf.homepageHeroTitle || "مُصمم برؤية علمية، مُنفجر بقوة الأداء",
-            heroSubtitle_ar: homeConf.homepageHeroSubtitle_ar || homeConf.homepageHeroSubtitle || "ادعم جسمك بتركيبات عالية الجودة.",
-            promoBadge_ar: homeConf.homepageDiscountBannerText_ar || homeConf.homepageDiscountBannerText || "مختبرات فالنز"
+            heroTitle: homeConf.heroTitle || "FORGED IN SCIENCE, UNLEASHED IN PERFORMANCE",
+            heroSubtitle: homeConf.heroSubtitle || "Fuel your body with the highest quality formulations.",
+            heroCtaText: homeConf.heroCtaText || "SHOP PERFORMANCE",
+            heroCtaLink: homeConf.heroCtaLink || "/products",
+            firstBannerTitle: homeConf.firstBannerTitle || "Purity & Potency",
+            firstBannerSubtitle: homeConf.firstBannerSubtitle || "Clinically dosed ingredients to elevate performance.",
+            firstBannerCtaText: homeConf.firstBannerCtaText || "SHOP NOW",
+            promoBadge: homeConf.promoBadge || "VALENS LABS",
+            heroTitle_ar: homeConf.heroTitle_ar || homeConf.heroTitle || "مُصمم برؤية علمية، مُنفجر بقوة الأداء",
+            heroSubtitle_ar: homeConf.heroSubtitle_ar || homeConf.heroSubtitle || "ادعم جسمك بتركيبات عالية الجودة.",
+            promoBadge_ar: homeConf.promoBadge_ar || homeConf.promoBadge || "مختبرات فالنز"
           });
         }
       } catch (fallbackErr) {

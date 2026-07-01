@@ -227,7 +227,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg shadow-primary-coral/10"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 shadow-lg shadow-primary-coral/10 hover:scale-[1.01] cursor-pointer"
               >
                 AUTHENTICATE
                 <Icon name="lock" size={14} />
@@ -312,7 +312,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg shadow-primary-coral/10"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 shadow-lg shadow-primary-coral/10 hover:scale-[1.01] cursor-pointer"
               >
                 CREATE ELITE STACK
                 <Icon name="check" size={14} />
@@ -339,7 +339,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 hover:scale-[1.01] cursor-pointer"
               >
                 SEND RECOVERY LINK
               </button>
@@ -398,7 +398,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 shadow-lg hover:scale-[1.01] cursor-pointer"
               >
                 RESET CREDENTIALS
               </button>

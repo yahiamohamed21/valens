@@ -597,7 +597,7 @@ export default function AdminProductsPage() {
                   Product Management System v2.0
                 </span>
               </div>
-              <button onClick={() => setProductModalOpen(false)} className="p-2 text-muted-text hover:text-white transition-colors">
+              <button onClick={() => setProductModalOpen(false)} className="p-2 text-muted-text hover:text-primary-coral dark:hover:text-white transition-colors cursor-pointer">
                 <Icon name="close" size={20} />
               </button>
             </div>

@@ -131,7 +131,7 @@ export default function UserDashboard() {
           </p>
           <button
             onClick={() => router.push("/login")}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 cursor-pointer"
           >
             LOG IN PAGE
           </button>
@@ -368,7 +368,7 @@ export default function UserDashboard() {
                   <div className="flex gap-3 mt-2">
                     <button
                       type="submit"
-                      className="flex-1 rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-main-bg hover:bg-white transition-all duration-300 uppercase cursor-pointer"
+                      className="flex-1 rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 uppercase cursor-pointer"
                     >
                       SAVE PROFILE
                     </button>
@@ -481,7 +481,7 @@ export default function UserDashboard() {
                     <button
                       type="submit"
                       disabled={passwordLoading}
-                      className="flex-1 rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-main-bg hover:bg-white transition-all duration-300 uppercase cursor-pointer disabled:opacity-50"
+                      className="flex-1 rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 uppercase cursor-pointer disabled:opacity-50"
                     >
                       {passwordLoading ? "SAVING..." : "UPDATE"}
                     </button>
@@ -528,7 +528,7 @@ export default function UserDashboard() {
                   </p>
                   <button
                     onClick={() => router.push("/products")}
-                    className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white cursor-pointer"
+                    className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 cursor-pointer"
                   >
                     SHOP SUPPLEMENTS
                   </button>

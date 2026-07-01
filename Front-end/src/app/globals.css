@@ -94,6 +94,15 @@
   color: rgb(var(--rt-foreground)) !important;
 }
 
+/* Dark mode hover text-gray-800 override: prevent text from disappearing in dark mode */
+[data-theme="dark"] .hover\:text-gray-800:hover,
+[data-theme="dark"] .hover\:text-gray-800:focus {
+  color: rgb(var(--rt-foreground)) !important;
+}
+[data-theme="dark"] .group:hover .group-hover\:text-gray-800 {
+  color: rgb(var(--rt-foreground)) !important;
+}
+
 /* Elements that MUST stay white text in light mode (inside colored/dark backgrounds) */
 [data-theme="light"] .bg-accent-orange .text-white,
 [data-theme="light"] .bg-accent-orange\/90 .text-white,

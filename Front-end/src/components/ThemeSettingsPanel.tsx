@@ -71,7 +71,7 @@ export const ThemeSettingsPanel = () => {
                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                   locale === "en"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-gray-800"
+                    : "text-muted-text hover:text-primary-coral dark:hover:text-white"
                 }`}
               >
                 <span>🇺🇸</span> EN
@@ -81,7 +81,7 @@ export const ThemeSettingsPanel = () => {
                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                   locale === "ar"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-gray-800"
+                    : "text-muted-text hover:text-primary-coral dark:hover:text-white"
                 }`}
               >
                 <span>🇪🇬</span> AR
@@ -100,7 +100,7 @@ export const ThemeSettingsPanel = () => {
                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                   theme.mode === "dark"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-gray-800"
+                    : "text-muted-text hover:text-primary-coral dark:hover:text-white"
                 }`}
               >
                 {locale === "ar" ? "داكن" : "Dark"}
@@ -110,7 +110,7 @@ export const ThemeSettingsPanel = () => {
                 className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                   theme.mode === "light"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-gray-800"
+                    : "text-muted-text hover:text-primary-coral dark:hover:text-white"
                 }`}
               >
                 {locale === "ar" ? "فاتح" : "Light"}
@@ -196,7 +196,7 @@ export const ThemeSettingsPanel = () => {
           </p>
           <button
             onClick={resetToDefault}
-            className="w-full rounded-xl border border-border-color bg-surface-sec py-3 text-xs font-bold uppercase tracking-widest text-white transition-all hover:border-primary-coral hover:text-gray-800 cursor-pointer"
+            className="w-full rounded-xl border border-border-color bg-surface-sec py-3 text-xs font-bold uppercase tracking-widest text-white transition-all hover:border-primary-coral hover:text-primary-coral dark:hover:text-white cursor-pointer"
           >
             {locale === "ar" ? "إعادة الضبط الافتراضي" : "Reset to Default"}
           </button>

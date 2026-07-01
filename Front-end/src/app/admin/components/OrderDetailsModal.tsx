@@ -34,6 +34,11 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [returnNotes, setReturnNotes] = useState("");
   const [isStockRestored, setIsStockRestored] = useState(true);
   const [itemReturns, setItemReturns] = useState<Record<string, { checked: boolean; quantity: number }>>({});
+  const [selectedStatus, setSelectedStatus] = useState<Order["status"]>(order.status);
+
+  useEffect(() => {
+    setSelectedStatus(order.status);
+  }, [order.id, order.status]);
 
   const handleRefundChange = (val: string) => {
     setRefundAmount(parseFloat(val) || 0);
@@ -253,7 +258,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               <button
                 type="submit"
                 disabled={isSaving}
-                className="flex-1 rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-main-bg hover:bg-white transition-all duration-300 uppercase cursor-pointer disabled:opacity-50"
+                className="flex-1 rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 uppercase cursor-pointer disabled:opacity-50"
               >
                 {isSaving ? "SAVING..." : "SAVE DETAILS"}
               </button>
@@ -393,14 +398,11 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               Change status:
             </span>
             <select
-              value={order.status}
+              value={selectedStatus}
               disabled={isEditing}
               onChange={(e) => {
                 const newStatus = e.target.value as Order["status"];
-                updateOrderStatus(order.id, newStatus);
-                if (onUpdateLocalOrder) {
-                  onUpdateLocalOrder({ ...order, status: newStatus });
-                }
+                setSelectedStatus(newStatus);
               }}
               className="rounded-lg border border-border-color bg-surface-deep px-2.5 py-1 text-3xs font-bold text-white uppercase disabled:opacity-50"
             >
@@ -415,7 +417,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </select>
           </div>
 
-          {order.status !== "Returned" && order.status !== "Cancelled" && order.status !== "Rejected" && (
+          {selectedStatus === "Returned" && order.status !== "Returned" && (
             <button
               onClick={() => setIsReturnModalOpen(true)}
               className="rounded-full bg-primary-coral px-5 py-2.5 text-2xs font-extrabold text-main-bg hover:bg-white transition-all cursor-pointer"
@@ -424,9 +426,23 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
             </button>
           )}
 
+          {selectedStatus !== order.status && selectedStatus !== "Returned" && (
+            <button
+              onClick={async () => {
+                updateOrderStatus(order.id, selectedStatus);
+                if (onUpdateLocalOrder) {
+                  onUpdateLocalOrder({ ...order, status: selectedStatus });
+                }
+              }}
+              className="rounded-full bg-success-green px-5 py-2.5 text-2xs font-extrabold text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 cursor-pointer"
+            >
+              UPDATE STATUS
+            </button>
+          )}
+
           <button
             onClick={onClose}
-            className="rounded-full border border-border-color bg-surface-deep px-5 py-2.5 text-2xs font-extrabold text-white hover:text-gray-800"
+            className="rounded-full border border-border-color bg-surface-deep px-5 py-2.5 text-2xs font-extrabold text-[#180f0d] dark:text-white hover:bg-white hover:text-[#180f0d] transition-all duration-300 cursor-pointer"
           >
             CLOSE LEDGER
           </button>
@@ -439,7 +455,10 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           <div className="w-full max-w-lg rounded-3xl border border-border-color bg-card-bg p-6 shadow-2xl animate-slide-in relative text-left">
             <button
               type="button"
-              onClick={() => setIsReturnModalOpen(false)}
+              onClick={() => {
+                setIsReturnModalOpen(false);
+                setSelectedStatus(order.status);
+              }}
               className="absolute right-4 top-4 text-muted-text hover:text-gray-800"
             >
               <Icon name="close" size={20} />
@@ -583,7 +602,10 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setIsReturnModalOpen(false)}
+                onClick={() => {
+                  setIsReturnModalOpen(false);
+                  setSelectedStatus(order.status);
+                }}
                 className="flex-1 rounded-full border border-border-color bg-surface-deep/60 py-3 text-3xs font-black tracking-widest text-white hover:border-primary-coral transition-all cursor-pointer uppercase"
               >
                 Cancel

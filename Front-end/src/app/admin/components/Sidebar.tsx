@@ -23,6 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen })
     { id: "homepage", label: "Home Control", icon: "edit" },
     { id: "coupons", label: "Coupons", icon: "tag" },
     { id: "reviews", label: "Reviews", icon: "star" },
+    { id: "messages", label: "Messages", icon: "mail" },
     { id: "expenses", label: "Expenses", icon: "expense" },
     { id: "reports", label: "Reports", icon: "report" },
     { id: "goverment", label: "Goverment", icon: "location" },
@@ -40,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ sidebarOpen, setSidebarOpen })
       case "homepage": return "التحكم بالرئيسية";
       case "coupons": return "الكوبونات";
       case "reviews": return "المراجعات";
+      case "messages": return "الرسائل";
       case "expenses": return "المصاريف";
       case "reports": return "التقارير";
       case "goverment": return "المحافظات";

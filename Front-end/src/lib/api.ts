@@ -293,16 +293,13 @@ const orderStatuses = [
   "Returned",
 ] as const;
 const expenseCategories = [
-  "Product purchasing cost",
-  "Shipping expenses",
-  "Marketing and ads",
-  "Packaging",
-  "Website maintenance",
-  "Staff salaries",
-  "Storage / warehouse",
-  "Delivery company fees",
-  "Miscellaneous expenses",
+  "Advertising",
+  "Salaries",
+  "Shipping",
+  "Rent",
+  "Other",
 ] as const;
+
 const couponDiscountTypes = ["percentage", "fixed"] as const;
 
 const isProductImageType = (value: unknown): value is Product["imageType"] =>

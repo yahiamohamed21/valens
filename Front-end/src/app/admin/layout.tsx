@@ -59,6 +59,7 @@ export default function AdminLayout({
     if (lastSegment === "customers") return locale === "ar" ? "العملاء" : "CUSTOMERS";
     if (lastSegment === "coupons") return locale === "ar" ? "الكوبونات" : "COUPONS";
     if (lastSegment === "expenses") return locale === "ar" ? "المصاريف" : "EXPENSES";
+    if (lastSegment === "messages") return locale === "ar" ? "الرسائل" : "MESSAGES";
     if (lastSegment === "reports") return locale === "ar" ? "التقارير" : "REPORTS";
     if (lastSegment === "goverment") return locale === "ar" ? "المحافظات" : "GOVERNORATES";
     if (lastSegment === "settings") return locale === "ar" ? "الإعدادات" : "SETTINGS";

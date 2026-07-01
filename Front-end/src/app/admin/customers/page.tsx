@@ -145,7 +145,7 @@ export default function AdminCustomersPage() {
                 setSelectedCustomerId(null);
                 setCustomerDetails(null);
               }}
-              className="absolute right-4 top-4 text-muted-text hover:text-white"
+              className="absolute right-4 top-4 text-muted-text hover:text-primary-coral dark:hover:text-white cursor-pointer"
             >
               <Icon name="close" size={20} />
             </button>
@@ -273,7 +273,7 @@ export default function AdminCustomersPage() {
                     setSelectedCustomerId(null);
                     setCustomerDetails(null);
                   }}
-                  className="mt-6 w-full rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-main-bg hover:bg-white transition-all duration-300 uppercase"
+                  className="mt-6 w-full rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 uppercase cursor-pointer"
                 >
                   {locale === "ar" ? "إغلاق السجل" : "CLOSE LEDGER"}
                 </button>

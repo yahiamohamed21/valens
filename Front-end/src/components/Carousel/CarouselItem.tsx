@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { memo } from "react";
-import type { CarouselItem as CarouselItemType } from "@/data/mockCarouselData";
+import type { CarouselItem as CarouselItemType } from "@/types/store";
 
 type CarouselItemProps = {
   item: CarouselItemType;

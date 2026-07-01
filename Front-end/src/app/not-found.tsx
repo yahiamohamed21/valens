@@ -13,10 +13,9 @@ export default function NotFound() {
       <p className="mt-2 text-xs text-muted-text max-w-xs leading-relaxed uppercase tracking-wider font-semibold">
         The segment or page you are requesting could not be located in the Valens database index.
       </p>
-      
       <Link
         href="/"
-        className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg shadow-primary-coral/10 hover:scale-102"
+        className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 shadow-lg shadow-primary-coral/10 hover:scale-102 cursor-pointer"
       >
         RETURN TO LAB
       </Link>

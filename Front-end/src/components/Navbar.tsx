@@ -46,12 +46,6 @@ export const Navbar: React.FC = () => {
               {t("storefront.navbar.products")}
             </Link>
             <Link
-              href="/#science"
-              className="text-sm font-semibold tracking-wide text-foreground hover:text-primary-coral transition-luxury"
-            >
-              {locale === "ar" ? "الأبحاث العلمية" : "Science"}
-            </Link>
-            <Link
               href="/about"
               className="text-sm font-semibold tracking-wide text-foreground hover:text-primary-coral transition-luxury"
             >

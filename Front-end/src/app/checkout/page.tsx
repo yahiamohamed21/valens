@@ -108,18 +108,17 @@ export default function CheckoutPage() {
       discountAmount = activeCoupon.discountValue;
     }
   }
-
   // Shipping Fee
   const selectedGov = governorates.find(g => g.governorateName.toLowerCase() === city.toLowerCase());
-  const shippingCost = selectedGov ? selectedGov.shippingCost : storeSettings.shippingCost;
+  const shippingCost = selectedGov ? selectedGov.shippingCost : (Number(storeSettings?.shippingCost) || 0);
 
   // Tax
+  const taxRate = Number(storeSettings?.taxRate) || 0;
   const taxableAmount = Math.max(0, subtotal - discountAmount);
-  const taxAmount = (taxableAmount * storeSettings.taxRate) / 100;
+  const taxAmount = (taxableAmount * taxRate) / 100;
 
   // Grand Total
   const finalTotal = taxableAmount + shippingCost + taxAmount;
-
   // Resolve calculations (Use server-side preview calculations if available, otherwise fallback to local math)
   const subtotalVal = previewSubtotal !== null ? previewSubtotal : subtotal;
   const discountVal = previewDiscountAmount !== null ? previewDiscountAmount : discountAmount;
@@ -247,7 +246,7 @@ export default function CheckoutPage() {
           </p>
           <Link
             href="/products"
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300"
           >
             CATALOG SHOP
           </Link>
@@ -459,7 +458,7 @@ export default function CheckoutPage() {
               </div>
               {taxVal > 0 && (
                 <div className="flex justify-between items-center text-2xs text-white mb-4">
-                  <span>Sales Tax ({storeSettings.taxRate}%)</span>
+                  <span>Sales Tax ({storeSettings?.taxRate || 0}%)</span>
                   <span className="font-bold text-white">{taxVal.toLocaleString()} EGP</span>
                 </div>
               )}
@@ -478,7 +477,7 @@ export default function CheckoutPage() {
               {/* Submit trigger button */}
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-4 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg shadow-primary-coral/10"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-4 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 shadow-lg shadow-primary-coral/10 hover:scale-[1.02] cursor-pointer"
               >
                 PLACE SECURE ORDER
                 <Icon name="check" size={14} />
@@ -538,7 +537,7 @@ export default function CheckoutPage() {
                     setPlacedOrder(null);
                     router.push("/dashboard");
                   }}
-                  className="rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury cursor-pointer"
+                  className="rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 cursor-pointer"
                 >
                   GO TO MY DASHBOARD
                 </button>
