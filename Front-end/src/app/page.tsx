@@ -30,11 +30,19 @@ export default function Home() {
 
   // Filter products for homepage sections
   const featuredProducts = homeFeaturedProducts.length > 0
-    ? homeFeaturedProducts.map(fp => fp.product).filter(Boolean) as Product[]
+    ? homeFeaturedProducts
+        .filter(fp => fp.isActive)
+        .sort((a, b) => a.displayOrder - b.displayOrder)
+        .map(fp => products.find(p => p.id === fp.productId))
+        .filter(Boolean) as Product[]
     : products.filter((p) => p.featured && p.visible).slice(0, 4);
 
   const bestSellers = homeBestSellers.length > 0
-    ? homeBestSellers.map(bp => bp.product).filter(Boolean) as Product[]
+    ? homeBestSellers
+        .filter(bp => bp.isActive)
+        .sort((a, b) => a.displayOrder - b.displayOrder)
+        .map(bp => products.find(p => p.id === bp.productId))
+        .filter(Boolean) as Product[]
     : products.filter((p) => p.bestSeller && p.visible).slice(0, 4);
 
   const heroTitleText = activeBanner 
