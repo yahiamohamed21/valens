@@ -851,21 +851,6 @@ export default function ProductDetailsPage() {
                       />
                     </div>
 
-                    {/* Email Input */}
-                    <div>
-                      <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
-                        {locale === "ar" ? "البريد الإلكتروني" : "Email Address"}
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        readOnly
-                        value={reviewEmail}
-                        placeholder={locale === "ar" ? "البريد الإلكتروني" : "Email Address"}
-                        className="w-full rounded-xl border border-border-color/50 bg-surface-deep/30 px-4 py-2.5 text-xs text-muted-text focus:outline-none cursor-not-allowed opacity-80"
-                      />
-                    </div>
-
                     {/* Comment Input */}
                     <div>
                       <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
