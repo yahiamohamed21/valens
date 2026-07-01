@@ -1,0 +1,32 @@
+.carousel {
+  --swiper-pagination-color: rgb(var(--rt-primary));
+  --swiper-pagination-bullet-inactive-color: #8d7b73;
+  --swiper-pagination-bullet-inactive-opacity: 0.45;
+  --swiper-pagination-bullet-size: 8px;
+  --swiper-pagination-bullet-horizontal-gap: 5px;
+}
+
+.carousel :global(.swiper) {
+  overflow: visible;
+  padding-bottom: 42px;
+}
+
+.carousel :global(.swiper-slide) {
+  height: auto;
+}
+
+.carousel :global(.swiper-pagination) {
+  bottom: 0;
+}
+
+.carousel :global(.swiper-pagination-bullet) {
+  transition:
+    width 200ms ease,
+    opacity 200ms ease,
+    background-color 200ms ease;
+}
+
+.carousel :global(.swiper-pagination-bullet-active) {
+  width: 24px;
+  border-radius: 999px;
+}
