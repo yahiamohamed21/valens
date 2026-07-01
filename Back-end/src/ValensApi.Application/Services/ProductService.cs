@@ -106,308 +106,314 @@ public class ProductService : IProductService
 
     public async Task<Product> CreateAsync(ProductUpsertDto dto)
     {
-        var categoryName = dto.Category.Trim();
-        var categoryList = await _unitOfWork.Categories.FindAsync(c => c.Name.ToLower() == categoryName.ToLower());
-        var category = categoryList.FirstOrDefault();
-
-        if (category == null)
+        return await _unitOfWork.ExecuteInTransactionAsync<Product>(async () =>
         {
-            category = new Category { Name = categoryName, IsActive = true };
-            await _unitOfWork.Categories.AddAsync(category);
+            var categoryName = dto.Category.Trim();
+            var categoryList = await _unitOfWork.Categories.FindAsync(c => c.Name.ToLower() == categoryName.ToLower());
+            var category = categoryList.FirstOrDefault();
+
+            if (category == null)
+            {
+                category = new Category { Name = categoryName, IsActive = true };
+                await _unitOfWork.Categories.AddAsync(category);
+                await _unitOfWork.SaveChangesAsync();
+            }
+            else if (!category.IsActive)
+            {
+                throw new ArgumentException($"The category '{category.Name}' is hidden/inactive. You cannot assign products to it.");
+            }
+
+            string mainImage = "";
+            if (dto.MainImageFile != null)
+            {
+                if (!_fileStorageService.IsValidImage(dto.MainImageFile, out var error))
+                    throw new ArgumentException($"Main image: {error}");
+                mainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads/products");
+            }
+            else
+            {
+                mainImage = SaveBase64Image(dto.MainImage, "products");
+            }
+
+            var galleryImages = new List<string>();
+            if (dto.ImageFiles != null && dto.ImageFiles.Count > 0)
+            {
+                foreach (var file in dto.ImageFiles)
+                {
+                    if (!_fileStorageService.IsValidImage(file, out var error))
+                        throw new ArgumentException($"Gallery image: {error}");
+                    var url = await _fileStorageService.SaveFileAsync(file, "uploads/products");
+                    if (!string.IsNullOrEmpty(url))
+                        galleryImages.Add(url);
+                }
+            }
+            if (dto.Images != null && dto.Images.Count > 0)
+            {
+                foreach (var imgStr in dto.Images)
+                {
+                    var url = SaveBase64Image(imgStr, "products");
+                    if (!string.IsNullOrEmpty(url) && !galleryImages.Contains(url))
+                        galleryImages.Add(url);
+                }
+            }
+
+            var product = new Product
+            {
+                Name = dto.Name,
+                NameAr = dto.NameAr,
+                Description = dto.Description,
+                DescriptionAr = dto.DescriptionAr,
+                CategoryId = category.Id,
+                CategoryName = category.Name,
+                Featured = dto.Featured,
+                BestSeller = dto.BestSeller,
+                NewArrival = dto.NewArrival,
+                Visible = dto.Visible,
+                VariantType = dto.VariantType,
+                Price = dto.Price,
+                DiscountPrice = dto.DiscountPrice,
+                Size = dto.Size,
+                Stock = dto.Stock,
+                Sku = dto.Sku,
+                MainImage = mainImage,
+                Images = galleryImages,
+                Ingredients = dto.Ingredients,
+                IngredientsAr = dto.IngredientsAr,
+                Usage = dto.Usage,
+                UsageAr = dto.UsageAr,
+                Benefits = dto.Benefits,
+                BenefitsAr = dto.BenefitsAr,
+                ImageType = dto.ImageType,
+                ImageColor = dto.ImageColor
+            };
+
+            if (dto.VariantType != "none" && dto.Variants != null)
+            {
+                foreach (var vDto in dto.Variants)
+                {
+                    if (vDto == null) continue;
+                    string variantImage = "";
+                    if (vDto.ImageFile != null)
+                    {
+                        if (!_fileStorageService.IsValidImage(vDto.ImageFile, out var error))
+                            throw new ArgumentException($"Variant image: {error}");
+                        variantImage = await _fileStorageService.SaveFileAsync(vDto.ImageFile, "uploads/variants");
+                    }
+                    else
+                    {
+                        variantImage = SaveBase64Image(vDto.Image, "variants");
+                    }
+
+                    var variant = new ProductVariant
+                    {
+                        VariantId = string.IsNullOrEmpty(vDto.Id) ? "var-" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() : vDto.Id,
+                        Size = vDto.Size,
+                        Flavor = vDto.Flavor,
+                        Price = vDto.Price,
+                        DiscountPrice = vDto.DiscountPrice,
+                        StockQuantity = vDto.StockQuantity,
+                        Sku = vDto.Sku,
+                        Image = variantImage,
+                        IsAvailable = vDto.IsAvailable
+                    };
+                    product.Variants.Add(variant);
+                }
+            }
+
+            await _unitOfWork.Products.AddAsync(product);
             await _unitOfWork.SaveChangesAsync();
-        }
-        else if (!category.IsActive)
-        {
-            throw new ArgumentException($"The category '{category.Name}' is hidden/inactive. You cannot assign products to it.");
-        }
-
-        string mainImage = "";
-        if (dto.MainImageFile != null)
-        {
-            if (!_fileStorageService.IsValidImage(dto.MainImageFile, out var error))
-                throw new ArgumentException($"Main image: {error}");
-            mainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads/products");
-        }
-        else
-        {
-            mainImage = SaveBase64Image(dto.MainImage, "products");
-        }
-
-        var galleryImages = new List<string>();
-        if (dto.ImageFiles != null && dto.ImageFiles.Count > 0)
-        {
-            foreach (var file in dto.ImageFiles)
-            {
-                if (!_fileStorageService.IsValidImage(file, out var error))
-                    throw new ArgumentException($"Gallery image: {error}");
-                var url = await _fileStorageService.SaveFileAsync(file, "uploads/products");
-                if (!string.IsNullOrEmpty(url))
-                    galleryImages.Add(url);
-            }
-        }
-        if (dto.Images != null && dto.Images.Count > 0)
-        {
-            foreach (var imgStr in dto.Images)
-            {
-                var url = SaveBase64Image(imgStr, "products");
-                if (!string.IsNullOrEmpty(url) && !galleryImages.Contains(url))
-                    galleryImages.Add(url);
-            }
-        }
-
-        var product = new Product
-        {
-            Name = dto.Name,
-            NameAr = dto.NameAr,
-            Description = dto.Description,
-            DescriptionAr = dto.DescriptionAr,
-            CategoryId = category.Id,
-            CategoryName = category.Name,
-            Featured = dto.Featured,
-            BestSeller = dto.BestSeller,
-            NewArrival = dto.NewArrival,
-            Visible = dto.Visible,
-            VariantType = dto.VariantType,
-            Price = dto.Price,
-            DiscountPrice = dto.DiscountPrice,
-            Size = dto.Size,
-            Stock = dto.Stock,
-            Sku = dto.Sku,
-            MainImage = mainImage,
-            Images = galleryImages,
-            Ingredients = dto.Ingredients,
-            IngredientsAr = dto.IngredientsAr,
-            Usage = dto.Usage,
-            UsageAr = dto.UsageAr,
-            Benefits = dto.Benefits,
-            BenefitsAr = dto.BenefitsAr,
-            ImageType = dto.ImageType,
-            ImageColor = dto.ImageColor
-        };
-
-        if (dto.VariantType != "none" && dto.Variants != null)
-        {
-            foreach (var vDto in dto.Variants)
-            {
-                if (vDto == null) continue;
-                string variantImage = "";
-                if (vDto.ImageFile != null)
-                {
-                    if (!_fileStorageService.IsValidImage(vDto.ImageFile, out var error))
-                        throw new ArgumentException($"Variant image: {error}");
-                    variantImage = await _fileStorageService.SaveFileAsync(vDto.ImageFile, "uploads/variants");
-                }
-                else
-                {
-                    variantImage = SaveBase64Image(vDto.Image, "variants");
-                }
-
-                var variant = new ProductVariant
-                {
-                    VariantId = string.IsNullOrEmpty(vDto.Id) ? "var-" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() : vDto.Id,
-                    Size = vDto.Size,
-                    Flavor = vDto.Flavor,
-                    Price = vDto.Price,
-                    DiscountPrice = vDto.DiscountPrice,
-                    StockQuantity = vDto.StockQuantity,
-                    Sku = vDto.Sku,
-                    Image = variantImage,
-                    IsAvailable = vDto.IsAvailable
-                };
-                product.Variants.Add(variant);
-            }
-        }
-
-        await _unitOfWork.Products.AddAsync(product);
-        await _unitOfWork.SaveChangesAsync();
-        FormatProductUrls(product);
-        return product;
+            FormatProductUrls(product);
+            return product;
+        });
     }
 
     public async Task<bool> UpdateAsync(Guid id, ProductUpsertDto dto)
     {
-        var product = await _unitOfWork.Products.GetQueryable()
-            .Include(p => p.Variants)
-            .FirstOrDefaultAsync(p => p.Id == id);
-
-        if (product == null)
+        return await _unitOfWork.ExecuteInTransactionAsync<bool>(async () =>
         {
-            return false;
-        }
+            var product = await _unitOfWork.Products.GetQueryable()
+                .Include(p => p.Variants)
+                .FirstOrDefaultAsync(p => p.Id == id);
 
-        var categoryName = dto.Category.Trim();
-        var categoryList = await _unitOfWork.Categories.FindAsync(c => c.Name.ToLower() == categoryName.ToLower());
-        var category = categoryList.FirstOrDefault();
-
-        if (category == null)
-        {
-            category = new Category { Name = categoryName, IsActive = true };
-            await _unitOfWork.Categories.AddAsync(category);
-            await _unitOfWork.SaveChangesAsync();
-        }
-        else if (!category.IsActive)
-        {
-            throw new ArgumentException($"The category '{category.Name}' is hidden/inactive. You cannot assign products to it.");
-        }
-
-        // Handle Main Image update & deletion
-        string mainImage = product.MainImage;
-        if (dto.MainImageFile != null)
-        {
-            if (!_fileStorageService.IsValidImage(dto.MainImageFile, out var error))
-                throw new ArgumentException($"Main image: {error}");
-            string newMainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads/products");
-            if (!string.IsNullOrEmpty(product.MainImage))
+            if (product == null)
             {
-                _fileStorageService.DeleteFile(product.MainImage);
+                return false;
             }
-            mainImage = newMainImage;
-        }
-        else if (!string.IsNullOrEmpty(dto.MainImage))
-        {
-            string processedImage = SaveBase64Image(dto.MainImage, "products");
-            if (processedImage != product.MainImage)
+
+            var categoryName = dto.Category.Trim();
+            var categoryList = await _unitOfWork.Categories.FindAsync(c => c.Name.ToLower() == categoryName.ToLower());
+            var category = categoryList.FirstOrDefault();
+
+            if (category == null)
             {
+                category = new Category { Name = categoryName, IsActive = true };
+                await _unitOfWork.Categories.AddAsync(category);
+                await _unitOfWork.SaveChangesAsync();
+            }
+            else if (!category.IsActive)
+            {
+                throw new ArgumentException($"The category '{category.Name}' is hidden/inactive. You cannot assign products to it.");
+            }
+
+            // Handle Main Image update & deletion
+            string mainImage = product.MainImage;
+            if (dto.MainImageFile != null)
+            {
+                if (!_fileStorageService.IsValidImage(dto.MainImageFile, out var error))
+                    throw new ArgumentException($"Main image: {error}");
+                string newMainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads/products");
                 if (!string.IsNullOrEmpty(product.MainImage))
                 {
                     _fileStorageService.DeleteFile(product.MainImage);
                 }
-                mainImage = processedImage;
+                mainImage = newMainImage;
             }
-        }
-
-        // Handle Gallery Images update & deletion
-        var newGalleryUrls = new List<string>();
-        if (dto.ExistingImages != null)
-        {
-            newGalleryUrls.AddRange(dto.ExistingImages.Where(url => !string.IsNullOrEmpty(url)));
-        }
-
-        if (dto.ImageFiles != null && dto.ImageFiles.Count > 0)
-        {
-            foreach (var file in dto.ImageFiles)
+            else if (!string.IsNullOrEmpty(dto.MainImage))
             {
-                if (!_fileStorageService.IsValidImage(file, out var error))
-                    throw new ArgumentException($"Gallery image: {error}");
-                var url = await _fileStorageService.SaveFileAsync(file, "uploads/products");
-                if (!string.IsNullOrEmpty(url))
-                    newGalleryUrls.Add(url);
-            }
-        }
-
-        if (dto.Images != null && dto.Images.Count > 0)
-        {
-            foreach (var imgStr in dto.Images)
-            {
-                if (imgStr.StartsWith("http") || imgStr.StartsWith("/uploads"))
+                string processedImage = SaveBase64Image(dto.MainImage, "products");
+                if (processedImage != product.MainImage)
                 {
-                    if (!newGalleryUrls.Contains(imgStr))
-                        newGalleryUrls.Add(imgStr);
+                    if (!string.IsNullOrEmpty(product.MainImage))
+                    {
+                        _fileStorageService.DeleteFile(product.MainImage);
+                    }
+                    mainImage = processedImage;
                 }
-                else
+            }
+
+            // Handle Gallery Images update & deletion
+            var newGalleryUrls = new List<string>();
+            if (dto.ExistingImages != null)
+            {
+                newGalleryUrls.AddRange(dto.ExistingImages.Where(url => !string.IsNullOrEmpty(url)));
+            }
+
+            if (dto.ImageFiles != null && dto.ImageFiles.Count > 0)
+            {
+                foreach (var file in dto.ImageFiles)
                 {
-                    var url = SaveBase64Image(imgStr, "products");
-                    if (!string.IsNullOrEmpty(url) && !newGalleryUrls.Contains(url))
+                    if (!_fileStorageService.IsValidImage(file, out var error))
+                        throw new ArgumentException($"Gallery image: {error}");
+                    var url = await _fileStorageService.SaveFileAsync(file, "uploads/products");
+                    if (!string.IsNullOrEmpty(url))
                         newGalleryUrls.Add(url);
                 }
             }
-        }
 
-        // Clean up old gallery images that are no longer kept
-        var imagesToDelete = product.Images.Except(newGalleryUrls).ToList();
-        foreach (var oldImg in imagesToDelete)
-        {
-            _fileStorageService.DeleteFile(oldImg);
-        }
-
-        product.Name = dto.Name;
-        product.NameAr = dto.NameAr;
-        product.Description = dto.Description;
-        product.DescriptionAr = dto.DescriptionAr;
-        product.CategoryId = category.Id;
-        product.CategoryName = category.Name;
-        product.Featured = dto.Featured;
-        product.BestSeller = dto.BestSeller;
-        product.NewArrival = dto.NewArrival;
-        product.Visible = dto.Visible;
-        product.VariantType = dto.VariantType;
-        product.Price = dto.Price;
-        product.DiscountPrice = dto.DiscountPrice;
-        product.Size = dto.Size;
-        product.Stock = dto.Stock;
-        product.Sku = dto.Sku;
-        product.MainImage = mainImage;
-        product.Images = newGalleryUrls;
-        product.Ingredients = dto.Ingredients;
-        product.IngredientsAr = dto.IngredientsAr;
-        product.Usage = dto.Usage;
-        product.UsageAr = dto.UsageAr;
-        product.Benefits = dto.Benefits;
-        product.BenefitsAr = dto.BenefitsAr;
-        product.ImageType = dto.ImageType;
-        product.ImageColor = dto.ImageColor;
-
-        // Collect old variant images for cleanup
-        var existingVariants = await _unitOfWork.ProductVariants.FindAsync(v => v.ProductId == id);
-        var oldVariantImages = existingVariants.Select(v => v.Image).Where(img => !string.IsNullOrEmpty(img)).ToList();
-
-        // Remove variants
-        foreach (var ev in existingVariants)
-        {
-            _unitOfWork.ProductVariants.Delete(ev);
-        }
-
-        var newVariantImages = new List<string>();
-        if (dto.VariantType != "none" && dto.Variants != null)
-        {
-            foreach (var vDto in dto.Variants)
+            if (dto.Images != null && dto.Images.Count > 0)
             {
-                if (vDto == null) continue;
-                string variantImage = "";
-                if (vDto.ImageFile != null)
+                foreach (var imgStr in dto.Images)
                 {
-                    if (!_fileStorageService.IsValidImage(vDto.ImageFile, out var error))
-                        throw new ArgumentException($"Variant image: {error}");
-                    variantImage = await _fileStorageService.SaveFileAsync(vDto.ImageFile, "uploads/variants");
+                    if (imgStr.StartsWith("http") || imgStr.StartsWith("/uploads"))
+                    {
+                        if (!newGalleryUrls.Contains(imgStr))
+                            newGalleryUrls.Add(imgStr);
+                    }
+                    else
+                    {
+                        var url = SaveBase64Image(imgStr, "products");
+                        if (!string.IsNullOrEmpty(url) && !newGalleryUrls.Contains(url))
+                            newGalleryUrls.Add(url);
+                    }
                 }
-                else if (!string.IsNullOrEmpty(vDto.Image))
-                {
-                    variantImage = SaveBase64Image(vDto.Image, "variants");
-                }
-
-                if (!string.IsNullOrEmpty(variantImage))
-                {
-                    newVariantImages.Add(variantImage);
-                }
-
-                var variant = new ProductVariant
-                {
-                    VariantId = string.IsNullOrEmpty(vDto.Id) ? "var-" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() : vDto.Id,
-                    ProductId = product.Id,
-                    Size = vDto.Size,
-                    Flavor = vDto.Flavor,
-                    Price = vDto.Price,
-                    DiscountPrice = vDto.DiscountPrice,
-                    StockQuantity = vDto.StockQuantity,
-                    Sku = vDto.Sku,
-                    Image = variantImage,
-                    IsAvailable = vDto.IsAvailable
-                };
-                product.Variants.Add(variant);
             }
-        }
 
-        // Clean up variant images that are no longer referenced
-        var variantImagesToDelete = oldVariantImages.Except(newVariantImages).ToList();
-        foreach (var oldVarImg in variantImagesToDelete)
-        {
-            _fileStorageService.DeleteFile(oldVarImg);
-        }
+            // Clean up old gallery images that are no longer kept
+            var imagesToDelete = product.Images.Except(newGalleryUrls).ToList();
+            foreach (var oldImg in imagesToDelete)
+            {
+                _fileStorageService.DeleteFile(oldImg);
+            }
 
-        _unitOfWork.Products.Update(product);
-        await _unitOfWork.SaveChangesAsync();
-        FormatProductUrls(product);
-        return true;
+            product.Name = dto.Name;
+            product.NameAr = dto.NameAr;
+            product.Description = dto.Description;
+            product.DescriptionAr = dto.DescriptionAr;
+            product.CategoryId = category.Id;
+            product.CategoryName = category.Name;
+            product.Featured = dto.Featured;
+            product.BestSeller = dto.BestSeller;
+            product.NewArrival = dto.NewArrival;
+            product.Visible = dto.Visible;
+            product.VariantType = dto.VariantType;
+            product.Price = dto.Price;
+            product.DiscountPrice = dto.DiscountPrice;
+            product.Size = dto.Size;
+            product.Stock = dto.Stock;
+            product.Sku = dto.Sku;
+            product.MainImage = mainImage;
+            product.Images = newGalleryUrls;
+            product.Ingredients = dto.Ingredients;
+            product.IngredientsAr = dto.IngredientsAr;
+            product.Usage = dto.Usage;
+            product.UsageAr = dto.UsageAr;
+            product.Benefits = dto.Benefits;
+            product.BenefitsAr = dto.BenefitsAr;
+            product.ImageType = dto.ImageType;
+            product.ImageColor = dto.ImageColor;
+
+            // Collect old variant images for cleanup
+            var existingVariants = await _unitOfWork.ProductVariants.FindAsync(v => v.ProductId == id);
+            var oldVariantImages = existingVariants.Select(v => v.Image).Where(img => !string.IsNullOrEmpty(img)).ToList();
+
+            // Remove variants
+            foreach (var ev in existingVariants)
+            {
+                _unitOfWork.ProductVariants.Delete(ev);
+            }
+
+            var newVariantImages = new List<string>();
+            if (dto.VariantType != "none" && dto.Variants != null)
+            {
+                foreach (var vDto in dto.Variants)
+                {
+                    if (vDto == null) continue;
+                    string variantImage = "";
+                    if (vDto.ImageFile != null)
+                    {
+                        if (!_fileStorageService.IsValidImage(vDto.ImageFile, out var error))
+                            throw new ArgumentException($"Variant image: {error}");
+                        variantImage = await _fileStorageService.SaveFileAsync(vDto.ImageFile, "uploads/variants");
+                    }
+                    else if (!string.IsNullOrEmpty(vDto.Image))
+                    {
+                        variantImage = SaveBase64Image(vDto.Image, "variants");
+                    }
+
+                    if (!string.IsNullOrEmpty(variantImage))
+                    {
+                        newVariantImages.Add(variantImage);
+                    }
+
+                    var variant = new ProductVariant
+                    {
+                        VariantId = string.IsNullOrEmpty(vDto.Id) ? "var-" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() : vDto.Id,
+                        ProductId = product.Id,
+                        Size = vDto.Size,
+                        Flavor = vDto.Flavor,
+                        Price = vDto.Price,
+                        DiscountPrice = vDto.DiscountPrice,
+                        StockQuantity = vDto.StockQuantity,
+                        Sku = vDto.Sku,
+                        Image = variantImage,
+                        IsAvailable = vDto.IsAvailable
+                    };
+                    product.Variants.Add(variant);
+                }
+            }
+
+            // Clean up variant images that are no longer referenced
+            var variantImagesToDelete = oldVariantImages.Except(newVariantImages).ToList();
+            foreach (var oldVarImg in variantImagesToDelete)
+            {
+                _fileStorageService.DeleteFile(oldVarImg);
+            }
+
+            _unitOfWork.Products.Update(product);
+            await _unitOfWork.SaveChangesAsync();
+            FormatProductUrls(product);
+            return true;
+        });
     }
 
     public async Task<bool> DeleteAsync(Guid id)

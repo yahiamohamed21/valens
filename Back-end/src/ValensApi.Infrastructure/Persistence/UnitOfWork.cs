@@ -64,7 +64,9 @@ public class UnitOfWork : IUnitOfWork
             return;
         }
 
-        _currentTransaction = await _context.Database.BeginTransactionAsync();
+        var strategy = _context.Database.CreateExecutionStrategy();
+        _currentTransaction = await strategy.ExecuteAsync(async () => 
+            await _context.Database.BeginTransactionAsync());
     }
 
     public async Task CommitTransactionAsync()
