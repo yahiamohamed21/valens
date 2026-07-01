@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-main-bg text-white px-4 text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-main-bg text-foreground px-4 text-center">
       {/* 404 badge */}
       <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-card-bg border border-border-color text-primary-coral mb-6 shadow-[0_0_20px_rgba(255,138,117,0.15)]">
         <span className="text-2xl font-black">404</span>

@@ -28,6 +28,10 @@ public class UnitOfWork : IUnitOfWork
     public IGenericRepository<UserOtp> UserOtps { get; }
     public IGenericRepository<GovernorateShipping> GovernorateShippings { get; }
     public IGenericRepository<OrderReturn> OrderReturns { get; }
+    public IGenericRepository<HomeBanner> HomeBanners { get; }
+    public IGenericRepository<HomeSectionProduct> HomeSectionProducts { get; }
+    public IGenericRepository<HomeStory> HomeStories { get; }
+    public IGenericRepository<ProductReview> ProductReviews { get; }
 
     public UnitOfWork(ApplicationDbContext context, IProductRepository products)
     {
@@ -45,6 +49,10 @@ public class UnitOfWork : IUnitOfWork
         UserOtps = new GenericRepository<UserOtp>(context);
         GovernorateShippings = new GenericRepository<GovernorateShipping>(context);
         OrderReturns = new GenericRepository<OrderReturn>(context);
+        HomeBanners = new GenericRepository<HomeBanner>(context);
+        HomeSectionProducts = new GenericRepository<HomeSectionProduct>(context);
+        HomeStories = new GenericRepository<HomeStory>(context);
+        ProductReviews = new GenericRepository<ProductReview>(context);
     }
 
     public async Task<int> SaveChangesAsync()

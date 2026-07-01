@@ -28,7 +28,7 @@ function CarouselItemComponent({ item }: CarouselItemProps) {
           {item.title}
         </h3>
         {item.description ? (
-          <p className="text-sm leading-6 text-soft-text">{item.description}</p>
+          <p className="text-sm leading-6 text-white">{item.description}</p>
         ) : null}
       </figcaption>
     </figure>

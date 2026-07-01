@@ -168,10 +168,11 @@ export const ProductImage: React.FC<{
   );
 };
 
-export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product }) => {
   const { addToCart, locale, t } = useApp();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [isAdding, setIsAdding] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -194,7 +195,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (product.stockStatus === "Out of Stock") return;
+    if (product.stockStatus === "Out of Stock" || isAdding) return;
+
+    setIsAdding(true);
 
     // Choose default variant/size details safely
     const defaultSize = product.variants?.[0]?.size || product.size || "";
@@ -203,15 +206,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     const defaultSku = product.variants?.[0]?.sku || product.sku;
     const defaultImage = product.variants?.[0]?.image || product.mainImage || undefined;
 
-    addToCart(
-      product,
-      1,
-      defaultSize || undefined,
-      defaultFlavor || undefined,
-      defaultPrice,
-      defaultSku,
-      defaultImage
-    );
+    setTimeout(() => {
+      addToCart(
+        product,
+        1,
+        defaultSize || undefined,
+        defaultFlavor || undefined,
+        defaultPrice,
+        defaultSku,
+        defaultImage
+      );
+      setIsAdding(false);
+    }, 400); // 400ms visual micro-animation
   };
 
   const discount = product.discountPrice
@@ -276,6 +282,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            <filter id="card-shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="12" stdDeviation="16" floodColor="#000000" floodOpacity="0.06" />
+            </filter>
           </defs>
 
           {/* Main Card Shape Fill & Border */}
@@ -284,6 +293,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             fill={`url(#cardGrad-${product.id})`}
             className="stroke-border-color group-hover:stroke-primary-coral/45 transition-all duration-500"
             strokeWidth="1.5"
+            filter="url(#card-shadow)"
           />
 
           {/* Glowing Corner Brackets */}
@@ -419,7 +429,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {/* Supplement Bottle Image */}
           <div className="my-2 overflow-visible flex items-center justify-center flex-1 min-h-[170px] relative">
             {product.mainImage ? (
-              <img src={product.mainImage} alt={product.name} className="h-40 w-full object-contain drop-shadow-[0_8px_8px_rgba(0,0,0,0.5)] group-hover:scale-105 transition-all duration-500" />
+              <img
+              src={product.mainImage}
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
+              className="h-40 w-full object-contain drop-shadow-[0_8px_8px_rgba(0,0,0,0.5)] group-hover:scale-105 transition-all duration-500"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.onerror = null;
+                target.src = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100'%20height='100'%20fill='%231e1310'/%3E%3Ctext%20x='50'%20y='55'%20font-family='sans-serif'%20font-size='10'%20fill='%238d7b73'%20text-anchor='middle'%3ENo%20Image%3C/text%3E%3C/svg%3E";
+              }}
+            />
             ) : (
               <ProductImage color={product.imageColor} type={product.imageType} glow={true} className="h-44 w-full" />
             )}
@@ -449,7 +470,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   />
                 ))}
               </div>
-              <span className="text-[10px] font-bold text-soft-text ml-1">({product.reviews.length || 120} {locale === "ar" ? "تقييم" : "Reviews"})</span>
+              <span className="text-[10px] font-bold text-white ml-1">({product.reviews.length || 120} {locale === "ar" ? "تقييم" : "Reviews"})</span>
             </div>
 
             {/* Description */}
@@ -460,19 +481,30 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             {/* Quick Add Button */}
             <button
               onClick={handleQuickAdd}
-              disabled={product.stockStatus === "Out of Stock"}
-              className={`w-full flex items-center justify-center gap-2 rounded-lg py-2.5 px-4 mt-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-500 ${
+              disabled={product.stockStatus === "Out of Stock" || isAdding}
+              className={`w-full flex items-center justify-center gap-2 rounded-lg py-2.5 px-4 mt-2.5 text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
                 product.stockStatus === "Out of Stock"
                   ? "bg-border-color text-muted-text cursor-not-allowed"
-                  : "bg-primary-coral text-main-bg hover:bg-white hover:text-main-bg shadow-[0_0_15px_rgba(255,138,117,0.2)] hover:shadow-[0_0_25px_rgba(255,255,255,0.5)] cursor-pointer"
+                  : isAdding
+                    ? "bg-[#10D981] text-white cursor-wait opacity-90 shadow-[0_0_15px_rgba(16,217,129,0.3)]"
+                    : "bg-primary-coral text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 active:scale-98 shadow-[0_0_15px_rgba(255,138,117,0.2)] hover:shadow-[0_0_25px_rgba(255,255,255,0.45)] cursor-pointer"
               }`}
             >
-              <Icon name="cart" size={14} />
-              {locale === "ar" ? "إضافة سريعة" : "Quick Add"}
+              {isAdding ? (
+                <>
+                  <span className="h-3.5 w-3.5 rounded-full border-2 border-t-transparent border-white animate-spin" />
+                  {locale === "ar" ? "جاري الإضافة..." : "Adding..."}
+                </>
+              ) : (
+                <>
+                  <Icon name="cart" size={14} />
+                  {locale === "ar" ? "إضافة سريعة" : "Quick Add"}
+                </>
+              )}
             </button>
           </div>
         </div>
       </div>
     </Link>
   );
-};
+});

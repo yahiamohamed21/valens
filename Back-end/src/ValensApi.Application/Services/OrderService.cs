@@ -73,9 +73,7 @@ public class OrderService : IOrderService
             throw new ArgumentException("All checkout fields (Name, Email, Phone, Address, City) are required and cannot be empty.");
         }
 
-        return await _unitOfWork.ExecuteInTransactionAsync<object>(async () =>
-        {
-            Customer? customer = null;
+        Customer? customer = null;
 
             // 1. Resolve Customer profile
             if (isAuthenticated && loggedInUserId.HasValue && loggedInUserId.Value != Guid.Empty)
@@ -355,9 +353,25 @@ public class OrderService : IOrderService
             decimal total = subtotal - discountAmount + shippingCost;
 
             // 5. Save Order
+            var lastOrder = await _unitOfWork.Orders.GetQueryable()
+                .Where(o => o.OrderNumber.StartsWith("VL-"))
+                .OrderByDescending(o => o.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            int nextNumber = 10001;
+            if (lastOrder != null)
+            {
+                var numPart = lastOrder.OrderNumber.Substring(3);
+                if (int.TryParse(numPart, out int lastNum))
+                {
+                    nextNumber = lastNum + 1;
+                }
+            }
+            string orderNumber = $"VL-{nextNumber}";
+
             var order = new Order
             {
-                OrderNumber = "VAL-" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                OrderNumber = orderNumber,
                 CustomerId = customer.Id,
                 Customer = customer,
                 CustomerName = dto.CustomerName,
@@ -384,15 +398,14 @@ public class OrderService : IOrderService
             _unitOfWork.Customers.Update(customer);
             await _unitOfWork.SaveChangesAsync();
 
-            return new
-            {
-                Message = "Order created successfully and is being prepared.",
-                OrderNumber = order.OrderNumber,
-                OrderId = order.Id,
-                Total = order.Total,
-                PaymentMethod = order.PaymentMethod
-            };
-        });
+        return new
+        {
+            Message = "Order created successfully and is being prepared.",
+            OrderNumber = order.OrderNumber,
+            OrderId = order.Id,
+            Total = order.Total,
+            PaymentMethod = order.PaymentMethod
+        };
     }
 
     public async Task<ValensApi.Application.DTOs.Common.PaginatedList<Order>> GetMyOrdersAsync(Guid userId, int pageNumber = 1, int pageSize = 10)

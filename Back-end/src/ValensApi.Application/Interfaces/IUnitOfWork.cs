@@ -17,6 +17,10 @@ public interface IUnitOfWork : IDisposable
     IGenericRepository<UserOtp> UserOtps { get; }
     IGenericRepository<GovernorateShipping> GovernorateShippings { get; }
     IGenericRepository<OrderReturn> OrderReturns { get; }
+    IGenericRepository<HomeBanner> HomeBanners { get; }
+    IGenericRepository<HomeSectionProduct> HomeSectionProducts { get; }
+    IGenericRepository<HomeStory> HomeStories { get; }
+    IGenericRepository<ProductReview> ProductReviews { get; }
     
     Task<int> SaveChangesAsync();
     Task ExecuteSqlRawAsync(string sql, params object[] parameters);

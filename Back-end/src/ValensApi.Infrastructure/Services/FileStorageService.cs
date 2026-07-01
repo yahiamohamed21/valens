@@ -58,7 +58,6 @@ public class FileStorageService : IFileStorageService
         }
         catch
         {
-            // Fail silently or log error as per requirement. For this application, we fail silently.
         }
     }
 

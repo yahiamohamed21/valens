@@ -15,4 +15,5 @@ public interface IProductService
     Task<bool> DeleteAsync(Guid id);
     Task<bool> ToggleVisibilityAsync(Guid id);
     Task<HomepageSectionsDto> GetHomepageSectionsAsync();
+    Task<List<ValensApi.Application.DTOs.Home.HomeSectionProductCardDto>> SearchAdminProductsAsync(string? query, int limit);
 }

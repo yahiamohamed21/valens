@@ -1,10 +1,9 @@
 import { useCallback, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { STORAGE_KEYS } from "@/lib/constants";
+import { api, mapApiReturnToClient, safeArray } from "@/lib/api";
 import { getStockStatus } from "@/lib/product-utils";
-import { setStorageItem } from "@/lib/storage";
 import { showToast } from "@/lib/toast";
-import type { Coupon, Customer, Order, Product } from "@/types/store";
+import type { Coupon, Customer, Order, Product, OrderReturn } from "@/types/store";
 
 interface OrderActionDeps {
   orders: Order[];
@@ -19,6 +18,8 @@ interface OrderActionDeps {
   setActiveCoupon: Dispatch<SetStateAction<Coupon | null>>;
   clearCart: () => void;
   setCurrentUserEmail: Dispatch<SetStateAction<string | null>>;
+  editProduct: (productId: string, updatedFields: Partial<Product>) => Promise<void>;
+  setReturnsList: Dispatch<SetStateAction<OrderReturn[]>>;
 }
 
 export const useOrderActions = ({
@@ -34,121 +35,238 @@ export const useOrderActions = ({
   setActiveCoupon,
   clearCart,
   setCurrentUserEmail,
+  editProduct,
+  setReturnsList,
 }: OrderActionDeps) => {
-  const placeOrder = useCallback((orderData: Omit<Order, "id" | "orderDate" | "status">) => {
-    const newId = `VL-${Math.floor(1000 + Math.random() * 9000)}`;
-    const newOrder: Order = {
-      ...orderData,
-      id: newId,
-      orderDate: new Date().toISOString(),
-      status: "New Order",
-    };
-
-    const newOrders = [newOrder, ...orders];
-    setOrders(newOrders);
-    setStorageItem(STORAGE_KEYS.ORDERS, newOrders);
-
-    const customerIndex = customers.findIndex(
-      (c) => c.email.toLowerCase() === orderData.customerEmail.toLowerCase()
-    );
-
-    const updatedCustomers = [...customers];
-    if (customerIndex > -1) {
-      updatedCustomers[customerIndex].orderCount += 1;
-      updatedCustomers[customerIndex].totalSpent += orderData.totalPrice;
-    } else {
-      updatedCustomers.push({
-        id: `cust-${Date.now()}`,
-        name: orderData.customerName,
-        email: orderData.customerEmail,
-        phone: orderData.customerPhone,
-        address: orderData.customerAddress,
-        city: orderData.customerCity,
-        orderCount: 1,
-        totalSpent: orderData.totalPrice,
-        joinDate: new Date().toISOString().split("T")[0],
-      });
-    }
-    setCustomers(updatedCustomers);
-    setStorageItem(STORAGE_KEYS.CUSTOMERS, updatedCustomers);
-
-    const updatedProducts = products.map((prod) => {
-      const orderItem = orderData.items.find((item) => item.productId === prod.id);
-      if (orderItem) {
-        const remainingStock = Math.max(0, prod.stock - orderItem.quantity);
-        
-        let updatedVariants = prod.variants;
-        if (prod.variants && prod.variants.length > 0) {
-          updatedVariants = prod.variants.map((v) => {
-            const matchSize = !v.size || v.size === orderItem.size;
-            const matchFlavor = !v.flavor || v.flavor === orderItem.variant;
-            if (matchSize && matchFlavor) {
-              const newQty = Math.max(0, v.stockQuantity - orderItem.quantity);
-              return {
-                ...v,
-                stockQuantity: newQty,
-                isAvailable: newQty > 0
-              };
-            }
-            return v;
-          });
-        }
-
+  const placeOrder = useCallback(async (orderData: Omit<Order, "id" | "orderDate" | "status">) => {
+    try {
+      const checkoutItems = orderData.items.map((item) => {
+        const prod = products.find((p) => p.id === item.productId);
+        const matchingVariant = prod?.variants?.find(
+          (v) => v.size === item.size && v.flavor === item.variant
+        );
         return {
-          ...prod,
-          variants: updatedVariants,
-          stock: remainingStock,
-          stockStatus: getStockStatus(remainingStock),
-        } as Product;
-      }
-      return prod;
-    });
-    setProducts(updatedProducts);
-    setStorageItem(STORAGE_KEYS.PRODUCTS, updatedProducts);
-
-    if (activeCoupon) {
-      const updatedCoupons = coupons.map((c) => {
-        if (c.id === activeCoupon.id) {
-          return { ...c, usageCount: c.usageCount + 1 };
-        }
-        return c;
+          productId: item.productId,
+          variantId: matchingVariant?.id || null,
+          size: item.size || undefined,
+          flavor: item.variant || undefined,
+          quantity: item.quantity,
+        };
       });
-      setCoupons(updatedCoupons);
-      setStorageItem(STORAGE_KEYS.COUPONS, updatedCoupons);
-      setActiveCoupon(null);
-    }
 
-    clearCart();
-    setCurrentUserEmail(orderData.customerEmail);
-    setStorageItem(STORAGE_KEYS.CURRENT_USER, orderData.customerEmail);
-    showToast(`Order ${newId} placed successfully!`, "success");
-    return newOrder;
+      const response = (await api.orders.checkout({
+        customerName: orderData.customerName,
+        customerEmail: orderData.customerEmail,
+        customerPhone: orderData.customerPhone,
+        shippingAddress: orderData.customerAddress,
+        shippingCity: orderData.customerCity,
+        couponCode: orderData.couponCode || undefined,
+        items: checkoutItems,
+      })) as {
+        id?: string;
+        orderName?: string;
+        orderNumber?: string;
+        customerName?: string;
+        customerPhone?: string;
+        customerEmail?: string;
+        customerAddress?: string;
+        shippingAddress?: string;
+        customerCity?: string;
+        shippingCity?: string;
+        notes?: string;
+        items?: {
+          productId?: string;
+          productName?: string;
+          product?: { name?: string };
+          price?: number;
+          quantity?: number;
+          size?: string;
+          variant?: string;
+          flavor?: string;
+          imageColor?: string;
+          imageType?: "powder" | "capsule" | "liquid";
+          image?: string;
+        }[];
+        totalPrice?: number;
+        paymentMethod?: string;
+        shippingMethod?: string;
+        shippingCost?: number;
+        discountAmount?: number;
+        couponCode?: string;
+        orderDate?: string;
+        status?: Order["status"];
+      };
+
+      const newOrder: Order = {
+        id: response.id || response.orderName || response.orderNumber || `VL-${Date.now()}`,
+        orderName: response.orderName || response.orderNumber || response.id || `VL-${Date.now()}`,
+        customerName: response.customerName || orderData.customerName,
+        customerPhone: response.customerPhone || orderData.customerPhone,
+        customerEmail: response.customerEmail || orderData.customerEmail,
+        customerAddress: response.customerAddress || response.shippingAddress || orderData.customerAddress,
+        customerCity: response.customerCity || response.shippingCity || orderData.customerCity,
+        notes: response.notes || orderData.notes,
+        items: response.items?.map((item) => ({
+          productId: item.productId || "",
+          productName: item.productName || item.product?.name || "",
+          price: item.price || 0,
+          quantity: item.quantity || 1,
+          size: item.size || "",
+          variant: item.variant || item.flavor || "",
+          imageColor: item.imageColor || "",
+          imageType: item.imageType || "powder",
+          image: item.image || "",
+        })) || orderData.items,
+        totalPrice: response.totalPrice || orderData.totalPrice,
+        paymentMethod: response.paymentMethod || orderData.paymentMethod,
+        shippingMethod: response.shippingMethod || orderData.shippingMethod,
+        shippingCost: response.shippingCost || orderData.shippingCost,
+        discountAmount: response.discountAmount || orderData.discountAmount,
+        couponCode: response.couponCode || orderData.couponCode,
+        orderDate: response.orderDate || new Date().toISOString(),
+        status: response.status || "New Order",
+        ...(activeCoupon ? {
+          couponId: activeCoupon.id,
+          couponDiscountType: activeCoupon.discountType,
+          couponDiscountValue: activeCoupon.discountValue,
+          couponDiscountAmountApplied: response.discountAmount || orderData.discountAmount,
+          couponTotalBeforeDiscount: (response.totalPrice || orderData.totalPrice) + (response.discountAmount || orderData.discountAmount) - (response.shippingCost || orderData.shippingCost),
+          couponFinalTotalAfterDiscount: response.totalPrice || orderData.totalPrice
+        } : {})
+      };
+
+      setOrders((prev) => [newOrder, ...prev]);
+
+      // Refresh customers list or update locally
+      const customerIndex = customers.findIndex(
+        (c) => c.email.toLowerCase() === orderData.customerEmail.toLowerCase()
+      );
+      const updatedCustomers = [...customers];
+      if (customerIndex > -1) {
+        updatedCustomers[customerIndex].orderCount += 1;
+        updatedCustomers[customerIndex].totalSpent += orderData.totalPrice;
+      } else {
+        updatedCustomers.push({
+          id: `cust-${Date.now()}`,
+          name: orderData.customerName,
+          email: orderData.customerEmail,
+          phone: orderData.customerPhone,
+          address: orderData.customerAddress,
+          city: orderData.customerCity,
+          orderCount: 1,
+          totalSpent: orderData.totalPrice,
+          joinDate: new Date().toISOString().split("T")[0],
+        });
+      }
+      setCustomers(updatedCustomers);
+
+      // Decrement stock local fallback in case overview is not refreshed immediately
+      const updatedProducts = products.map((prod) => {
+        const orderItem = orderData.items.find((item) => item.productId === prod.id);
+        if (orderItem) {
+          const remainingStock = Math.max(0, prod.stock - orderItem.quantity);
+          let updatedVariants = prod.variants;
+          if (prod.variants && prod.variants.length > 0) {
+            updatedVariants = prod.variants.map((v) => {
+              const matchSize = !v.size || v.size === orderItem.size;
+              const matchFlavor = !v.flavor || v.flavor === orderItem.variant;
+              if (matchSize && matchFlavor) {
+                const newQty = Math.max(0, v.stockQuantity - orderItem.quantity);
+                return {
+                  ...v,
+                  stockQuantity: newQty,
+                  isAvailable: newQty > 0,
+                };
+              }
+              return v;
+            });
+          }
+          return {
+            ...prod,
+            variants: updatedVariants,
+            stock: remainingStock,
+            stockStatus: getStockStatus(remainingStock),
+          } as Product;
+        }
+        return prod;
+      });
+      setProducts(updatedProducts);
+
+      if (activeCoupon) {
+        setCoupons((prev) =>
+          prev.map((c) => {
+            if (c.code.toUpperCase() === activeCoupon.code.toUpperCase()) {
+              return { ...c, usageCount: c.usageCount + 1 };
+            }
+            return c;
+          })
+        );
+
+        if (typeof window !== "undefined") {
+          try {
+            const extraMetadataStr = localStorage.getItem("valens_orders_extra_metadata");
+            const extraMetadata = extraMetadataStr ? JSON.parse(extraMetadataStr) : {};
+            extraMetadata[newOrder.id] = {
+              ...(extraMetadata[newOrder.id] || {}),
+              couponId: activeCoupon.id,
+              couponCode: activeCoupon.code,
+              couponDiscountType: activeCoupon.discountType,
+              couponDiscountValue: activeCoupon.discountValue,
+              couponDiscountAmountApplied: newOrder.discountAmount,
+              couponTotalBeforeDiscount: newOrder.totalPrice + newOrder.discountAmount - newOrder.shippingCost,
+              couponFinalTotalAfterDiscount: newOrder.totalPrice
+            };
+            localStorage.setItem("valens_orders_extra_metadata", JSON.stringify(extraMetadata));
+          } catch (e) {
+            console.error("Failed to save coupon metadata to localStorage", e);
+          }
+        }
+
+        setActiveCoupon(null);
+      }
+
+      clearCart();
+      setCurrentUserEmail(orderData.customerEmail);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("valens_current_user", orderData.customerEmail);
+      }
+      showToast(`Order ${newOrder.id} placed successfully!`, "success");
+      return newOrder;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to place order";
+      showToast(message, "error");
+      throw error;
+    }
   }, [
     activeCoupon,
     clearCart,
-    coupons,
-    customers,
-    orders,
-    products,
-    setActiveCoupon,
     setCoupons,
+    customers,
     setCustomers,
-    setOrders,
+    products,
     setProducts,
+    setActiveCoupon,
+    setOrders,
     setCurrentUserEmail,
   ]);
 
-  const updateOrderStatus = useCallback((orderId: string, status: Order["status"]) => {
-    const newOrders = orders.map((ord) => {
-      if (ord.id === orderId) {
-        return { ...ord, status };
-      }
-      return ord;
-    });
-    setOrders(newOrders);
-    setStorageItem(STORAGE_KEYS.ORDERS, newOrders);
-    showToast(`Order ${orderId} marked as ${status}`, "info");
-  }, [orders, setOrders]);
+  const updateOrderStatus = useCallback(async (orderId: string, status: Order["status"]) => {
+    try {
+      await api.orders.updateStatus({ id: orderId, status });
+      setOrders((prev) =>
+        prev.map((ord) => {
+          if (ord.id === orderId) {
+            return { ...ord, status };
+          }
+          return ord;
+        })
+      );
+      showToast(`Order ${orderId} marked as ${status}`, "info");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update order status";
+      showToast(message, "error");
+    }
+  }, [setOrders]);
 
   const confirmOrder = useCallback((orderId: string) => {
     updateOrderStatus(orderId, "Confirmed");
@@ -158,8 +276,143 @@ export const useOrderActions = ({
     updateOrderStatus(orderId, "Cancelled");
   }, [updateOrderStatus]);
 
+  const returnOrder = useCallback(
+    async (
+      orderId: string,
+      returnDetails: {
+        returnReason: string;
+        returnDate: string;
+        refundAmount: number;
+        returnNotes: string;
+        isStockRestored: boolean;
+        returnedItems?: {
+          productId: string;
+          productName: string;
+          price: number;
+          quantity: number;
+          size: string;
+          variant: string;
+        }[];
+      }
+    ) => {
+      try {
+        // 1. Log return on backend
+        const ord = orders.find((o) => o.id === orderId);
+        if (ord) {
+          const itemsToReturn =
+            returnDetails.returnedItems && returnDetails.returnedItems.length > 0
+              ? returnDetails.returnedItems
+              : ord.items;
+
+          const returnPayload = {
+            orderId,
+            returnReason: returnDetails.returnReason,
+            isRestoredToStock: returnDetails.isStockRestored,
+            refundAmount: returnDetails.refundAmount,
+            notes: returnDetails.returnNotes,
+            items: itemsToReturn.map((item) => {
+              const prod = products.find((p) => p.id === item.productId);
+              const variantObj = prod?.variants?.find(
+                (v) => (!v.size || v.size === item.size) && (!v.flavor || v.flavor === item.variant)
+              );
+              return {
+                productId: item.productId,
+                variantId: variantObj?.id || null,
+                quantity: item.quantity,
+              };
+            }),
+          };
+
+          await api.returns.create(returnPayload);
+        } else {
+          // Fallback
+          await api.orders.updateStatus({ id: orderId, status: "Returned" });
+        }
+
+        // 2. Fetch updated returns list and update context state
+        const updatedReturnsList = await api.returns.list();
+        if (updatedReturnsList) {
+          setReturnsList(safeArray(updatedReturnsList).map(mapApiReturnToClient));
+        }
+
+        // 3. Save metadata to localStorage for local compatibility
+        if (typeof window !== "undefined") {
+          const extraMetadataStr = localStorage.getItem("valens_orders_extra_metadata");
+          const extraMetadata = extraMetadataStr ? JSON.parse(extraMetadataStr) : {};
+          extraMetadata[orderId] = {
+            ...(extraMetadata[orderId] || {}),
+            ...returnDetails,
+            status: "Returned",
+          };
+          localStorage.setItem("valens_orders_extra_metadata", JSON.stringify(extraMetadata));
+        }
+
+        // 3. Update orders state
+        setOrders((prev) =>
+          prev.map((ord) => {
+            if (ord.id === orderId) {
+              return {
+                ...ord,
+                status: "Returned",
+                ...returnDetails,
+              };
+            }
+            return ord;
+          })
+        );
+
+        // 4. Restore stock if checked
+        if (returnDetails.isStockRestored) {
+          const ord = orders.find((o) => o.id === orderId);
+          if (ord) {
+            const itemsToRestore =
+              returnDetails.returnedItems && returnDetails.returnedItems.length > 0
+                ? returnDetails.returnedItems
+                : ord.items;
+
+            for (const item of itemsToRestore) {
+              const prod = products.find((p) => p.id === item.productId);
+              if (prod) {
+                let updatedVariants = prod.variants;
+                if (prod.variants && prod.variants.length > 0) {
+                  updatedVariants = prod.variants.map((v) => {
+                    const matchSize = !v.size || v.size === item.size;
+                    const matchFlavor = !v.flavor || v.flavor === item.variant;
+                    if (matchSize && matchFlavor) {
+                      const newQty = v.stockQuantity + item.quantity;
+                      return {
+                        ...v,
+                        stockQuantity: newQty,
+                        isAvailable: true,
+                      };
+                    }
+                    return v;
+                  });
+                }
+                const newStock = prod.stock + item.quantity;
+
+                // Sync locally and to backend via editProduct
+                await editProduct(prod.id, {
+                  variants: updatedVariants,
+                  stock: newStock,
+                });
+              }
+            }
+          }
+        }
+
+        showToast(`Order ${orderId} marked as Returned and stock updated.`, "success");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to return order";
+        showToast(message, "error");
+        throw error;
+      }
+    },
+    [orders, products, setOrders, editProduct, setReturnsList]
+  );
+
   return useMemo(
-    () => ({ placeOrder, updateOrderStatus, confirmOrder, cancelOrder }),
-    [placeOrder, updateOrderStatus, confirmOrder, cancelOrder]
+    () => ({ placeOrder, updateOrderStatus, confirmOrder, cancelOrder, returnOrder }),
+    [placeOrder, updateOrderStatus, confirmOrder, cancelOrder, returnOrder]
   );
 };

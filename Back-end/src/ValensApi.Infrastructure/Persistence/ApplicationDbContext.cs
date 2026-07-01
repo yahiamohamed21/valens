@@ -30,6 +30,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserOtp> UserOtps => Set<UserOtp>();
     public DbSet<GovernorateShipping> GovernorateShippings => Set<GovernorateShipping>();
     public DbSet<OrderReturn> OrderReturns => Set<OrderReturn>();
+    public DbSet<HomeBanner> HomeBanners => Set<HomeBanner>();
+    public DbSet<HomeSectionProduct> HomeSectionProducts => Set<HomeSectionProduct>();
+    public DbSet<HomeStory> HomeStories => Set<HomeStory>();
+    public DbSet<ProductReview> ProductReviews => Set<ProductReview>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

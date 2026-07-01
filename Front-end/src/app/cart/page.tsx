@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useApp } from "@/context/AppContext";
 import { ProductImage } from "@/components/ProductCard";
@@ -21,10 +22,10 @@ export default function CartPage() {
 
   const [couponCodeInput, setCouponCodeInput] = useState("");
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (couponCodeInput.trim()) {
-      applyCoupon(couponCodeInput.trim());
+      await applyCoupon(couponCodeInput.trim());
       setCouponCodeInput("");
     }
   };
@@ -45,9 +46,8 @@ export default function CartPage() {
     }
   }
 
-  // Shipping cost (Free if subtotal after discount is over 1500 EGP, else use storeSettings shippingCost)
-  const isFreeShipping = subtotal > 1500;
-  const shippingCost = isFreeShipping ? 0 : storeSettings.shippingCost;
+  // Shipping cost
+  const shippingCost = storeSettings.shippingCost;
 
   // Tax calculation
   const taxableAmount = Math.max(0, subtotal - discountAmount);
@@ -57,7 +57,7 @@ export default function CartPage() {
   const finalTotal = taxableAmount + shippingCost + taxAmount;
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
       <Navbar />
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -81,7 +81,13 @@ export default function CartPage() {
                     <div className="flex items-center gap-4">
                       <div className="h-20 w-16 bg-surface-deep border border-border-color rounded-xl p-1 flex items-center justify-center shrink-0 overflow-hidden">
                         {item.image ? (
-                          <img src={item.image} alt={item.product.name} className="h-full w-full object-contain" />
+                          <Image
+                            src={item.image}
+                            alt={item.product.name}
+                            width={64}
+                            height={80}
+                            className="h-full w-full object-contain"
+                          />
                         ) : (
                           <ProductImage color={item.product.imageColor} type={item.product.imageType} glow={false} className="h-16 w-full" />
                         )}
@@ -107,21 +113,21 @@ export default function CartPage() {
                       <div className="flex items-center justify-between rounded-full border border-border-color bg-surface-deep p-1 w-28">
                         <button
                           onClick={() => updateCartQuantity(index, item.quantity - 1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-surface-sec text-soft-text hover:text-white"
+                          className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-surface-sec text-white hover:text-gray-800"
                         >
-                          <Icon name="minus" size={10} />
+                          <Icon className="cursor-pointer" name="minus" size={10} />
                         </button>
                         <span className="text-xs font-black text-white">{item.quantity}</span>
                         <button
                           onClick={() => updateCartQuantity(index, item.quantity + 1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-surface-sec text-soft-text hover:text-white"
+                          className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-surface-sec text-white hover:text-gray-800"
                         >
-                          <Icon name="plus" size={10} />
+                          <Icon className="cursor-pointer" name="plus" size={10} />
                         </button>
                       </div>
 
                       {/* Pricing Info */}
-                      <div className="flex flex-col text-right min-w-[80px]">
+                      <div className="flex flex-col text-right min-w-20">
                         <span className="text-sm font-black text-white">
                           {(itemPrice * item.quantity).toLocaleString()} EGP
                         </span>
@@ -136,7 +142,7 @@ export default function CartPage() {
                         className="text-muted-text hover:text-accent-orange p-1 transition-luxury"
                         title="Remove product"
                       >
-                        <Icon name="trash" size={18} />
+                        <Icon className="cursor-pointer" name="trash" size={18} />
                       </button>
                     </div>
                   </div>
@@ -152,7 +158,7 @@ export default function CartPage() {
                 </h2>
 
                 {/* Subtotal */}
-                <div className="flex justify-between items-center text-xs text-soft-text mb-3">
+                <div className="flex justify-between items-center text-xs text-white mb-3">
                   <span>Cart Subtotal</span>
                   <span className="font-bold text-white">{subtotal.toLocaleString()} EGP</span>
                 </div>
@@ -167,7 +173,7 @@ export default function CartPage() {
                       </span>
                       <button
                         onClick={removeCoupon}
-                        className="text-muted-text hover:text-white transition-luxury p-1"
+                        className="text-muted-text hover:text-gray-800 transition-luxury p-1"
                         title="Remove discount"
                       >
                         <Icon name="close" size={12} />
@@ -184,14 +190,14 @@ export default function CartPage() {
                       />
                       <button
                         type="submit"
-                        className="rounded-xl border border-primary-coral bg-primary-coral/10 px-4 text-2xs font-extrabold text-primary-coral hover:bg-primary-coral hover:text-main-bg transition-luxury"
+                        className="cursor-pointer rounded-xl border border-primary-coral bg-primary-coral/10 px-4 text-2xs font-extrabold text-primary-coral hover:bg-primary-coral hover:text-[#180f0d] transition-luxury"
                       >
                         APPLY
                       </button>
                     </form>
                   )}
                   {activeCoupon && (
-                    <div className="flex justify-between items-center text-xs text-soft-text mt-3">
+                    <div className="flex justify-between items-center text-xs text-white mt-3">
                       <span>Discount ({activeCoupon.discountType === "percentage" ? `${activeCoupon.discountValue}%` : "Fixed"})</span>
                       <span className="font-bold text-success-green">-{discountAmount.toLocaleString()} EGP</span>
                     </div>
@@ -199,17 +205,13 @@ export default function CartPage() {
                 </div>
 
                 {/* Shipping */}
-                <div className="flex justify-between items-center text-xs text-soft-text mb-3">
+                <div className="flex justify-between items-center text-xs text-white mb-3">
                   <span>Shipping & Handling</span>
-                  {isFreeShipping ? (
-                    <span className="font-bold text-success-green uppercase text-2xs">FREE SHIPPING</span>
-                  ) : (
-                    <span className="font-bold text-white">{shippingCost.toLocaleString()} EGP</span>
-                  )}
+                  <span className="font-bold text-white">{shippingCost.toLocaleString()} EGP</span>
                 </div>
 
                 {/* Tax */}
-                <div className="flex justify-between items-center text-xs text-soft-text mb-4">
+                <div className="flex justify-between items-center text-xs text-white mb-4">
                   <span>Sales Tax ({storeSettings.taxRate}%)</span>
                   <span className="font-bold text-white">{taxAmount.toLocaleString()} EGP</span>
                 </div>
@@ -223,17 +225,13 @@ export default function CartPage() {
                 {/* Proceed Checkout Button */}
                 <Link
                   href="/checkout"
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-4 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg shadow-primary-coral/10 hover:scale-102"
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-4 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-luxury shadow-lg shadow-primary-coral/10 hover:scale-102 hover:shadow-[0_0_20px_rgba(255,255,255,0.45)] cursor-pointer"
                 >
                   PROCEED TO CHECKOUT
                   <Icon name="arrow-right" size={14} />
                 </Link>
 
-                {subtotal <= 1500 && (
-                  <p className="mt-4 text-center text-4xs text-muted-text font-bold uppercase tracking-wide">
-                    Add <span className="text-white">{(1500.01 - subtotal).toLocaleString()} EGP</span> more to unlock FREE SHIPPING!
-                  </p>
-                )}
+
               </div>
             </div>
 
@@ -246,11 +244,11 @@ export default function CartPage() {
             </div>
             <h3 className="text-lg font-bold text-white uppercase tracking-wider">Your Shopping Cart is Empty</h3>
             <p className="mt-2 text-xs text-muted-text max-w-xs mx-auto">
-              You haven't added any elite supplement formulations to your stack yet. Browse our catalog to get started.
+              You haven&apos;t added any elite supplement formulations to your stack yet. Browse our catalog to get started.
             </p>
             <Link
               href="/products"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury"
+              className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 transition-luxury cursor-pointer"
             >
               BROWSE SUPPLEMENTS
             </Link>

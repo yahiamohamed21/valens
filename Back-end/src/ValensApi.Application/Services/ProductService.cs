@@ -36,6 +36,7 @@ public class ProductService : IProductService
     {
         var query = _unitOfWork.Products.GetQueryable()
             .Include(p => p.Variants)
+            .Include(p => p.Reviews)
             .AsNoTracking();
 
         if (!isAdmin)
@@ -94,6 +95,7 @@ public class ProductService : IProductService
     {
         var product = await _unitOfWork.Products.GetQueryable()
             .Include(p => p.Variants)
+            .Include(p => p.Reviews)
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
 
@@ -106,8 +108,6 @@ public class ProductService : IProductService
 
     public async Task<Product> CreateAsync(ProductUpsertDto dto)
     {
-        return await _unitOfWork.ExecuteInTransactionAsync<Product>(async () =>
-        {
             var categoryName = dto.Category.Trim();
             var categoryList = await _unitOfWork.Categories.FindAsync(c => c.Name.ToLower() == categoryName.ToLower());
             var category = categoryList.FirstOrDefault();
@@ -218,22 +218,29 @@ public class ProductService : IProductService
                     };
                     product.Variants.Add(variant);
                 }
+
+                if (product.Variants.Any())
+                {
+                    product.Price = product.Variants.Min(v => v.Price);
+                    var discounts = product.Variants
+                        .Where(v => v.DiscountPrice > 0 && v.DiscountPrice < v.Price)
+                        .Select(v => v.DiscountPrice)
+                        .ToList();
+                    product.DiscountPrice = discounts.Any() ? discounts.Min() : 0;
+                    product.Stock = product.Variants.Sum(v => v.StockQuantity);
+                }
             }
 
-            await _unitOfWork.Products.AddAsync(product);
-            await _unitOfWork.SaveChangesAsync();
-            FormatProductUrls(product);
-            return product;
-        });
+        await _unitOfWork.Products.AddAsync(product);
+        await _unitOfWork.SaveChangesAsync();
+        FormatProductUrls(product);
+        return product;
     }
-
     public async Task<bool> UpdateAsync(Guid id, ProductUpsertDto dto)
     {
-        return await _unitOfWork.ExecuteInTransactionAsync<bool>(async () =>
-        {
-            var product = await _unitOfWork.Products.GetQueryable()
-                .Include(p => p.Variants)
-                .FirstOrDefaultAsync(p => p.Id == id);
+        var product = await _unitOfWork.Products.GetQueryable()
+            .Include(p => p.Variants)
+            .FirstOrDefaultAsync(p => p.Id == id);
 
             if (product == null)
             {
@@ -255,27 +262,47 @@ public class ProductService : IProductService
                 throw new ArgumentException($"The category '{category.Name}' is hidden/inactive. You cannot assign products to it.");
             }
 
+            // Normalize all incoming image URL fields to relative paths to prevent mismatches
+            dto.MainImage = GetRelativeUrl(dto.MainImage);
+            if (dto.ExistingImages != null)
+            {
+                dto.ExistingImages = dto.ExistingImages.Select(GetRelativeUrl).ToList();
+            }
+            if (dto.Images != null)
+            {
+                dto.Images = dto.Images.Select(GetRelativeUrl).ToList();
+            }
+            if (dto.Variants != null)
+            {
+                foreach (var v in dto.Variants)
+                {
+                    v.Image = GetRelativeUrl(v.Image);
+                }
+            }
+
             // Handle Main Image update & deletion
-            string mainImage = product.MainImage;
+            string mainImage = GetRelativeUrl(product.MainImage);
             if (dto.MainImageFile != null)
             {
                 if (!_fileStorageService.IsValidImage(dto.MainImageFile, out var error))
                     throw new ArgumentException($"Main image: {error}");
                 string newMainImage = await _fileStorageService.SaveFileAsync(dto.MainImageFile, "uploads/products");
-                if (!string.IsNullOrEmpty(product.MainImage))
+                var relativeOldMainImage = GetRelativeUrl(product.MainImage);
+                if (!string.IsNullOrEmpty(relativeOldMainImage))
                 {
-                    _fileStorageService.DeleteFile(product.MainImage);
+                    _fileStorageService.DeleteFile(relativeOldMainImage);
                 }
                 mainImage = newMainImage;
             }
             else if (!string.IsNullOrEmpty(dto.MainImage))
             {
                 string processedImage = SaveBase64Image(dto.MainImage, "products");
-                if (processedImage != product.MainImage)
+                var relativeOldMainImage = GetRelativeUrl(product.MainImage);
+                if (processedImage != relativeOldMainImage)
                 {
-                    if (!string.IsNullOrEmpty(product.MainImage))
+                    if (!string.IsNullOrEmpty(relativeOldMainImage))
                     {
-                        _fileStorageService.DeleteFile(product.MainImage);
+                        _fileStorageService.DeleteFile(relativeOldMainImage);
                     }
                     mainImage = processedImage;
                 }
@@ -304,7 +331,7 @@ public class ProductService : IProductService
             {
                 foreach (var imgStr in dto.Images)
                 {
-                    if (imgStr.StartsWith("http") || imgStr.StartsWith("/uploads"))
+                    if (imgStr.StartsWith("/uploads"))
                     {
                         if (!newGalleryUrls.Contains(imgStr))
                             newGalleryUrls.Add(imgStr);
@@ -319,7 +346,8 @@ public class ProductService : IProductService
             }
 
             // Clean up old gallery images that are no longer kept
-            var imagesToDelete = product.Images.Except(newGalleryUrls).ToList();
+            var relativeProductImages = product.Images.Select(GetRelativeUrl).ToList();
+            var imagesToDelete = relativeProductImages.Except(newGalleryUrls).ToList();
             foreach (var oldImg in imagesToDelete)
             {
                 _fileStorageService.DeleteFile(oldImg);
@@ -353,14 +381,17 @@ public class ProductService : IProductService
             product.ImageColor = dto.ImageColor;
 
             // Collect old variant images for cleanup
-            var existingVariants = await _unitOfWork.ProductVariants.FindAsync(v => v.ProductId == id);
-            var oldVariantImages = existingVariants.Select(v => v.Image).Where(img => !string.IsNullOrEmpty(img)).ToList();
+            var oldVariantImages = product.Variants
+                .Select(v => GetRelativeUrl(v.Image))
+                .Where(img => !string.IsNullOrEmpty(img))
+                .ToList();
 
-            // Remove variants
-            foreach (var ev in existingVariants)
+            // Remove existing variants from context tracking and clear collection to prevent tracking conflict
+            foreach (var ev in product.Variants.ToList())
             {
                 _unitOfWork.ProductVariants.Delete(ev);
             }
+            product.Variants.Clear();
 
             var newVariantImages = new List<string>();
             if (dto.VariantType != "none" && dto.Variants != null)
@@ -398,7 +429,19 @@ public class ProductService : IProductService
                         Image = variantImage,
                         IsAvailable = vDto.IsAvailable
                     };
+                    await _unitOfWork.ProductVariants.AddAsync(variant);
                     product.Variants.Add(variant);
+                }
+
+                if (product.Variants.Any())
+                {
+                    product.Price = product.Variants.Min(v => v.Price);
+                    var discounts = product.Variants
+                        .Where(v => v.DiscountPrice > 0 && v.DiscountPrice < v.Price)
+                        .Select(v => v.DiscountPrice)
+                        .ToList();
+                    product.DiscountPrice = discounts.Any() ? discounts.Min() : 0;
+                    product.Stock = product.Variants.Sum(v => v.StockQuantity);
                 }
             }
 
@@ -409,11 +452,9 @@ public class ProductService : IProductService
                 _fileStorageService.DeleteFile(oldVarImg);
             }
 
-            _unitOfWork.Products.Update(product);
-            await _unitOfWork.SaveChangesAsync();
-            FormatProductUrls(product);
-            return true;
-        });
+        await _unitOfWork.SaveChangesAsync();
+        FormatProductUrls(product);
+        return true;
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -447,6 +488,7 @@ public class ProductService : IProductService
     {
         var visibleProducts = await _unitOfWork.Products.GetQueryable()
             .Include(p => p.Variants)
+            .Include(p => p.Reviews)
             .Where(p => p.Visible)
             .AsNoTracking()
             .ToListAsync();
@@ -504,6 +546,24 @@ public class ProductService : IProductService
         }
     }
 
+    private string GetRelativeUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url)) return url;
+        if (url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var uri = new System.Uri(url);
+                return uri.AbsolutePath;
+            }
+            catch
+            {
+                return url;
+            }
+        }
+        return url;
+    }
+
     private string GetAbsoluteUrl(string path)
     {
         if (string.IsNullOrEmpty(path)) return path;
@@ -517,6 +577,63 @@ public class ProductService : IProductService
         }
 
         return path;
+    }
+
+    public async Task<List<ValensApi.Application.DTOs.Home.HomeSectionProductCardDto>> SearchAdminProductsAsync(string? query, int limit)
+    {
+        var dbQuery = _unitOfWork.Products.GetQueryable()
+            .Include(p => p.Variants)
+            .AsNoTracking();
+
+        if (!string.IsNullOrEmpty(query))
+        {
+            var queryLower = query.ToLower();
+            dbQuery = dbQuery.Where(p => p.Name.ToLower().Contains(queryLower) || 
+                                         p.CategoryName.ToLower().Contains(queryLower));
+        }
+
+        var products = await dbQuery.Take(limit).ToListAsync();
+        
+        var result = new List<ValensApi.Application.DTOs.Home.HomeSectionProductCardDto>();
+        foreach (var p in products)
+        {
+            decimal price = p.Price;
+            int stock = p.Stock;
+            List<string> badges = new();
+
+            if (p.VariantType != "none" && p.Variants?.Any() == true)
+            {
+                price = p.Variants.Min(v => v.Price);
+                stock = p.Variants.Sum(v => v.StockQuantity);
+            }
+
+            if (p.NewArrival) badges.Add("NEW");
+            if (p.BestSeller) badges.Add("HOT");
+            if (p.DiscountPrice > 0 && p.DiscountPrice < price)
+            {
+                var savePct = (int)Math.Round((1 - p.DiscountPrice / price) * 100);
+                badges.Add($"SAVE {savePct}%");
+            }
+
+            string stockStatus = stock > 10 ? "in_stock" : stock > 0 ? "low_stock" : "out_of_stock";
+            string slug = p.Name.ToLowerInvariant().Replace(" ", "-");
+
+            result.Add(new ValensApi.Application.DTOs.Home.HomeSectionProductCardDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Slug = slug,
+                Description = p.Description,
+                Price = p.DiscountPrice > 0 && p.DiscountPrice < price ? p.DiscountPrice : price,
+                Currency = "EGP",
+                Image = string.IsNullOrEmpty(p.MainImage) ? null : GetAbsoluteUrl(p.MainImage),
+                Rating = 5,
+                ReviewsCount = 0,
+                StockStatus = stockStatus,
+                Badges = badges,
+            });
+        }
+        return result;
     }
 
     private void FormatProductUrls(Product product)
@@ -534,6 +651,19 @@ public class ProductService : IProductService
             foreach (var variant in product.Variants)
             {
                 variant.Image = GetAbsoluteUrl(variant.Image);
+            }
+
+            if (product.VariantType != "none" && product.Variants.Any())
+            {
+                product.Price = product.Variants.Min(v => v.Price);
+                
+                var discounts = product.Variants
+                    .Where(v => v.DiscountPrice > 0 && v.DiscountPrice < v.Price)
+                    .Select(v => v.DiscountPrice)
+                    .ToList();
+                product.DiscountPrice = discounts.Any() ? discounts.Min() : 0;
+                
+                product.Stock = product.Variants.Sum(v => v.StockQuantity);
             }
         }
     }

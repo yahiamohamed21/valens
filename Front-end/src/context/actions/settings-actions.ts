@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { STORAGE_KEYS } from "@/lib/constants";
-import { setStorageItem } from "@/lib/storage";
+import { api } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 import type { HomePageSettings, StoreSettings } from "@/types/store";
 
@@ -11,16 +10,31 @@ interface SettingsActionDeps {
 }
 
 export const useSettingsActions = ({ setHomePageSettings, setStoreSettings }: SettingsActionDeps) => {
-  const updateHomePageSettings = useCallback((newSettings: HomePageSettings) => {
-    setHomePageSettings(newSettings);
-    setStorageItem(STORAGE_KEYS.HOMEPAGE, newSettings);
-    showToast("Homepage layout updated", "success");
+  const updateHomePageSettings = useCallback(async (newSettings: HomePageSettings) => {
+    try {
+      await api.settings.updateHomepageConfig(newSettings);
+      setHomePageSettings(newSettings);
+      showToast("Homepage layout updated", "success");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update homepage settings";
+      showToast(message, "error");
+    }
   }, [setHomePageSettings]);
 
-  const updateStoreSettings = useCallback((newSettings: StoreSettings) => {
-    setStoreSettings(newSettings);
-    setStorageItem(STORAGE_KEYS.SETTINGS, newSettings);
-    showToast("Global store settings updated", "success");
+  const updateStoreSettings = useCallback(async (newSettings: StoreSettings) => {
+    try {
+      const dto = {
+        ...newSettings,
+        shippingCost: Number(newSettings.shippingCost),
+        taxRate: Number(newSettings.taxRate),
+      };
+      await api.settings.updateStoreConfig(dto);
+      setStoreSettings(newSettings);
+      showToast("Global store settings updated", "success");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update store settings";
+      showToast(message, "error");
+    }
   }, [setStoreSettings]);
 
   return useMemo(

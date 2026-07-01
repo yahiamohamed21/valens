@@ -46,7 +46,7 @@ export default function SearchPage() {
   }, [products, query]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
       <Navbar />
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -71,7 +71,7 @@ export default function SearchPage() {
               <button
                 type="button"
                 onClick={() => setSearchVal("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-text hover:text-white"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-text hover:text-gray-800"
               >
                 <Icon name="close" size={16} />
               </button>
@@ -84,7 +84,7 @@ export default function SearchPage() {
           matchingProducts.length > 0 ? (
             <div>
               <div className="flex items-center justify-between border-b border-border-color pb-4 mb-8">
-                <span className="text-xs font-bold text-soft-text">
+                <span className="text-xs font-bold text-white">
                   Found <span className="font-extrabold text-white">{matchingProducts.length}</span> matching formulations
                 </span>
               </div>
@@ -116,7 +116,7 @@ export default function SearchPage() {
                         setSearchVal(kw);
                         router.push(`/search?q=${encodeURIComponent(kw)}`);
                       }}
-                      className="rounded-xl border border-border-color bg-surface-deep px-3.5 py-1.5 text-2xs font-bold text-soft-text hover:border-primary-coral hover:text-primary-coral transition-luxury"
+                      className="rounded-xl border border-border-color bg-surface-deep px-3.5 py-1.5 text-2xs font-bold text-white hover:border-primary-coral hover:text-primary-coral transition-luxury"
                     >
                       {kw}
                     </button>

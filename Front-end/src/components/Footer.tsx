@@ -20,7 +20,7 @@ export const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="w-full border-t border-border-color bg-surface-deep text-soft-text">
+    <footer className="w-full border-t border-border-color bg-surface-deep text-white">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
         <div className={`grid grid-cols-1 gap-8 md:grid-cols-4 ${locale === "ar" ? "text-right" : "text-left"}`}>
           
@@ -35,31 +35,37 @@ export const Footer: React.FC = () => {
                 : "Formulating clinical-strength athletic supplements. Complete label transparency, lab-tested purity, and raw efficacy."
               }
             </p>
-            <div className={`mt-2 flex gap-4 text-xs font-semibold text-soft-text ${locale === "ar" ? "justify-start flex-row-reverse" : "justify-start"}`}>
-              <a
-                href={`https://instagram.com/${storeSettings.socialInstagram.replace("@", "")}`}
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-primary-coral transition-luxury"
-              >
-                Instagram
-              </a>
-              <a
-                href={`https://twitter.com/${storeSettings.socialTwitter.replace("@", "")}`}
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-primary-coral transition-luxury"
-              >
-                Twitter
-              </a>
-              <a
-                href={`https://facebook.com/${storeSettings.socialFacebook}`}
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-primary-coral transition-luxury"
-              >
-                Facebook
-              </a>
+            <div className={`mt-2 flex gap-4 text-xs font-semibold text-white ${locale === "ar" ? "justify-start flex-row-reverse" : "justify-start"}`}>
+              {storeSettings?.socialInstagram && (
+                <a
+                  href={`https://instagram.com/${storeSettings.socialInstagram.replace("@", "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-primary-coral transition-luxury"
+                >
+                  Instagram
+                </a>
+              )}
+              {storeSettings?.socialTwitter && (
+                <a
+                  href={`https://twitter.com/${storeSettings.socialTwitter.replace("@", "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-primary-coral transition-luxury"
+                >
+                  Twitter
+                </a>
+              )}
+              {storeSettings?.socialFacebook && (
+                <a
+                  href={`https://facebook.com/${storeSettings.socialFacebook}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hover:text-primary-coral transition-luxury"
+                >
+                  Facebook
+                </a>
+              )}
             </div>
           </div>
 
@@ -153,7 +159,7 @@ export const Footer: React.FC = () => {
             }
           </div>
           <div className="flex items-center gap-6">
-            <span className="hover:text-white transition-luxury cursor-pointer">
+            <span className="hover:text-primary-coral transition-luxury cursor-pointer">
               {locale === "ar" ? "تم التطوير بواسطة يحيى محمد" : "Created By Yahia Mohamed"}
             </span>
           </div>

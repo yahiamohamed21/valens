@@ -5,6 +5,8 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
     | "search"
     | "cart"
     | "user"
+    | "chevron-double-left"
+    | "chevron-double-right"
     | "settings"
     | "products"
     | "orders"
@@ -31,7 +33,8 @@ interface IconProps extends React.SVGProps<SVGSVGElement> {
     | "dashboard"
     | "box"
     | "logout"
-    | "lock";
+    | "lock"
+    | "location";
   size?: number | string;
 }
 
@@ -124,10 +127,24 @@ export const Icon: React.FC<IconProps> = ({ name, size = 20, className, ...props
           <path d="m15 18-6-6 6-6" />
         </svg>
       );
+    case "chevron-double-left":
+      return (
+        <svg {...commonProps}>
+          <path d="m19 18-6-6 6-6" />
+          <path d="m13 18-6-6 6-6" />
+        </svg>
+      );
     case "chevron-right":
       return (
         <svg {...commonProps}>
           <path d="m9 18 6-6-9-6" />
+        </svg>
+      );
+    case "chevron-double-right":
+      return (
+        <svg {...commonProps}>
+          <path d="m9 6 6 6-9 6" />
+          <path d="m15 6 6 6-9 6" />
         </svg>
       );
     case "star":
@@ -257,6 +274,13 @@ export const Icon: React.FC<IconProps> = ({ name, size = 20, className, ...props
         <svg {...commonProps}>
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      );
+    case "location":
+      return (
+        <svg {...commonProps}>
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
         </svg>
       );
     default:
