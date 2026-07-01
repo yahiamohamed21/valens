@@ -26,6 +26,9 @@ public class UnitOfWork : IUnitOfWork
     public IGenericRepository<Expense> Expenses { get; }
     public IGenericRepository<StoreSetting> StoreSettings { get; }
     public IGenericRepository<UserOtp> UserOtps { get; }
+    public IGenericRepository<HomeBanner> HomeBanners { get; }
+    public IGenericRepository<HomeStory> HomeStories { get; }
+    public IGenericRepository<HomeSectionProduct> HomeSectionProducts { get; }
 
     public UnitOfWork(ApplicationDbContext context, IProductRepository products)
     {
@@ -41,6 +44,9 @@ public class UnitOfWork : IUnitOfWork
         Expenses = new GenericRepository<Expense>(context);
         StoreSettings = new GenericRepository<StoreSetting>(context);
         UserOtps = new GenericRepository<UserOtp>(context);
+        HomeBanners = new GenericRepository<HomeBanner>(context);
+        HomeStories = new GenericRepository<HomeStory>(context);
+        HomeSectionProducts = new GenericRepository<HomeSectionProduct>(context);
     }
 
     public async Task<int> SaveChangesAsync()

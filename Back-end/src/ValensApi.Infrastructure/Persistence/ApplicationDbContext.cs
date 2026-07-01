@@ -28,6 +28,9 @@ public class ApplicationDbContext : DbContext
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<StoreSetting> StoreSettings => Set<StoreSetting>();
     public DbSet<UserOtp> UserOtps => Set<UserOtp>();
+    public DbSet<HomeBanner> HomeBanners => Set<HomeBanner>();
+    public DbSet<HomeStory> HomeStories => Set<HomeStory>();
+    public DbSet<HomeSectionProduct> HomeSectionProducts => Set<HomeSectionProduct>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
