@@ -51,9 +51,9 @@ public class Product : SoftDeletableEntity
     {
         get
         {
-            if (Reviews == null || !Reviews.Any(r => r.IsApproved))
+            if (Reviews == null || !Reviews.Any(r => r.IsApproved && r.Rating > 0))
                 return 5.0;
-            return Math.Round(Reviews.Where(r => r.IsApproved).Average(r => r.Rating), 1);
+            return Math.Round(Reviews.Where(r => r.IsApproved && r.Rating > 0).Average(r => r.Rating), 1);
         }
     }
 }

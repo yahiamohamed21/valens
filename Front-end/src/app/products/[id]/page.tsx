@@ -757,11 +757,13 @@ export default function ProductDetailsPage() {
                           </div>
                           <div>
                             <span className="block text-xs font-bold text-white">{rev.author}</span>
-                            <div className="flex text-primary-coral mt-0.5 gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <Icon key={i} name="star" size={10} className={i < rev.rating ? "text-primary-coral fill-primary-coral" : "text-border-color"} />
-                              ))}
-                            </div>
+                            {rev.rating > 0 && (
+                              <div className="flex text-primary-coral mt-0.5 gap-0.5">
+                                {[...Array(5)].map((_, i) => (
+                                  <Icon key={i} name="star" size={10} className={i < rev.rating ? "text-primary-coral fill-primary-coral" : "text-border-color"} />
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <span className="text-3xs text-muted-text font-bold uppercase">

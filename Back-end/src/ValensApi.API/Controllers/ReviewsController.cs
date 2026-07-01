@@ -49,7 +49,26 @@ public class ReviewsController : BaseApiController
 
         if (!hasPurchased)
         {
+            // Verify if there is any order at all, but return bilingual error
             return BadRequest("You can only review or rate products you have purchased / يمكنك فقط تقييم المنتجات التي قمت بشرائها بالفعل");
+        }
+
+        // Check if the user has already rated this product (rating > 0)
+        var hasAlreadyRated = await _unitOfWork.ProductReviews.GetQueryable()
+            .AnyAsync(r => r.ProductId == productId && r.CustomerEmail.ToLower() == customerEmail && r.Rating > 0);
+
+        int finalRating = dto.Rating;
+        string commentText = dto.Comment?.Trim() ?? string.Empty;
+
+        if (hasAlreadyRated)
+        {
+            // If they already rated, and they are submitting an empty rating (direct rating)
+            if (string.IsNullOrEmpty(commentText))
+            {
+                return BadRequest("You have already rated this product / لقد قمت بتقييم هذا المنتج بالفعل");
+            }
+            // Allow comment but discard rating for subsequent comments
+            finalRating = 0;
         }
 
         var review = new ProductReview
@@ -57,9 +76,9 @@ public class ReviewsController : BaseApiController
             ProductId = productId,
             CustomerName = dto.CustomerName.Trim(),
             CustomerEmail = customerEmail,
-            Rating = dto.Rating,
-            Comment = dto.Comment?.Trim() ?? string.Empty,
-            IsApproved = true 
+            Rating = finalRating,
+            Comment = commentText,
+            IsApproved = true // default approved
         };
 
         await _unitOfWork.ProductReviews.AddAsync(review);
