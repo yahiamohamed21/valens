@@ -12,7 +12,7 @@ import { Carousel } from "@/components/Carousel/Carousel";
 import { mockCarouselData } from "@/data/mockCarouselData";
 
 export default function Home() {
-  const { products, categories, homePageSettings, locale, t } = useApp();
+  const { products, categories, homePageSettings, homeBanners, homeStories, homeFeaturedProducts, homeBestSellers, locale, t } = useApp();
 
   const getCategoryName = (catName: string) => {
     if (locale !== "ar") return catName;
@@ -26,14 +26,50 @@ export default function Home() {
     }
   };
 
-  // Filter products for homepage sections
-  const featuredProducts = products.filter((p) => p.featured && p.visible).slice(0, 4);
-  const bestSellers = products.filter((p) => p.bestSeller && p.visible).slice(0, 4);
+  const activeBanner = homeBanners.find(b => b.isActive) || homeBanners[0];
 
-  const heroTitleText = locale === "ar" && homePageSettings.heroTitle_ar ? homePageSettings.heroTitle_ar : homePageSettings.heroTitle;
-  const heroSubtitleText = locale === "ar" && homePageSettings.heroSubtitle_ar ? homePageSettings.heroSubtitle_ar : homePageSettings.heroSubtitle;
-  const heroCtaTextVal = locale === "ar" && homePageSettings.heroCtaText_ar ? homePageSettings.heroCtaText_ar : homePageSettings.heroCtaText;
+  // Filter products for homepage sections
+  const featuredProducts = homeFeaturedProducts.length > 0
+    ? homeFeaturedProducts.map(fp => fp.product).filter(Boolean) as Product[]
+    : products.filter((p) => p.featured && p.visible).slice(0, 4);
+
+  const bestSellers = homeBestSellers.length > 0
+    ? homeBestSellers.map(bp => bp.product).filter(Boolean) as Product[]
+    : products.filter((p) => p.bestSeller && p.visible).slice(0, 4);
+
+  const heroTitleText = activeBanner 
+    ? activeBanner.title 
+    : (locale === "ar" && homePageSettings.heroTitle_ar ? homePageSettings.heroTitle_ar : homePageSettings.heroTitle);
+
+  const heroSubtitleText = activeBanner 
+    ? activeBanner.subtitle 
+    : (locale === "ar" && homePageSettings.heroSubtitle_ar ? homePageSettings.heroSubtitle_ar : homePageSettings.heroSubtitle);
+
+  const heroCtaTextVal = activeBanner 
+    ? (activeBanner.ctaText || (locale === "ar" ? "تسوق الآن" : "SHOP NOW"))
+    : (locale === "ar" && homePageSettings.heroCtaText_ar ? homePageSettings.heroCtaText_ar : homePageSettings.heroCtaText);
+
+  const heroCtaLinkVal = activeBanner 
+    ? activeBanner.ctaLink 
+    : homePageSettings.heroCtaLink;
+
   const promoBadgeText = locale === "ar" && homePageSettings.promoBadge_ar ? homePageSettings.promoBadge_ar : homePageSettings.promoBadge;
+
+  const storiesData = homeStories.length > 0
+    ? homeStories.map(s => ({
+        id: s.id,
+        title: s.title,
+        imageUrl: s.image,
+        imageAlt: s.altText || s.title,
+        description: s.description,
+        category: locale === "ar" ? "قصة أداء" : "Performance Story"
+      }))
+    : mockCarouselData.map(item => ({
+        ...item,
+        title: locale === "ar" && item.title_ar ? item.title_ar : item.title,
+        category: locale === "ar" && item.category_ar ? item.category_ar : item.category,
+        description: locale === "ar" && item.description_ar ? item.description_ar : item.description
+      }));
 
   return (
     <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
@@ -60,7 +96,7 @@ export default function Home() {
               </p>
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <Link
-                  href={homePageSettings.heroCtaLink}
+                  href={heroCtaLinkVal}
                   className="flex items-center justify-center gap-2 rounded-full bg-primary-coral px-8 py-4 text-sm font-black tracking-widest text-main-bg transition-luxury hover:bg-white hover:text-main-bg hover:scale-105 shadow-[0_4px_20px_rgba(255,138,117,0.3)] hover:shadow-[0_4px_30px_rgba(255,255,255,0.4)]"
                 >
                   {heroCtaTextVal}
@@ -96,28 +132,41 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Product Display */}
+            {/* Right Product Display / Hero Banner */}
             <div className="relative flex items-center justify-center lg:col-span-6 h-[400px] lg:h-[500px]">
-              {/* Ambient Coral Spotlights */}
-              <div className="absolute inset-0 -z-10 flex items-center justify-center">
-                <div className="h-64 w-64 rounded-full bg-primary-coral/10 blur-[80px]" />
-                <div className="h-48 w-48 rounded-full bg-accent-orange/10 blur-[60px]" />
-              </div>
+              {activeBanner?.image ? (
+                <div className="relative w-full h-[320px] lg:h-[420px] rounded-3xl overflow-hidden border border-border-color/30 shadow-[0_8px_30px_rgb(0,0,0,0.4)] group">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
+                  <img
+                    src={activeBanner.image}
+                    alt={activeBanner.altText || heroTitleText}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                </div>
+              ) : (
+                <>
+                  {/* Ambient Coral Spotlights */}
+                  <div className="absolute inset-0 -z-10 flex items-center justify-center">
+                    <div className="h-64 w-64 rounded-full bg-primary-coral/10 blur-[80px]" />
+                    <div className="h-48 w-48 rounded-full bg-accent-orange/10 blur-[60px]" />
+                  </div>
 
-              {/* Left Bottle */}
-              <div className="absolute left-[5%] bottom-[10%] w-[180px] sm:w-[220px] transition-luxury hover:scale-105 hover:z-20 transform -rotate-6 filter brightness-75">
-                <ProductImage color="#D8C9C3" type="powder" glow={false} className="h-64 w-full" />
-              </div>
+                  {/* Left Bottle */}
+                  <div className="absolute left-[5%] bottom-[10%] w-[180px] sm:w-[220px] transition-luxury hover:scale-105 hover:z-20 transform -rotate-6 filter brightness-75">
+                    <ProductImage color="#D8C9C3" type="powder" glow={false} className="h-64 w-full" />
+                  </div>
 
-              {/* Right Bottle */}
-              <div className="absolute right-[5%] bottom-[10%] w-[180px] sm:w-[220px] transition-luxury hover:scale-105 hover:z-20 transform rotate-6 filter brightness-75">
-                <ProductImage color="#FF5226" type="powder" glow={false} className="h-64 w-full" />
-              </div>
+                  {/* Right Bottle */}
+                  <div className="absolute right-[5%] bottom-[10%] w-[180px] sm:w-[220px] transition-luxury hover:scale-105 hover:z-20 transform rotate-6 filter brightness-75">
+                    <ProductImage color="#FF5226" type="powder" glow={false} className="h-64 w-full" />
+                  </div>
 
-              {/* Center Main Bottle */}
-              <div className="absolute bottom-[5%] w-[220px] sm:w-[260px] z-10 transition-luxury hover:scale-110 shadow-2xl">
-                <ProductImage color="#FF8A75" type="powder" glow={true} className="h-80 w-full" />
-              </div>
+                  {/* Center Main Bottle */}
+                  <div className="absolute bottom-[5%] w-[220px] sm:w-[260px] z-10 transition-luxury hover:scale-110 shadow-2xl">
+                    <ProductImage color="#FF8A75" type="powder" glow={true} className="h-80 w-full" />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -291,12 +340,7 @@ export default function Home() {
 
         {/* Brand Stories Swiper Carousel */}
         <Carousel
-          items={mockCarouselData.map(item => ({
-            ...item,
-            title: locale === "ar" && item.title_ar ? item.title_ar : item.title,
-            category: locale === "ar" && item.category_ar ? item.category_ar : item.category,
-            description: locale === "ar" && item.description_ar ? item.description_ar : item.description
-          }))}
+          items={storiesData}
           title={locale === "ar" ? "قصص الأداء وملاحظات المختبر" : "Performance Stories & Lab Notes"}
           eyebrow={locale === "ar" ? "داخل Valens" : "Inside Valens"}
           description={locale === "ar" ? "استكشف التطور السريري، المجلات الرياضية، وسجلات إطلاق الدفعات مباشرة من فريق التطوير." : "Explore clinical progress, athletic journals, and batch release logs direct from our development team."}
