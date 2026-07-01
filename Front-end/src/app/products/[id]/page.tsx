@@ -46,6 +46,17 @@ export default function ProductDetailsPage() {
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  // Sync review email and name if logged in
+  useEffect(() => {
+    if (currentUserEmail) {
+      setReviewEmail(currentUserEmail);
+      setReviewName(currentUserEmail.split("@")[0]);
+    } else {
+      setReviewEmail("");
+      setReviewName("");
+    }
+  }, [currentUserEmail]);
+
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewName.trim() || !reviewEmail.trim() || !reviewComment.trim()) {
@@ -774,93 +785,113 @@ export default function ProductDetailsPage() {
 
             {/* Write a Review Column */}
             <div className="lg:col-span-5">
-              <div className="rounded-2xl border border-border-color bg-card-bg/40 p-6 glass-panel sticky top-4">
-                <h4 className="text-sm font-black uppercase tracking-wider text-white mb-4">
-                  {locale === "ar" ? "شاركنا تجربتك ورأيك" : "Share Your Experience"}
-                </h4>
-                <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
-                  {/* Stars input */}
-                  <div>
-                    <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
-                      {locale === "ar" ? "تقييمك بالنجوم" : "Your Rating"}
-                    </label>
-                    <div className="flex gap-1.5">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setReviewRating(star)}
-                          className="text-primary-coral focus:outline-none transition-transform duration-200 hover:scale-125 cursor-pointer"
-                        >
-                          <Icon
-                            name="star"
-                            size={20}
-                            className={star <= reviewRating ? "text-primary-coral fill-primary-coral" : "text-border-color"}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Name Input */}
-                  <div>
-                    <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
-                      {locale === "ar" ? "الاسم" : "Your Name"}
-                    </label>
-                    <input
-                      id="review-name-input"
-                      type="text"
-                      required
-                      value={reviewName}
-                      onChange={(e) => setReviewName(e.target.value)}
-                      placeholder={locale === "ar" ? "أدخل اسمك الكريم" : "Enter your name"}
-                      className="w-full rounded-xl border border-border-color bg-surface-deep/80 px-4 py-2.5 text-xs text-white placeholder-muted-text/50 focus:border-primary-coral focus:outline-none transition-luxury"
-                    />
-                  </div>
-
-                  {/* Email Input */}
-                  <div>
-                    <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
-                      {locale === "ar" ? "البريد الإلكتروني" : "Email Address"}
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={reviewEmail}
-                      onChange={(e) => setReviewEmail(e.target.value)}
-                      placeholder={locale === "ar" ? "أدخل بريدك الإلكتروني" : "Enter your email"}
-                      className="w-full rounded-xl border border-border-color bg-surface-deep/80 px-4 py-2.5 text-xs text-white placeholder-muted-text/50 focus:border-primary-coral focus:outline-none transition-luxury"
-                    />
-                  </div>
-
-                  {/* Comment Input */}
-                  <div>
-                    <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
-                      {locale === "ar" ? "تعليقك" : "Comment"}
-                    </label>
-                    <textarea
-                      required
-                      rows={4}
-                      value={reviewComment}
-                      onChange={(e) => setReviewComment(e.target.value)}
-                      placeholder={locale === "ar" ? "ما هو رأيك في المنتج؟" : "Write your review details here..."}
-                      className="w-full rounded-xl border border-border-color bg-surface-deep/80 px-4 py-2.5 text-xs text-white placeholder-muted-text/50 focus:border-primary-coral focus:outline-none transition-luxury resize-none"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={submittingReview}
-                    className="w-full rounded-xl bg-primary-coral py-3 text-xs font-black uppercase tracking-wider text-main-bg hover:opacity-90 active:scale-98 transition-luxury disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-primary-coral/25"
+              {!currentUserEmail ? (
+                <div className="rounded-2xl border border-border-color bg-card-bg/40 p-8 glass-panel text-center py-10 sticky top-4">
+                  <Icon name="lock" size={32} className="text-primary-coral mb-4 mx-auto animate-pulse" />
+                  <h4 className="text-sm font-black uppercase tracking-wider text-white mb-2">
+                    {locale === "ar" ? "تسجيل الدخول مطلوب" : "Authentication Required"}
+                  </h4>
+                  <p className="text-xs text-muted-text mb-6 uppercase font-bold tracking-wide">
+                    {locale === "ar" 
+                      ? "يجب عليك تسجيل الدخول بحسابك لتتمكن من كتابة مراجعة أو تقييم هذا المنتج." 
+                      : "You must be logged in to write a review or rate this product."}
+                  </p>
+                  <Link
+                    href="/login"
+                    className="inline-flex w-full justify-center items-center rounded-xl bg-primary-coral py-3 text-xs font-black uppercase tracking-wider text-main-bg hover:opacity-90 transition-luxury shadow-lg shadow-primary-coral/25"
                   >
-                    {submittingReview ? (
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-main-bg border-t-transparent" />
-                    ) : (
-                      locale === "ar" ? "إرسال التقييم" : "Submit Review"
-                    )}
-                  </button>
-                </form>
-              </div>
+                    {locale === "ar" ? "تسجيل الدخول الآن" : "LOG IN NOW"}
+                  </Link>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-border-color bg-card-bg/40 p-6 glass-panel sticky top-4">
+                  <h4 className="text-sm font-black uppercase tracking-wider text-white mb-4">
+                    {locale === "ar" ? "شاركنا تجربتك ورأيك" : "Share Your Experience"}
+                  </h4>
+                  <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
+                    {/* Stars input */}
+                    <div>
+                      <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
+                        {locale === "ar" ? "تقييمك بالنجوم" : "Your Rating"}
+                      </label>
+                      <div className="flex gap-1.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setReviewRating(star)}
+                            className="text-primary-coral focus:outline-none transition-transform duration-200 hover:scale-125 cursor-pointer"
+                          >
+                            <Icon
+                              name="star"
+                              size={20}
+                              className={star <= reviewRating ? "text-primary-coral fill-primary-coral" : "text-border-color"}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Name Input */}
+                    <div>
+                      <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
+                        {locale === "ar" ? "الاسم" : "Your Name"}
+                      </label>
+                      <input
+                        id="review-name-input"
+                        type="text"
+                        required
+                        value={reviewName}
+                        onChange={(e) => setReviewName(e.target.value)}
+                        placeholder={locale === "ar" ? "أدخل اسمك الكريم" : "Enter your name"}
+                        className="w-full rounded-xl border border-border-color bg-surface-deep/80 px-4 py-2.5 text-xs text-white placeholder-muted-text/50 focus:border-primary-coral focus:outline-none transition-luxury"
+                      />
+                    </div>
+
+                    {/* Email Input */}
+                    <div>
+                      <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
+                        {locale === "ar" ? "البريد الإلكتروني" : "Email Address"}
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        readOnly
+                        value={reviewEmail}
+                        placeholder={locale === "ar" ? "البريد الإلكتروني" : "Email Address"}
+                        className="w-full rounded-xl border border-border-color/50 bg-surface-deep/30 px-4 py-2.5 text-xs text-muted-text focus:outline-none cursor-not-allowed opacity-80"
+                      />
+                    </div>
+
+                    {/* Comment Input */}
+                    <div>
+                      <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
+                        {locale === "ar" ? "تعليقك" : "Comment"}
+                      </label>
+                      <textarea
+                        required
+                        rows={4}
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder={locale === "ar" ? "ما هو رأيك في المنتج؟" : "Write your review details here..."}
+                        className="w-full rounded-xl border border-border-color bg-surface-deep/80 px-4 py-2.5 text-xs text-white placeholder-muted-text/50 focus:border-primary-coral focus:outline-none transition-luxury resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submittingReview}
+                      className="w-full rounded-xl bg-primary-coral py-3 text-xs font-black uppercase tracking-wider text-main-bg hover:opacity-90 active:scale-98 transition-luxury disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-primary-coral/25"
+                    >
+                      {submittingReview ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-main-bg border-t-transparent" />
+                      ) : (
+                        locale === "ar" ? "إرسال التقييم" : "Submit Review"
+                      )}
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         </section>
