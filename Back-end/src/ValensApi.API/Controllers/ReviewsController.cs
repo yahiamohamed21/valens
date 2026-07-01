@@ -20,6 +20,7 @@ public class ReviewsController : BaseApiController
     }
 
     [HttpPost("products/{productId:guid}")]
+    [Authorize]
     public async Task<IActionResult> AddReview(Guid productId, [FromBody] CreateReviewDto dto)
     {
         if (!ModelState.IsValid)
@@ -31,14 +32,53 @@ public class ReviewsController : BaseApiController
         if (product == null)
             return NotFound("Product not found.");
 
+        var tokenEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value?.Trim().ToLower();
+        if (string.IsNullOrEmpty(tokenEmail))
+        {
+            return Unauthorized("You must be logged in to rate or review / يجب عليك تسجيل الدخول أولاً للتقييم");
+        }
+
+        var customerEmail = tokenEmail;
+        
+        // Verify the customer has purchased this product
+        var hasPurchased = await _unitOfWork.Orders.GetQueryable()
+            .AnyAsync(o => o.CustomerEmail.ToLower() == customerEmail
+                      && o.Status != "CANCELLED"
+                      && o.Status != "REJECTED"
+                      && o.Items.Any(i => i.ProductId == productId));
+
+        if (!hasPurchased)
+        {
+            // Verify if there is any order at all, but return bilingual error
+            return BadRequest("You can only review or rate products you have purchased / يمكنك فقط تقييم المنتجات التي قمت بشرائها بالفعل");
+        }
+
+        // Check if the user has already rated this product (rating > 0)
+        var hasAlreadyRated = await _unitOfWork.ProductReviews.GetQueryable()
+            .AnyAsync(r => r.ProductId == productId && r.CustomerEmail.ToLower() == customerEmail && r.Rating > 0);
+
+        int finalRating = dto.Rating;
+        string commentText = dto.Comment?.Trim() ?? string.Empty;
+
+        if (hasAlreadyRated)
+        {
+            // If they already rated, and they are submitting an empty rating (direct rating)
+            if (string.IsNullOrEmpty(commentText))
+            {
+                return BadRequest("You have already rated this product / لقد قمت بتقييم هذا المنتج بالفعل");
+            }
+            // Allow comment but discard rating for subsequent comments
+            finalRating = 0;
+        }
+
         var review = new ProductReview
         {
             ProductId = productId,
             CustomerName = dto.CustomerName.Trim(),
-            CustomerEmail = dto.CustomerEmail.Trim().ToLower(),
-            Rating = dto.Rating,
-            Comment = dto.Comment?.Trim() ?? string.Empty,
-            IsApproved = true // default approved, can be moderated in admin
+            CustomerEmail = customerEmail,
+            Rating = finalRating,
+            Comment = commentText,
+            IsApproved = true // default approved
         };
 
         await _unitOfWork.ProductReviews.AddAsync(review);

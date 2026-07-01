@@ -345,14 +345,29 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (data.categories) {
           setCategories(safeArray<Record<string, unknown>>(data.categories).map(mapApiCategoryToClient));
         }
-        const homeConfig = data.homePageSettings || data.homepageConfig;
+        const homeConfig = data.settings || data.Settings || data.homePageSettings || data.homepageConfig;
         if (homeConfig) {
-          setHomePageSettings(homeConfig as HomePageSettings);
+          setHomePageSettings({
+            brandName: "Valens",
+            logoText: "VALENS",
+            heroTitle: homeConfig.homepageHeroTitle || "FORGED IN SCIENCE, UNLEASHED IN PERFORMANCE",
+            heroSubtitle: homeConfig.homepageHeroSubtitle || "Fuel your body with the highest quality formulations.",
+            heroCtaText: "SHOP PERFORMANCE",
+            heroCtaLink: "/products",
+            firstBannerTitle: homeConfig.homepageHeroTitle || "Purity & Potency",
+            firstBannerSubtitle: homeConfig.homepageHeroSubtitle || "Clinically dosed ingredients to elevate performance.",
+            firstBannerCtaText: "SHOP NOW",
+            promoBadge: homeConfig.homepageDiscountBannerText || "VALENS LABS",
+            heroTitle_ar: homeConfig.homepageHeroTitle_ar || homeConfig.homepageHeroTitle || "مُصمم برؤية علمية، مُنفجر بقوة الأداء",
+            heroSubtitle_ar: homeConfig.homepageHeroSubtitle_ar || homeConfig.homepageHeroSubtitle || "ادعم جسمك بتركيبات عالية الجودة.",
+            promoBadge_ar: homeConfig.homepageDiscountBannerText_ar || homeConfig.homepageDiscountBannerText || "مختبرات فالنز"
+          });
         }
-        const storeConfig = data.storeSettings || data.storeConfig;
-        if (storeConfig) {
-          setStoreSettings(storeConfig as StoreSettings);
-        }
+      }
+      // Load store settings separately as they are not inside homepageOverview in backend DTO
+      const storeConf = await api.settings.storeConfig();
+      if (storeConf) {
+        setStoreSettings(storeConf);
       }
       // Load products separately to ensure we get the full list of products
       const prodList = await api.products.list({ pageSize: 1000 });
@@ -376,7 +391,21 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
         const homeConf = await api.settings.homepageConfig();
         if (homeConf) {
-          setHomePageSettings(homeConf);
+          setHomePageSettings({
+            brandName: "Valens",
+            logoText: "VALENS",
+            heroTitle: homeConf.homepageHeroTitle || "FORGED IN SCIENCE, UNLEASHED IN PERFORMANCE",
+            heroSubtitle: homeConf.homepageHeroSubtitle || "Fuel your body with the highest quality formulations.",
+            heroCtaText: "SHOP PERFORMANCE",
+            heroCtaLink: "/products",
+            firstBannerTitle: homeConf.homepageHeroTitle || "Purity & Potency",
+            firstBannerSubtitle: homeConf.homepageHeroSubtitle || "Clinically dosed ingredients to elevate performance.",
+            firstBannerCtaText: "SHOP NOW",
+            promoBadge: homeConf.homepageDiscountBannerText || "VALENS LABS",
+            heroTitle_ar: homeConf.homepageHeroTitle_ar || homeConf.homepageHeroTitle || "مُصمم برؤية علمية، مُنفجر بقوة الأداء",
+            heroSubtitle_ar: homeConf.homepageHeroSubtitle_ar || homeConf.homepageHeroSubtitle || "ادعم جسمك بتركيبات عالية الجودة.",
+            promoBadge_ar: homeConf.homepageDiscountBannerText_ar || homeConf.homepageDiscountBannerText || "مختبرات فالنز"
+          });
         }
       } catch (fallbackErr) {
         console.warn("Backend unreachable — data will load when connection is restored.");

@@ -44,6 +44,7 @@ export default function AdminHomepageCmsPage() {
   const [bannerCtaText, setBannerCtaText] = useState("");
   const [bannerCtaLink, setBannerCtaLink] = useState("/products");
   const [bannerIsActive, setBannerIsActive] = useState(true);
+  const [bannerAltText, setBannerAltText] = useState("");
 
   // --- Form state: Story ---
   const [storyTitle, setStoryTitle] = useState("");
@@ -51,6 +52,7 @@ export default function AdminHomepageCmsPage() {
   const [storyImage, setStoryImage] = useState("https://picsum.photos/id/1048/1200/900");
   const [storyLink, setStoryLink] = useState("");
   const [storyIsActive, setStoryIsActive] = useState(true);
+  const [storyAltText, setStoryAltText] = useState("");
 
   // Open banner modal for Add
   const handleOpenAddBanner = () => {
@@ -62,6 +64,7 @@ export default function AdminHomepageCmsPage() {
     setBannerCtaText("");
     setBannerCtaLink("/products");
     setBannerIsActive(true);
+    setBannerAltText("");
     setIsBannerModalOpen(true);
   };
 
@@ -75,6 +78,7 @@ export default function AdminHomepageCmsPage() {
     setBannerCtaText(banner.ctaText);
     setBannerCtaLink(banner.ctaLink);
     setBannerIsActive(banner.isActive);
+    setBannerAltText(banner.altText || "");
     setIsBannerModalOpen(true);
   };
 
@@ -96,7 +100,7 @@ export default function AdminHomepageCmsPage() {
           mobileImage: bannerMobileImage || "",
           ctaText: bannerCtaText,
           ctaLink: bannerCtaLink,
-          altText: bannerTitle,
+          altText: bannerAltText || bannerTitle,
           isActive: bannerIsActive,
         });
         if (res && (res as any).success) {
@@ -108,7 +112,8 @@ export default function AdminHomepageCmsPage() {
             mobileImage: bannerMobileImage || undefined,
             ctaText: bannerCtaText,
             ctaLink: bannerCtaLink,
-            isActive: bannerIsActive
+            isActive: bannerIsActive,
+            altText: bannerAltText || bannerTitle
           } : b);
           setHomeBanners(updated);
           showToast("Banner details updated", "success");
@@ -122,7 +127,7 @@ export default function AdminHomepageCmsPage() {
           mobileImage: bannerMobileImage || "",
           ctaText: bannerCtaText,
           ctaLink: bannerCtaLink,
-          altText: bannerTitle,
+          altText: bannerAltText || bannerTitle,
           isActive: bannerIsActive,
           displayOrder: homeBanners.length + 1
         });
@@ -136,7 +141,8 @@ export default function AdminHomepageCmsPage() {
             ctaText: bannerCtaText,
             ctaLink: bannerCtaLink,
             isActive: bannerIsActive,
-            displayOrder: homeBanners.length + 1
+            displayOrder: homeBanners.length + 1,
+            altText: bannerAltText || bannerTitle
           };
           setHomeBanners([...homeBanners, newBanner]);
           showToast("New banner added successfully", "success");
@@ -217,6 +223,7 @@ export default function AdminHomepageCmsPage() {
     setStoryImage("https://picsum.photos/id/1048/1200/900");
     setStoryLink("");
     setStoryIsActive(true);
+    setStoryAltText("");
     setIsStoryModalOpen(true);
   };
 
@@ -227,6 +234,7 @@ export default function AdminHomepageCmsPage() {
     setStoryImage(story.image);
     setStoryLink(story.link || "");
     setStoryIsActive(story.isActive);
+    setStoryAltText(story.altText || "");
     setIsStoryModalOpen(true);
   };
 
@@ -244,7 +252,7 @@ export default function AdminHomepageCmsPage() {
           description: storyDescription,
           image: storyImage,
           link: storyLink || "",
-          altText: storyTitle,
+          altText: storyAltText || storyTitle,
           isActive: storyIsActive,
         });
         if (res && (res as any).success) {
@@ -254,7 +262,8 @@ export default function AdminHomepageCmsPage() {
             description: storyDescription,
             image: storyImage,
             link: storyLink || undefined,
-            isActive: storyIsActive
+            isActive: storyIsActive,
+            altText: storyAltText || storyTitle
           } : s);
           setHomeStories(updated);
           showToast("Story card updated", "success");
@@ -265,7 +274,7 @@ export default function AdminHomepageCmsPage() {
           description: storyDescription,
           image: storyImage,
           link: storyLink || "",
-          altText: storyTitle,
+          altText: storyAltText || storyTitle,
           isActive: storyIsActive,
           displayOrder: homeStories.length + 1
         });
@@ -277,7 +286,8 @@ export default function AdminHomepageCmsPage() {
             image: storyImage,
             link: storyLink || undefined,
             isActive: storyIsActive,
-            displayOrder: homeStories.length + 1
+            displayOrder: homeStories.length + 1,
+            altText: storyAltText || storyTitle
           };
           setHomeStories([...homeStories, newStory]);
           showToast("Story card added", "success");
@@ -1140,6 +1150,18 @@ export default function AdminHomepageCmsPage() {
               />
             </div>
 
+            {/* Image Alt Text */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-white mb-2">Image Alt Text (SEO Description)</label>
+              <input
+                type="text"
+                value={bannerAltText}
+                onChange={(e) => setBannerAltText(e.target.value)}
+                placeholder="e.g. Athlete training with supplements"
+                className="w-full rounded-2xl border border-border-color bg-surface-deep/40 px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary-coral/60 transition-all"
+              />
+            </div>
+
             {/* Visibility checkbox */}
             <div className="flex items-center gap-3">
               <input
@@ -1234,6 +1256,18 @@ export default function AdminHomepageCmsPage() {
                   className="w-full text-xs text-muted-text cursor-pointer bg-surface-deep/40 px-4 py-3 rounded-2xl border border-border-color file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-2xs file:font-black file:uppercase file:bg-primary-coral/10 file:text-primary-coral file:cursor-pointer hover:file:bg-primary-coral/20 file:transition-all mt-1"
                 />
               </div>
+            </div>
+
+            {/* Image Alt Text */}
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-muted-text mb-2">Image Alt Text (SEO Description)</label>
+              <input
+                type="text"
+                value={storyAltText}
+                onChange={(e) => setStoryAltText(e.target.value)}
+                placeholder="e.g. Close-up of supplement powder scoop"
+                className="w-full rounded-2xl border border-border-color bg-surface-deep/40 px-4 py-3 text-sm text-foreground focus:outline-none focus:border-primary-coral/60 transition-all"
+              />
             </div>
 
             <div className="flex items-center gap-3 mt-2">

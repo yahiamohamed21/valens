@@ -218,6 +218,7 @@ export interface HomeBanner {
   ctaLink: string;
   isActive: boolean;
   displayOrder: number;
+  altText?: string;
 }
 
 export interface HomeStory {
@@ -228,6 +229,7 @@ export interface HomeStory {
   link?: string;
   isActive: boolean;
   displayOrder: number;
+  altText?: string;
 }
 
 export interface HomeCuratedProduct {

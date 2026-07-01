@@ -508,7 +508,7 @@ export const api = {
 
   reviews: {
     submitReview: (productId: string, body: Record<string, unknown>) =>
-      request<unknown>(`/api/reviews/products/${productId}`, "POST", body, false),
+      request<unknown>(`/api/reviews/products/${productId}`, "POST", body),
     listAdmin: () => request<unknown>("/api/reviews/admin", "GET"),
     toggleApprove: (id: string) => request<unknown>(`/api/reviews/admin/${id}/toggle-approve`, "PATCH"),
     delete: (id: string) => request<unknown>(`/api/reviews/admin/${id}`, "DELETE"),
@@ -727,6 +727,7 @@ export const mapApiBannerToClient = (b: Record<string, unknown>): HomeBanner => 
   ctaLink: toStringValue(b.ctaLink),
   isActive: toBooleanValue(b.isActive ?? b.active, true),
   displayOrder: toNumberValue(b.displayOrder),
+  altText: b.altText ? toStringValue(b.altText) : undefined,
 });
 
 export const mapApiStoryToClient = (s: Record<string, unknown>): HomeStory => ({
@@ -737,6 +738,7 @@ export const mapApiStoryToClient = (s: Record<string, unknown>): HomeStory => ({
   link: s.link ? toStringValue(s.link) : undefined,
   isActive: toBooleanValue(s.isActive ?? s.active, true),
   displayOrder: toNumberValue(s.displayOrder),
+  altText: s.altText ? toStringValue(s.altText) : undefined,
 });
 
 export const mapApiSectionProductToClient = (sp: Record<string, unknown>): HomeCuratedProduct => ({
