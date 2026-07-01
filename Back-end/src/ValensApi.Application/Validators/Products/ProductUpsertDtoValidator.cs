@@ -51,11 +51,13 @@ public class ProductUpsertDtoValidator : AbstractValidator<ProductUpsertDto>
             .MaximumLength(100).WithMessage("SKU cannot exceed 100 characters.");
 
         RuleFor(x => x.ImageType)
-            .Must(type => type == "powder" || type == "capsule" || type == "liquid" || type == "bar" || type == "tablet" || type == "other")
+            .Must(type => string.IsNullOrEmpty(type) || type == "powder" || type == "capsule" || type == "liquid" || type == "bar" || type == "tablet" || type == "other")
             .WithMessage("Invalid image type. Allowed: powder, capsule, liquid, bar, tablet, other.");
 
         RuleFor(x => x.ImageColor)
-            .Matches(@"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$").WithMessage("Image color must be a valid hex color code.");
+            .Matches(@"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
+            .WithMessage("Image color must be a valid hex color code.")
+            .When(x => !string.IsNullOrEmpty(x.ImageColor));
 
         // Validate nested variant list
         RuleForEach(x => x.Variants)

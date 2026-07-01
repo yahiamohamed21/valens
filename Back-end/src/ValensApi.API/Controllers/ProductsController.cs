@@ -102,7 +102,8 @@ public class ProductsController : BaseApiController
                 return NotFound("Product not found.");
             }
 
-            return NoContent();
+            var updatedProduct = await _productService.GetByIdAsync(dto.Id.Value);
+            return Ok(updatedProduct);
         }
         catch (ArgumentException ex)
         {
@@ -127,7 +128,8 @@ public class ProductsController : BaseApiController
                 return NotFound("Product not found.");
             }
 
-            return NoContent();
+            var updatedProduct = await _productService.GetByIdAsync(dto.Id.Value);
+            return Ok(updatedProduct);
         }
         catch (ArgumentException ex)
         {
@@ -159,5 +161,13 @@ public class ProductsController : BaseApiController
         }
 
         return NoContent();
+    }
+
+    [HttpGet("/api/admin/products/search")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SearchProducts([FromQuery] string? query, [FromQuery] int limit = 20)
+    {
+        var data = await _productService.SearchAdminProductsAsync(query, limit);
+        return Ok(new { success = true, data });
     }
 }

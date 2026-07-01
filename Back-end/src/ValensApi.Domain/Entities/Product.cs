@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using ValensApi.Domain.Common;
 
 namespace ValensApi.Domain.Entities;
@@ -42,4 +44,16 @@ public class Product : SoftDeletableEntity
     public string ImageColor { get; set; } = "#FF8A75";
 
     public List<ProductVariant> Variants { get; set; } = new();
+    public List<ProductReview> Reviews { get; set; } = new();
+
+    [NotMapped]
+    public double Rating
+    {
+        get
+        {
+            if (Reviews == null || !Reviews.Any(r => r.IsApproved))
+                return 5.0;
+            return Math.Round(Reviews.Where(r => r.IsApproved).Average(r => r.Rating), 1);
+        }
+    }
 }

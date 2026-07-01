@@ -21,6 +21,7 @@ public static class DatabaseSeeder
         await context.Database.MigrateAsync();
 
         // Delete in child-first order to satisfy FK constraints
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [ProductReviews]");
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [OrderItems]");
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Orders]");
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Customers]");
@@ -395,6 +396,42 @@ public static class DatabaseSeeder
             }).ToList();
 
             await context.GovernorateShippings.AddRangeAsync(list);
+            await context.SaveChangesAsync();
+        }
+
+        // 8. Seed Product Reviews
+        if (!await context.ProductReviews.AnyAsync())
+        {
+            var products = await context.Products.ToListAsync();
+            var reviews = new List<ProductReview>();
+            foreach (var product in products)
+            {
+                reviews.Add(new ProductReview
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = product.Id,
+                    CustomerName = "Sherif Mohamed",
+                    CustomerEmail = "sherif@example.com",
+                    Rating = 5,
+                    Comment = "ممتاز جداً وجودة عالية وأنصح به!",
+                    IsApproved = true,
+                    CreatedAt = DateTimeOffset.UtcNow.AddDays(-2),
+                    UpdatedAt = DateTimeOffset.UtcNow.AddDays(-2)
+                });
+                reviews.Add(new ProductReview
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = product.Id,
+                    CustomerName = "Sarah Aly",
+                    CustomerEmail = "sarah@example.com",
+                    Rating = 4,
+                    Comment = "Good product, but the package was slightly delayed.",
+                    IsApproved = true,
+                    CreatedAt = DateTimeOffset.UtcNow.AddDays(-5),
+                    UpdatedAt = DateTimeOffset.UtcNow.AddDays(-5)
+                });
+            }
+            await context.ProductReviews.AddRangeAsync(reviews);
             await context.SaveChangesAsync();
         }
     }

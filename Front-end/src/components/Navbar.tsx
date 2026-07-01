@@ -8,7 +8,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { Icon } from "./SvgIcons";
 
 export const Navbar: React.FC = () => {
-  const { cart, homePageSettings, currentUserEmail, locale, t } = useApp();
+  const { cart, homePageSettings, currentUserEmail, currentUserRole, locale, t } = useApp();
   const { setIsPanelOpen } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -32,8 +32,8 @@ export const Navbar: React.FC = () => {
         {/* Logo */}
         <div className="flex items-center gap-8">
           <Link href="/" className="group flex items-center gap-2">
-            <span className="text-glow text-2xl font-black tracking-widest text-primary-coral transition-luxury group-hover:text-white">
-              {homePageSettings.logoText}
+            <span className="text-glow text-2xl font-black tracking-widest text-primary-coral transition-luxury group-hover:text-gray-800 dark:group-hover:text-white">
+              {homePageSettings?.logoText || "VALENS"}
             </span>
           </Link>
 
@@ -41,35 +41,29 @@ export const Navbar: React.FC = () => {
           <nav className="hidden md:flex items-center gap-6">
             <Link
               href="/products"
-              className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral transition-luxury"
+              className="text-sm font-semibold tracking-wide text-foreground hover:text-primary-coral transition-luxury"
             >
               {t("storefront.navbar.products")}
             </Link>
             <Link
               href="/#science"
-              className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral transition-luxury"
+              className="text-sm font-semibold tracking-wide text-foreground hover:text-primary-coral transition-luxury"
             >
               {locale === "ar" ? "الأبحاث العلمية" : "Science"}
             </Link>
             <Link
               href="/about"
-              className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral transition-luxury"
+              className="text-sm font-semibold tracking-wide text-foreground hover:text-primary-coral transition-luxury"
             >
               {locale === "ar" ? "عن Valens" : "About"}
             </Link>
             <Link
               href="/contact"
-              className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral transition-luxury"
+              className="text-sm font-semibold tracking-wide text-foreground hover:text-primary-coral transition-luxury"
             >
               {t("storefront.navbar.contact")}
             </Link>
-            <Link
-              href="/admin"
-              className="rounded-full border border-primary-coral/20 bg-primary-coral/5 px-3.5 py-1 text-xs font-bold tracking-wider text-primary-coral hover:bg-primary-coral hover:text-main-bg transition-luxury"
-            >
-              {t("storefront.navbar.admin")}
-            </Link>
-          </nav>
+           </nav>
         </div>
 
         {/* Search, Cart & Account */}
@@ -81,7 +75,7 @@ export const Navbar: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("storefront.navbar.search")}
-              className={`w-56 rounded-full border border-border-color bg-surface-deep px-4 py-2 text-xs text-white placeholder-muted-text focus:border-primary-coral focus:outline-none focus:ring-1 focus:ring-primary-coral/30 transition-luxury ${
+              className={`w-56 rounded-full border border-border-color bg-card-bg px-4 py-2 text-xs text-foreground placeholder-muted-text focus:border-primary-coral focus:outline-none focus:ring-1 focus:ring-primary-coral/30 transition-luxury ${
                 locale === "ar" ? "pr-10 pl-4" : "pl-10 pr-4"
               }`}
             />
@@ -98,11 +92,23 @@ export const Navbar: React.FC = () => {
 
           {/* Account */}
           <Link
-            href={currentUserEmail ? "/dashboard" : "/login"}
+            href={
+              currentUserEmail
+                ? currentUserRole === "Admin"
+                  ? "/admin"
+                  : "/dashboard"
+                : "/login"
+            }
             className={`flex items-center justify-center hover:text-primary-coral transition-luxury ${
-              currentUserEmail ? "text-primary-coral" : "text-soft-text"
+              currentUserEmail ? "text-primary-coral" : "text-foreground"
             }`}
-            title={currentUserEmail ? "Athlete Dashboard" : "Account"}
+            title={
+              currentUserEmail
+                ? currentUserRole === "Admin"
+                  ? "Admin Dashboard"
+                  : "Athlete Dashboard"
+                : "Account"
+            }
           >
             <Icon name="user" size={20} />
           </Link>
@@ -110,7 +116,7 @@ export const Navbar: React.FC = () => {
           {/* Cart */}
           <Link
             href="/cart"
-            className="relative flex items-center justify-center text-soft-text hover:text-primary-coral transition-luxury"
+            className="relative flex items-center justify-center text-foreground hover:text-primary-coral transition-luxury"
             title="Shopping Cart"
           >
             <Icon name="cart" size={20} />
@@ -129,7 +135,7 @@ export const Navbar: React.FC = () => {
         <div className="flex items-center gap-4 md:hidden">
 
 
-          <Link href="/cart" className="relative flex items-center justify-center text-soft-text">
+          <Link href="/cart" className="relative flex items-center justify-center text-foreground">
             <Icon name="cart" size={20} />
             {totalItems > 0 && (
               <span className={`absolute -top-2.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent-orange text-4xs font-extrabold text-white ${
@@ -141,7 +147,7 @@ export const Navbar: React.FC = () => {
           </Link>
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex items-center justify-center text-soft-text"
+            className="flex items-center justify-center text-foreground"
           >
             <Icon name={mobileMenuOpen ? "close" : "menu"} size={22} />
           </button>
@@ -158,7 +164,7 @@ export const Navbar: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("storefront.navbar.search")}
-              className={`w-full rounded-full border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white placeholder-muted-text focus:border-primary-coral focus:outline-none ${
+              className={`w-full rounded-full border border-border-color bg-card-bg px-4 py-2.5 text-xs text-foreground placeholder-muted-text focus:border-primary-coral focus:outline-none ${
                 locale === "ar" ? "pr-10 pl-4" : "pl-10 pr-4"
               }`}
             />
@@ -175,39 +181,49 @@ export const Navbar: React.FC = () => {
             <Link
               href="/products"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral"
+              className="text-sm font-semibold tracking-wide text-foreground hover:text-primary-coral"
             >
               {t("storefront.navbar.products")}
             </Link>
             <Link
               href="/#science"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral"
+              className="text-sm font-semibold tracking-wide text-foreground hover:text-primary-coral"
             >
               {locale === "ar" ? "الأبحاث العلمية" : "Science"}
             </Link>
             <Link
               href="/about"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral"
+              className="text-sm font-semibold tracking-wide text-foreground hover:text-primary-coral"
             >
               {locale === "ar" ? "عن Valens" : "About"}
             </Link>
             <Link
               href="/contact"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-semibold tracking-wide text-soft-text hover:text-primary-coral"
+              className="text-sm font-semibold tracking-wide text-foreground hover:text-primary-coral"
             >
               {t("storefront.navbar.contact")}
             </Link>
             <Link
-              href={currentUserEmail ? "/dashboard" : "/login"}
+              href={
+                currentUserEmail
+                  ? currentUserRole === "Admin"
+                    ? "/admin"
+                    : "/dashboard"
+                  : "/login"
+              }
               onClick={() => setMobileMenuOpen(false)}
               className={`text-sm font-semibold tracking-wide hover:text-primary-coral ${
-                currentUserEmail ? "text-primary-coral" : "text-soft-text"
+                currentUserEmail ? "text-primary-coral" : "text-foreground"
               }`}
             >
-              {currentUserEmail ? (locale === "ar" ? "لوحة التحكم للرياضيين" : "Athlete Dashboard") : t("storefront.navbar.login")}
+              {currentUserEmail ? (
+                currentUserRole === "Admin"
+                  ? (locale === "ar" ? "لوحة التحكم للمسؤول" : "Admin Dashboard")
+                  : (locale === "ar" ? "لوحة التحكم للرياضيين" : "Athlete Dashboard")
+              ) : t("storefront.navbar.login")}
             </Link>
             <Link
               href="/admin"

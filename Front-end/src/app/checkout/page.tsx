@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
@@ -9,6 +10,18 @@ import { showToast } from "@/lib/toast";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
 import { ProductImage } from "@/components/ProductCard";
+import { api, safeArray } from "@/lib/api";
+
+type OrderConfirmation = {
+  orderName?: string;
+  id?: string;
+  customerEmail?: string;
+  customerName?: string;
+  customerAddress?: string;
+  customerCity?: string;
+  paymentMethod?: string;
+  totalPrice?: number;
+};
 
 export default function CheckoutPage() {
   const {
@@ -18,17 +31,9 @@ export default function CheckoutPage() {
     placeOrder,
     currentUserEmail,
     customers,
+    locale,
   } = useApp();
   const router = useRouter();
-
-  // Form Fields
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [notes, setNotes] = useState("");
 
   // Get logged-in user profile if exists
   const currentCustomer = useMemo(() => {
@@ -37,32 +42,56 @@ export default function CheckoutPage() {
     );
   }, [customers, currentUserEmail]);
 
-  // Autofill fields if customer is logged in
+  const defaultFirstName = currentCustomer?.name?.split(" ")[0] ?? "";
+  const defaultLastName = currentCustomer?.name ? currentCustomer.name.split(" ").slice(1).join(" ") : "";
+
+  // Form Fields
+  const [firstName, setFirstName] = useState(defaultFirstName);
+  const [lastName, setLastName] = useState(defaultLastName);
+  const [phone, setPhone] = useState(currentCustomer?.phone ?? "");
+  const [email, setEmail] = useState(currentCustomer?.email ?? "");
+  const [address, setAddress] = useState(currentCustomer?.address ?? "");
+  const [city, setCity] = useState(currentCustomer?.city ?? "");
+  const [notes, setNotes] = useState("");
+  const [governorates, setGovernorates] = useState<{ id: string; governorateName: string; shippingCost: number }[]>([]);
+
+  // Fetch Governorates on mount
   useEffect(() => {
-    if (currentCustomer) {
-      if (currentCustomer.name) {
-        const parts = currentCustomer.name.split(" ");
-        setFirstName(parts[0] || "");
-        setLastName(parts.slice(1).join(" ") || "");
+    const loadGovs = async () => {
+      try {
+        const data = await api.settings.governorates();
+        const normalized = safeArray<Record<string, unknown>>(data).map((item) => ({
+          id: String(item.id ?? ""),
+          governorateName: String(item.governorateName ?? item.name ?? ""),
+          shippingCost: Number(item.shippingCost ?? item.cost ?? 0),
+        }));
+        setGovernorates(normalized);
+      } catch (err) {
+        console.error("Failed to load governorates for checkout dropdown", err);
       }
-      if (currentCustomer.phone) setPhone(currentCustomer.phone);
-      if (currentCustomer.email) setEmail(currentCustomer.email);
-      if (currentCustomer.address) setAddress(currentCustomer.address);
-      if (currentCustomer.city) setCity(currentCustomer.city);
-    }
-  }, [currentCustomer]);
+    };
+    loadGovs();
+  }, []);
 
   // Options
-  const [shippingMethod, setShippingMethod] = useState("Standard Express");
+  const paymentOptions = ["Credit Card", "Cash on Delivery"];
   const [paymentMethod, setPaymentMethod] = useState("Credit Card");
 
   // Credit Card mock inputs
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
+  const shippingMethod = "Standard Express";
 
   // Success Modal State
-  const [placedOrder, setPlacedOrder] = useState<any | null>(null);
+  const [placedOrder, setPlacedOrder] = useState<OrderConfirmation | null>(null);
+
+  // Server-side calculations preview state
+  const [previewSubtotal, setPreviewSubtotal] = useState<number | null>(null);
+  const [previewShippingCost, setPreviewShippingCost] = useState<number | null>(null);
+  const [previewDiscountAmount, setPreviewDiscountAmount] = useState<number | null>(null);
+  const [previewTotal, setPreviewTotal] = useState<number | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Cart Calculations
   const subtotal = cart.reduce((acc, item) => {
@@ -81,9 +110,8 @@ export default function CheckoutPage() {
   }
 
   // Shipping Fee
-  const isFreeShipping = subtotal > 1500;
-  const baseShippingFee = isFreeShipping ? 0 : storeSettings.shippingCost;
-  const shippingCost = shippingMethod === "Priority Air" ? baseShippingFee + 30 : baseShippingFee;
+  const selectedGov = governorates.find(g => g.governorateName.toLowerCase() === city.toLowerCase());
+  const shippingCost = selectedGov ? selectedGov.shippingCost : storeSettings.shippingCost;
 
   // Tax
   const taxableAmount = Math.max(0, subtotal - discountAmount);
@@ -92,8 +120,75 @@ export default function CheckoutPage() {
   // Grand Total
   const finalTotal = taxableAmount + shippingCost + taxAmount;
 
+  // Resolve calculations (Use server-side preview calculations if available, otherwise fallback to local math)
+  const subtotalVal = previewSubtotal !== null ? previewSubtotal : subtotal;
+  const discountVal = previewDiscountAmount !== null ? previewDiscountAmount : discountAmount;
+  const shippingVal = previewShippingCost !== null ? previewShippingCost : shippingCost;
+  const taxVal = previewTotal !== null ? 0 : taxAmount;
+  const totalVal = previewTotal !== null ? previewTotal : finalTotal;
+
+  // Fetch server-side checkout preview reactively
+  useEffect(() => {
+    if (cart.length === 0) return;
+
+    const fetchCheckoutPreview = async () => {
+      setPreviewLoading(true);
+      try {
+        const checkoutItems = cart.map((item) => {
+          // Find matching variant
+          const matchingVariant = item.product.variants?.find(
+            (v) => v.size === item.selectedSize && v.flavor === item.selectedVariant
+          );
+          return {
+            productId: item.product.id,
+            variantId: matchingVariant?.id || undefined,
+            quantity: item.quantity,
+          };
+        });
+
+        const data = await api.orders.previewCheckout({
+          customerName: `${firstName} ${lastName}`.trim() || "Guest User",
+          customerEmail: email || "guest@valens.com",
+          customerPhone: phone || "01000000000",
+          shippingAddress: address || "Cairo",
+          shippingCity: city || "Cairo",
+          couponCode: activeCoupon?.code || undefined,
+          items: checkoutItems,
+        }) as {
+          subtotal: number;
+          shippingCost: number;
+          discountAmount: number;
+          total: number;
+        };
+
+        if (data) {
+          setPreviewSubtotal(data.subtotal);
+          setPreviewShippingCost(data.shippingCost);
+          setPreviewDiscountAmount(data.discountAmount);
+          setPreviewTotal(data.total);
+        }
+      } catch (err) {
+        console.error("Failed to load checkout preview calculations from server:", err);
+        // Clear preview stats to fallback to client-side math
+        setPreviewSubtotal(null);
+        setPreviewShippingCost(null);
+        setPreviewDiscountAmount(null);
+        setPreviewTotal(null);
+      } finally {
+        setPreviewLoading(false);
+      }
+    };
+
+    // Debounce the preview call slightly to avoid hammering the API
+    const timer = setTimeout(() => {
+      fetchCheckoutPreview();
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [cart, city, activeCoupon, firstName, lastName, email, phone, address]);
+
   // Form submit handler
-  const handleConfirmOrder = (e: React.FormEvent) => {
+  const handleConfirmOrder = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!firstName || !lastName || !phone || !email || !address || !city) {
@@ -124,22 +219,26 @@ export default function CheckoutPage() {
         imageType: item.product.imageType,
         image: item.image || item.product.mainImage || undefined
       })),
-      totalPrice: finalTotal,
+      totalPrice: totalVal,
       paymentMethod,
       shippingMethod,
-      shippingCost,
-      discountAmount,
+      shippingCost: shippingVal,
+      discountAmount: discountVal,
       couponCode: activeCoupon?.code || undefined
     };
 
-    const newOrder = placeOrder(orderPayload);
-    setPlacedOrder(newOrder);
+    try {
+      const newOrder = await placeOrder(orderPayload);
+      setPlacedOrder(newOrder);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   // If cart is empty and order hasn't been placed, redirect to products
   if (cart.length === 0 && !placedOrder) {
     return (
-      <div className="flex min-h-screen flex-col bg-main-bg text-white">
+      <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
         <Navbar />
         <main className="flex-1 flex flex-col items-center justify-center py-24 text-center">
           <h2 className="text-xl font-bold uppercase tracking-wider">Checkout is Empty</h2>
@@ -159,7 +258,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
       <Navbar />
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
@@ -168,17 +267,17 @@ export default function CheckoutPage() {
         </h1>
 
         <form onSubmit={handleConfirmOrder} className="grid grid-cols-1 gap-10 lg:grid-cols-12">
-          
+
           {/* Shipping and Payment Forms (Left Columns) */}
           <div className="lg:col-span-7 flex flex-col gap-6">
-            
+
             {/* Shipping Info Container */}
             <div className="rounded-2xl border border-border-color bg-card-bg p-6">
               <h2 className="text-sm font-black uppercase tracking-wider text-white border-b border-border-color pb-3 mb-5 flex items-center gap-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-coral text-4xs font-bold text-main-bg">1</span>
                 Shipping Address
               </h2>
-              
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">First Name *</label>
@@ -222,13 +321,24 @@ export default function CheckoutPage() {
                 </div>
                 <div>
                   <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">City / Area *</label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white placeholder-muted-text focus:outline-none focus:border-primary-coral"
-                  />
+                  <div className="relative">
+                    <select
+                      required
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none focus:border-primary-coral appearance-none cursor-pointer pr-10"
+                    >
+                      <option value="" disabled>{locale === "ar" ? "اختر المحافظة" : "Select Governorate"}</option>
+                      {governorates.map((gov) => (
+                        <option key={gov.id} value={gov.governorateName}>
+                          {gov.governorateName} ({gov.shippingCost} EGP)
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-muted-text">
+                      <Icon name="chevron-down" size={14} />
+                    </div>
+                  </div>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Full Delivery Address *</label>
@@ -252,79 +362,22 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Shipping Rates Container */}
-            <div className="rounded-2xl border border-border-color bg-card-bg p-6">
-              <h2 className="text-sm font-black uppercase tracking-wider text-white border-b border-border-color pb-3 mb-5 flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-coral text-4xs font-bold text-main-bg">2</span>
-                Shipping Courier Method
-              </h2>
-              
-              <div className="flex flex-col gap-3">
-                <label className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-luxury ${
-                  shippingMethod === "Standard Express"
-                    ? "border-primary-coral bg-primary-coral/5"
-                    : "border-border-color bg-surface-deep"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="shipping_method"
-                      checked={shippingMethod === "Standard Express"}
-                      onChange={() => setShippingMethod("Standard Express")}
-                      className="text-primary-coral focus:ring-0 cursor-pointer h-4 w-4"
-                    />
-                    <div>
-                      <span className="block text-xs font-bold text-white uppercase">Standard Express</span>
-                      <span className="text-3xs text-muted-text uppercase font-semibold">Delivered in 3-5 Business Days</span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-primary-coral">
-                    {isFreeShipping ? "FREE" : `$${storeSettings.shippingCost}`}
-                  </span>
-                </label>
-
-                <label className={`flex items-center justify-between rounded-xl border p-4 cursor-pointer transition-luxury ${
-                  shippingMethod === "Priority Air"
-                    ? "border-primary-coral bg-primary-coral/5"
-                    : "border-border-color bg-surface-deep"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="radio"
-                      name="shipping_method"
-                      checked={shippingMethod === "Priority Air"}
-                      onChange={() => setShippingMethod("Priority Air")}
-                      className="text-primary-coral focus:ring-0 cursor-pointer h-4 w-4"
-                    />
-                    <div>
-                      <span className="block text-xs font-bold text-white uppercase">Priority Air Cargo</span>
-                      <span className="text-3xs text-muted-text uppercase font-semibold">Delivered in 1-2 Business Days</span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-primary-coral">
-                    ${(isFreeShipping ? 5 : storeSettings.shippingCost + 5).toFixed(2)}
-                  </span>
-                </label>
-              </div>
-            </div>
-
             {/* Payment Method Container */}
             <div className="rounded-2xl border border-border-color bg-card-bg p-6">
               <h2 className="text-sm font-black uppercase tracking-wider text-white border-b border-border-color pb-3 mb-5 flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-coral text-4xs font-bold text-main-bg">3</span>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-coral text-4xs font-bold text-main-bg">2</span>
                 Payment Method
               </h2>
-              
+
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row gap-3">
                   {["Cash on Delivery"].map((method) => (
                     <label
                       key={method}
-                      className={`flex-1 flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition-luxury uppercase ${
-                        paymentMethod === method
-                          ? "border-primary-coral bg-primary-coral/5 text-primary-coral font-bold"
-                          : "border-border-color bg-surface-deep text-soft-text font-semibold"
-                      }`}
+                      className={`flex-1 flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition-luxury uppercase ${paymentMethod === method
+                        ? "border-primary-coral bg-primary-coral/5 text-primary-coral font-bold"
+                        : "border-border-color bg-surface-deep text-white font-semibold"
+                        }`}
                     >
                       <input
                         type="radio"
@@ -338,51 +391,6 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
-                {/* Credit Card inputs sub-drawer */}
-                {paymentMethod === "Credit Card" && (
-                  <div className="rounded-xl border border-border-color bg-surface-deep p-4 grid grid-cols-3 gap-4 mt-2">
-                    <div className="col-span-3">
-                      <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Card Number *</label>
-                      <input
-                        type="text"
-                        required={paymentMethod === "Credit Card"}
-                        placeholder="4000 1234 5678 9010"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        className="w-full rounded-xl border border-border-color bg-main-bg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Expiration Date *</label>
-                      <input
-                        type="text"
-                        required={paymentMethod === "Credit Card"}
-                        placeholder="MM / YY"
-                        value={cardExpiry}
-                        onChange={(e) => setCardExpiry(e.target.value)}
-                        className="w-full rounded-xl border border-border-color bg-main-bg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-3xs font-extrabold uppercase tracking-widest text-muted-text mb-2">CVC *</label>
-                      <input
-                        type="text"
-                        required={paymentMethod === "Credit Card"}
-                        placeholder="123"
-                        value={cardCvc}
-                        onChange={(e) => setCardCvc(e.target.value)}
-                        className="w-full rounded-xl border border-border-color bg-main-bg px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {/* PayPal panel */}
-                {paymentMethod === "PayPal" && (
-                  <div className="rounded-xl border border-border-color bg-surface-deep p-4 text-center text-xs text-muted-text font-bold uppercase mt-2">
-                    Redirect to PayPal payment gateway upon clicking confirm.
-                  </div>
-                )}
               </div>
             </div>
 
@@ -404,13 +412,21 @@ export default function CheckoutPage() {
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-10 bg-surface-deep border border-border-color rounded-lg p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
                           {item.image ? (
-                            <img src={item.image} alt={item.product.name} className="h-full w-full object-contain" />
+                            <Image
+                              src={item.image}
+                              alt={item.product.name}
+                              width={40}
+                              height={48}
+                              className="h-full w-full object-contain"
+                            />
                           ) : (
                             <ProductImage color={item.product.imageColor} type={item.product.imageType} glow={false} className="h-8 w-full" />
                           )}
                         </div>
                         <div className="min-w-0">
-                          <span className="block text-2xs font-bold text-white truncate max-w-[150px]">{item.product.name}</span>
+                          <span className="block text-2xs font-bold text-white truncate max-w-37.5">
+                            {item.product.name}
+                          </span>
                           <span className="block text-4xs text-muted-text uppercase font-semibold">
                             Qty: {item.quantity}
                             {item.selectedSize && ` • ${item.selectedSize}`}
@@ -418,7 +434,7 @@ export default function CheckoutPage() {
                           </span>
                         </div>
                       </div>
-                      <span className="text-xs font-black text-soft-text">
+                      <span className="text-xs font-black text-white">
                         {(itemPrice * item.quantity).toLocaleString()} EGP
                       </span>
                     </div>
@@ -427,29 +443,36 @@ export default function CheckoutPage() {
               </div>
 
               {/* pricing recap */}
-              <div className="flex justify-between items-center text-2xs text-soft-text mb-2.5">
+              <div className="flex justify-between items-center text-2xs text-white mb-2.5">
                 <span>Items Subtotal</span>
-                <span className="font-bold text-white">{subtotal.toLocaleString()} EGP</span>
+                <span className="font-bold text-white">{subtotalVal.toLocaleString()} EGP</span>
               </div>
               {activeCoupon && (
                 <div className="flex justify-between items-center text-2xs text-success-green mb-2.5 font-semibold">
                   <span>Coupon Applied ({activeCoupon.code})</span>
-                  <span>-{discountAmount.toLocaleString()} EGP</span>
+                  <span>-{discountVal.toLocaleString()} EGP</span>
                 </div>
               )}
-              <div className="flex justify-between items-center text-2xs text-soft-text mb-2.5">
-                <span>Shipping Fee</span>
-                <span>{shippingCost === 0 ? "FREE" : `${shippingCost.toLocaleString()} EGP`}</span>
+              <div className="flex justify-between items-center text-2xs text-white mb-2.5">
+                <span>Shipping Cost</span>
+                <span>{shippingVal.toLocaleString()} EGP</span>
               </div>
-              <div className="flex justify-between items-center text-2xs text-soft-text mb-4">
-                <span>Sales Tax ({storeSettings.taxRate}%)</span>
-                <span className="font-bold text-white">{taxAmount.toLocaleString()} EGP</span>
-              </div>
+              {taxVal > 0 && (
+                <div className="flex justify-between items-center text-2xs text-white mb-4">
+                  <span>Sales Tax ({storeSettings.taxRate}%)</span>
+                  <span className="font-bold text-white">{taxVal.toLocaleString()} EGP</span>
+                </div>
+              )}
 
               {/* Grand Total */}
               <div className="flex justify-between items-center border-t border-border-color pt-4 text-sm font-black text-white uppercase mb-6 tracking-wider">
-                <span>Grand Total</span>
-                <span className="text-base text-primary-coral font-black">{finalTotal.toLocaleString()} EGP</span>
+                <span className="flex items-center gap-2">
+                  Grand Total
+                  {previewLoading && (
+                    <span className="animate-spin inline-block h-3 w-3 border-t border-primary-coral border-r border-transparent rounded-full" />
+                  )}
+                </span>
+                <span className="text-base text-primary-coral font-black">{totalVal.toLocaleString()} EGP</span>
               </div>
 
               {/* Submit trigger button */}
@@ -467,10 +490,10 @@ export default function CheckoutPage() {
 
         {/* Order success notification overlay */}
         {placedOrder && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-main-bg/95 backdrop-blur-md p-4">
+          <div className="fixed inset-0 z-9999 flex items-center justify-center bg-main-bg/95 backdrop-blur-md p-4">
             <div className="w-full max-w-xl rounded-3xl border border-border-color bg-card-bg p-8 text-center shadow-2xl glass-panel relative overflow-hidden animate-slide-in">
               <div className="absolute top-0 right-0 h-40 w-40 rounded-full bg-primary-coral/5 blur-[50px] pointer-events-none" />
-              
+
               {/* Checkmark icon box */}
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success-green/10 border-2 border-success-green text-success-green mb-6 shadow-[0_0_15px_rgba(16,217,129,0.3)] animate-pulse">
                 <Icon name="check" size={36} />
@@ -478,12 +501,12 @@ export default function CheckoutPage() {
 
               <span className="text-2xs font-extrabold uppercase tracking-widest text-primary-coral">Order Finalized</span>
               <h2 className="mt-2 text-2xl font-black uppercase tracking-wider text-white">ATHLETE Stack REGISTERED</h2>
-              <p className="mt-4 text-xs text-soft-text max-w-md mx-auto leading-relaxed">
-                Thank you, your order <span className="text-white font-bold">{placedOrder.id}</span> has been processed successfully. A confirmation email has been dispatched to {placedOrder.customerEmail}.
+              <p className="mt-4 text-xs text-white max-w-md mx-auto leading-relaxed">
+                Thank you, your order <span className="text-white font-bold">{placedOrder.orderName || placedOrder.id}</span> has been processed successfully. A confirmation email has been dispatched to {placedOrder.customerEmail}.
               </p>
 
               {/* Details box */}
-              <div className="rounded-2xl border border-border-color bg-surface-deep/80 p-5 text-left text-xs text-soft-text my-6 flex flex-col gap-2.5">
+              <div className="rounded-2xl border border-border-color bg-surface-deep/80 p-5 text-left text-xs text-white my-6 flex flex-col gap-2.5">
                 <div className="flex justify-between border-b border-border-color/30 pb-2">
                   <span>Customer Name</span>
                   <span className="font-extrabold text-white">{placedOrder.customerName}</span>
@@ -533,7 +556,7 @@ export default function CheckoutPage() {
                     setPlacedOrder(null);
                     router.push("/admin"); // Redirects to admin to see the order immediately!
                   }}
-                  className="rounded-full border border-border-color bg-surface-deep/30 px-8 py-3.5 text-xs font-black tracking-widest text-soft-text hover:text-white hover:border-primary-coral transition-luxury cursor-pointer"
+                  className="rounded-full border border-border-color bg-surface-deep/30 px-8 py-3.5 text-xs font-black tracking-widest text-white hover:text-gray-800 hover:border-primary-coral transition-luxury cursor-pointer"
                 >
                   VIEW ADMIN PANEL
                 </button>

@@ -7,10 +7,12 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
 import { showToast } from "@/lib/toast";
+import { api, safeArray } from "@/lib/api";
 
 export default function UserDashboard() {
   const {
     currentUserEmail,
+    currentUserRole,
     customers,
     orders,
     updateCustomer,
@@ -30,16 +32,73 @@ export default function UserDashboard() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [governorates, setGovernorates] = useState<{ id: string; governorateName: string }[]>([]);
+
+  // Change Password state
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      showToast("All password fields are required.", "error");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast("New passwords do not match.", "error");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await api.auth.changeCustomerPassword({
+        oldPassword,
+        newPassword,
+        confirmPassword,
+      });
+      showToast("Password updated successfully!", "success");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setIsChangingPassword(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to update password";
+      showToast(message, "error");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  // Fetch Governorates on mount
+  useEffect(() => {
+    const loadGovs = async () => {
+      try {
+        const data = await api.settings.governorates();
+        setGovernorates(data || []);
+      } catch (err) {
+        console.error("Failed to load governorates for profile dropdown", err);
+      }
+    };
+    loadGovs();
+  }, []);
+
+  const defaultName = currentCustomer?.name ?? "";
+  const defaultPhone = currentCustomer?.phone ?? "";
+  const defaultAddress = currentCustomer?.address ?? "";
+  const defaultCity = currentCustomer?.city ?? "";
 
   // Sync state with customer details when currentCustomer loads
   useEffect(() => {
     if (currentCustomer) {
-      setName(currentCustomer.name);
-      setPhone(currentCustomer.phone);
-      setAddress(currentCustomer.address);
-      setCity(currentCustomer.city);
+      setName(defaultName);
+      setPhone(defaultPhone);
+      setAddress(defaultAddress);
+      setCity(defaultCity);
     }
-  }, [currentCustomer]);
+  }, [currentCustomer, defaultName, defaultPhone, defaultAddress, defaultCity]);
 
   // If not logged in, show access prompt
   useEffect(() => {
@@ -53,9 +112,16 @@ export default function UserDashboard() {
     }
   }, [currentUserEmail, router]);
 
+  // If role is Admin, redirect to Admin dashboard
+  useEffect(() => {
+    if (currentUserEmail && currentUserRole === "Admin") {
+      router.push("/admin");
+    }
+  }, [currentUserEmail, currentUserRole, router]);
+
   if (!currentUserEmail) {
     return (
-      <div className="flex min-h-screen flex-col bg-main-bg text-white">
+      <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
         <Navbar />
         <main className="flex-1 flex flex-col items-center justify-center py-24 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary-coral border-r-2 mb-4"></div>
@@ -130,12 +196,12 @@ export default function UserDashboard() {
       case "Returned":
         return "border-rose-500/20 bg-rose-500/5 text-rose-500";
       default:
-        return "border-border-color bg-surface-deep text-soft-text";
+        return "border-border-color bg-surface-deep text-white";
     }
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white font-sans relative overflow-x-hidden">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground font-sans relative overflow-x-hidden">
       <Navbar />
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -159,7 +225,7 @@ export default function UserDashboard() {
           </div>
           <button
             onClick={handleLogout}
-            className="self-start md:self-auto flex items-center gap-2 rounded-full border border-border-color bg-surface-deep px-5 py-2.5 text-2xs font-extrabold tracking-widest text-soft-text hover:text-white hover:border-rose-500/40 hover:bg-rose-500/5 transition-all duration-300 cursor-pointer"
+            className="self-start md:self-auto flex items-center gap-2 rounded-full border border-border-color bg-surface-deep px-5 py-2.5 text-2xs font-extrabold tracking-widest text-white hover:text-gray-800 hover:border-rose-500/40 hover:bg-rose-500/5 transition-all duration-300 cursor-pointer"
           >
             LOGOUT PROFILE
             <Icon name="logout" size={14} />
@@ -270,12 +336,23 @@ export default function UserDashboard() {
                     <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-1.5">
                       City / Area
                     </label>
-                    <input
-                      type="text"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white placeholder-muted-text focus:outline-none focus:border-primary-coral"
-                    />
+                    <div className="relative">
+                      <select
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral appearance-none cursor-pointer pr-10"
+                      >
+                        <option value="" disabled>Select Governorate / Area</option>
+                        {governorates.map((gov) => (
+                          <option key={gov.id} value={gov.governorateName}>
+                            {gov.governorateName}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-muted-text">
+                        <Icon name="chevron-down" size={14} />
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-1.5">
@@ -343,6 +420,91 @@ export default function UserDashboard() {
                 </div>
               </div>
             )}
+
+            {/* Change Password Panel */}
+            <div className="rounded-2xl border border-border-color bg-card-bg p-6 relative overflow-hidden backdrop-blur-md bg-opacity-70 flex flex-col gap-4 animate-fade-in">
+              <div className="flex justify-between items-center border-b border-border-color pb-3 mb-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
+                  <Icon name="lock" size={16} className="text-primary-coral" />
+                  Change Password
+                </h3>
+                {!isChangingPassword && (
+                  <button
+                    onClick={() => setIsChangingPassword(true)}
+                    className="text-4xs font-black uppercase tracking-widest text-primary-coral hover:underline cursor-pointer"
+                  >
+                    Modify
+                  </button>
+                )}
+              </div>
+
+              {isChangingPassword ? (
+                <form onSubmit={handleChangePasswordSubmit} className="flex flex-col gap-4 text-xs">
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-1.5">
+                      Current Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-1.5">
+                      New Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-1.5">
+                      Confirm New Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 mt-2">
+                    <button
+                      type="submit"
+                      disabled={passwordLoading}
+                      className="flex-1 rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-main-bg hover:bg-white transition-all duration-300 uppercase cursor-pointer disabled:opacity-50"
+                    >
+                      {passwordLoading ? "SAVING..." : "UPDATE"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsChangingPassword(false);
+                        setOldPassword("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                      }}
+                      className="flex-1 rounded-full border border-border-color bg-surface-deep/60 py-2.5 text-3xs font-black tracking-widest text-white hover:border-primary-coral transition-all duration-300 uppercase cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <p className="text-[10px] text-muted-text uppercase font-semibold">
+                  Secure your athlete account credentials by changing your password periodically.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Orders Tracking Details (Right Panel) */}
@@ -382,7 +544,7 @@ export default function UserDashboard() {
                       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border-color/30 pb-4">
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                           <span className="text-xs font-black text-white tracking-wide uppercase">
-                            Order {order.id}
+                            Order {order.orderName || order.id}
                           </span>
                           <span className="text-3xs font-semibold text-muted-text">
                             {formatDate(order.orderDate)}
@@ -405,14 +567,14 @@ export default function UserDashboard() {
                               onClick={() => {
                                 if (
                                   confirm(
-                                    `Are you sure you want to cancel order ${order.id}?`
+                                    `Are you sure you want to cancel order ${order.orderName || order.id}?`
                                   )
                                 ) {
                                   cancelOrder(order.id);
-                                  showToast(`Order ${order.id} cancelled.`, "info");
+                                  showToast(`Order ${order.orderName || order.id} cancelled.`, "info");
                                 }
                               }}
-                              className="rounded-full border border-rose-500/20 bg-rose-500/5 px-2.5 py-1 text-4xs font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500 hover:text-white transition-all duration-300 cursor-pointer"
+                              className="rounded-full border border-rose-500/20 bg-rose-500/5 px-2.5 py-1 text-4xs font-black uppercase tracking-widest text-rose-500 hover:bg-rose-500 hover:text-gray-800 transition-all duration-300 cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -436,7 +598,7 @@ export default function UserDashboard() {
                                 </span>
                               </div>
                             </div>
-                            <span className="font-semibold text-soft-text text-right shrink-0">
+                            <span className="font-semibold text-white text-right shrink-0">
                               {item.quantity} x {Math.round(item.price).toLocaleString()} EGP
                             </span>
                           </div>

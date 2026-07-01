@@ -1,19 +1,19 @@
 "use client";
 
 import React, { useState } from "react";
-import { showToast } from "@/lib/toast";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
+import { api, decodeJwt } from "@/lib/api";
 
 export default function LoginPage() {
-  const { showToast, loginUser } = useApp();
+  const { showToast, loginUser, registerCustomer } = useApp();
   const router = useRouter();
 
-  // Active view: "login" | "signup" | "forgot"
-  const [activeTab, setActiveTab] = useState<"login" | "signup" | "forgot">("login");
+  // Active view: "login" | "signup" | "forgot" | "otp"
+  const [activeTab, setActiveTab] = useState<"login" | "signup" | "forgot" | "otp">("login");
 
   // Form Fields
   const [email, setEmail] = useState("");
@@ -22,19 +22,43 @@ export default function LoginPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  // OTP Reset Fields
+  const [otpCode, setOtpCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPasswordReset, setConfirmPasswordReset] = useState("");
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
 
-    loginUser(email);
-    showToast(`Logged in successfully as ${email}`, "success");
-    // Reset fields
-    setEmail("");
-    setPassword("");
-    router.push("/dashboard");
+    const success = await loginUser(email, password);
+    if (success) {
+      // Reset fields
+      setEmail("");
+      setPassword("");
+      
+      const storedToken = typeof window !== "undefined" ? localStorage.getItem("valens_jwt_token") : null;
+      let role = "Customer";
+      if (storedToken) {
+        try {
+          const claims = decodeJwt(storedToken);
+          if (claims) {
+            role = (claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "Customer") as string;
+          }
+        } catch (error) {
+          console.error("Error decoding token for login routing:", error);
+        }
+      }
+
+      if (role.toLowerCase() === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
+    }
   };
 
-  const handleSignupSubmit = (e: React.FormEvent) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !confirmPassword || !firstName || !lastName) {
       showToast("All fields are required.", "error");
@@ -46,28 +70,70 @@ export default function LoginPage() {
       return;
     }
 
-    loginUser(email, `${firstName} ${lastName}`);
-    showToast("Account registered successfully! Welcome to Valens.", "success");
-    // Reset fields
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
-    setFirstName("");
-    setLastName("");
-    router.push("/dashboard");
+    const success = await registerCustomer(email, password, `${firstName} ${lastName}`);
+    if (success) {
+      // Reset fields
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setFirstName("");
+      setLastName("");
+      router.push("/dashboard");
+    }
   };
 
-  const handleForgotSubmit = (e: React.FormEvent) => {
+  const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
-    showToast(`Password recovery link dispatched to ${email}`, "info");
-    setEmail("");
-    setActiveTab("login");
+    try {
+      await api.auth.forgotPassword({ email });
+      showToast(`Password recovery OTP code dispatched to ${email}`, "info");
+      setActiveTab("otp");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        showToast(err.message || "Failed to send recovery code", "error");
+      } else {
+        showToast("Failed to send recovery code", "error");
+      }
+    }
+  };
+
+  const handleOtpResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || !newPassword || !confirmPasswordReset) {
+      showToast("All fields are required.", "error");
+      return;
+    }
+
+    if (newPassword !== confirmPasswordReset) {
+      showToast("Passwords do not match.", "error");
+      return;
+    }
+
+    try {
+      await api.auth.resetPasswordOtp({
+        otpCode,
+        newPassword,
+        confirmPassword: confirmPasswordReset,
+      });
+      showToast("Password has been reset successfully. Please log in.", "success");
+      setOtpCode("");
+      setNewPassword("");
+      setConfirmPasswordReset("");
+      setEmail("");
+      setActiveTab("login");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        showToast(err.message || "Failed to reset password", "error");
+      } else {
+        showToast("Failed to reset password", "error");
+      }
+    }
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
       <Navbar />
 
       <main className="flex-1 flex items-center justify-center py-16 px-4">
@@ -94,7 +160,7 @@ export default function LoginPage() {
                 className={`rounded-lg py-2.5 text-2xs font-extrabold uppercase tracking-wider transition-luxury ${
                   activeTab === "login"
                     ? "bg-card-bg text-white shadow-lg border border-border-color/30"
-                    : "text-muted-text hover:text-white"
+                    : "text-muted-text hover:text-gray-800"
                 }`}
               >
                 Log In
@@ -104,7 +170,7 @@ export default function LoginPage() {
                 className={`rounded-lg py-2.5 text-2xs font-extrabold uppercase tracking-wider transition-luxury ${
                   activeTab === "signup"
                     ? "bg-card-bg text-white shadow-lg border border-border-color/30"
-                    : "text-muted-text hover:text-white"
+                    : "text-muted-text hover:text-gray-800"
                 }`}
               >
                 Sign Up
@@ -154,7 +220,7 @@ export default function LoginPage() {
                   id="remember_me"
                   className="rounded border-border-color bg-surface-deep text-primary-coral focus:ring-0 cursor-pointer h-4 w-4"
                 />
-                <label htmlFor="remember_me" className="text-3xs font-semibold text-soft-text hover:text-white cursor-pointer uppercase tracking-wider">
+                <label htmlFor="remember_me" className="text-3xs font-semibold text-white hover:text-gray-800 cursor-pointer uppercase tracking-wider">
                   Remember my session details
                 </label>
               </div>
@@ -239,7 +305,7 @@ export default function LoginPage() {
                   id="terms_agree"
                   className="rounded border-border-color bg-surface-deep text-primary-coral focus:ring-0 cursor-pointer h-4 w-4"
                 />
-                <label htmlFor="terms_agree" className="text-3xs font-semibold text-soft-text hover:text-white cursor-pointer uppercase tracking-wider">
+                <label htmlFor="terms_agree" className="text-3xs font-semibold text-white hover:text-gray-800 cursor-pointer uppercase tracking-wider">
                   I agree to the terms of athlete membership *
                 </label>
               </div>
@@ -281,9 +347,68 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab("login")}
-                className="text-3xs font-black uppercase tracking-wider text-muted-text hover:text-white text-center mt-3"
+                className="text-3xs font-black uppercase tracking-wider text-muted-text hover:text-gray-800 text-center mt-3"
               >
                 Back to Authentication
+              </button>
+            </form>
+          )}
+
+          {activeTab === "otp" && (
+            <form onSubmit={handleOtpResetSubmit} className="flex flex-col gap-4 animate-fade-in">
+              <p className="text-xs text-muted-text leading-relaxed text-center mb-2 uppercase font-bold tracking-wide">
+                Enter the 6-digit OTP sent to your email and your new password.
+              </p>
+              <div>
+                <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">OTP Verification Code</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 123456"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none focus:border-primary-coral text-center tracking-widest font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">New Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter New Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none focus:border-primary-coral"
+                />
+              </div>
+
+              <div>
+                <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Confirm New Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Verify New Password"
+                  value={confirmPasswordReset}
+                  onChange={(e) => setConfirmPasswordReset(e.target.value)}
+                  className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none focus:border-primary-coral"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg"
+              >
+                RESET CREDENTIALS
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("login")}
+                className="text-3xs font-black uppercase tracking-wider text-muted-text hover:text-gray-800 text-center mt-3"
+              >
+                Cancel & Back to Log In
               </button>
             </form>
           )}

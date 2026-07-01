@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { STORAGE_KEYS } from "@/lib/constants";
 import { setStorageItem } from "@/lib/storage";
+import { api } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 import type { CartItem, Coupon, Product } from "@/types/store";
 
@@ -78,30 +79,47 @@ export const useCartActions = ({ cart, setCart, coupons, setActiveCoupon }: Cart
     setStorageItem(STORAGE_KEYS.CART, []);
   }, [setCart]);
 
-  const applyCoupon = useCallback((code: string) => {
-    const formattedCode = code.trim().toUpperCase();
-    const coupon = coupons.find((c) => c.code === formattedCode && c.active);
+  const applyCoupon = useCallback(async (code: string) => {
+    try {
+      const cartItemsDto = cart.map((item) => {
+        const matchingVariant = item.product.variants?.find(
+          (v) => v.size === item.selectedSize && v.flavor === item.selectedVariant
+        );
+        return {
+          productId: item.product.id,
+          variantId: matchingVariant?.id || null,
+          size: item.selectedSize || undefined,
+          flavor: item.selectedVariant || undefined,
+          quantity: item.quantity,
+        };
+      });
 
-    if (!coupon) {
-      showToast("Invalid or inactive coupon code", "error");
+      const response = await api.coupons.validate({
+        code,
+        items: cartItemsDto,
+      });
+
+      const coupon: Coupon = {
+        id: `validated-${response.code}`,
+        code: response.code,
+        discountType: response.discountType.toLowerCase() === "fixed" ? "fixed" : "percentage",
+        discountValue: Number(response.discountValue),
+        expiryDate: new Date(Date.now() + 86400000).toISOString(),
+        usageLimit: 99999,
+        usageCount: 0,
+        minOrderAmount: Number(response.minOrderAmount),
+        active: true,
+      };
+
+      setActiveCoupon(coupon);
+      showToast(`Coupon ${response.code} applied successfully!`, "success");
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid or inactive coupon code";
+      showToast(message, "error");
       return false;
     }
-
-    const expiry = new Date(coupon.expiryDate);
-    if (expiry < new Date()) {
-      showToast("This coupon has expired", "error");
-      return false;
-    }
-
-    if (coupon.usageCount >= coupon.usageLimit) {
-      showToast("Coupon usage limit reached", "error");
-      return false;
-    }
-
-    setActiveCoupon(coupon);
-    showToast(`Coupon ${formattedCode} applied successfully!`, "success");
-    return true;
-  }, [coupons, setActiveCoupon]);
+  }, [cart, setActiveCoupon]);
 
   const removeCoupon = useCallback(() => {
     setActiveCoupon(null);

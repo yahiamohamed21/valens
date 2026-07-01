@@ -20,8 +20,6 @@ public class ReturnService : IReturnService
 
     public async Task<OrderReturn> CreateReturnAsync(CreateReturnDto dto)
     {
-        return await _unitOfWork.ExecuteInTransactionAsync<OrderReturn>(async () =>
-        {
             var order = await _unitOfWork.Orders.GetQueryable()
                 .Include(o => o.Items)
                 .FirstOrDefaultAsync(o => o.Id == dto.OrderId);
@@ -142,11 +140,10 @@ public class ReturnService : IReturnService
                 Notes = dto.Notes
             };
 
-            await _unitOfWork.OrderReturns.AddAsync(orderReturn);
-            await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.OrderReturns.AddAsync(orderReturn);
+        await _unitOfWork.SaveChangesAsync();
 
-            return orderReturn;
-        });
+        return orderReturn;
     }
 
     public async Task<IEnumerable<OrderReturn>> GetAllReturnsAsync()
