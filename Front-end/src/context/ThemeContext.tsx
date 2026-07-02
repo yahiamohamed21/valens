@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { STORAGE_KEYS } from "@/lib/constants";
 

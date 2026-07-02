@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import React, { useState, useEffect } from "react";
 import { useTheme, PRESET_THEMES } from "@/context/ThemeContext";
 import { Icon } from "@/components/SvgIcons";

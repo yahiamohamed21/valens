@@ -168,8 +168,8 @@ export const ProductImage: React.FC<{
   );
 };
 
-export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product }) => {
-  const { addToCart, locale, t } = useApp();
+const ProductCardComponent: React.FC<ProductCardProps> = ({ product }) => {
+  const { addToCart, locale } = useApp();
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [isAdding, setIsAdding] = useState(false);
@@ -507,4 +507,7 @@ export const ProductCard: React.FC<ProductCardProps> = React.memo(({ product }) 
       </div>
     </Link>
   );
-});
+};
+
+export const ProductCard = React.memo(ProductCardComponent);
+ProductCard.displayName = "ProductCard";

@@ -58,7 +58,7 @@ export function ValensBrandCarousel() {
               style={{ color: "rgba(216, 201, 195, 0.5)" }}
             >
               <span>{text}</span>
-              <span style={{ color: "rgba(255, 138, 117, 0.4)" }}>//</span>
+              <span style={{ color: "rgba(255, 138, 117, 0.4)" }}>{"//"}</span>
             </div>
           ))}
         </div>

@@ -4,12 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useApp, CartItem } from "@/context/AppContext";
-import { useTheme } from "@/context/ThemeContext";
 import { Icon } from "./SvgIcons";
 
 export const Navbar: React.FC = () => {
   const { cart, homePageSettings, currentUserEmail, currentUserRole, locale, t } = useApp();
-  const { setIsPanelOpen } = useTheme();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

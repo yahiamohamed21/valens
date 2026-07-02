@@ -12,7 +12,6 @@ interface OrderActionDeps {
   setCustomers: Dispatch<SetStateAction<Customer[]>>;
   products: Product[];
   setProducts: Dispatch<SetStateAction<Product[]>>;
-  coupons: Coupon[];
   setCoupons: Dispatch<SetStateAction<Coupon[]>>;
   activeCoupon: Coupon | null;
   setActiveCoupon: Dispatch<SetStateAction<Coupon | null>>;
@@ -29,7 +28,6 @@ export const useOrderActions = ({
   setCustomers,
   products,
   setProducts,
-  coupons,
   setCoupons,
   activeCoupon,
   setActiveCoupon,

@@ -170,8 +170,6 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [categories, setCategories] = useState<Category[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const [orders, setOrders] = useState<Order[]>([]);
-
   const [rawOrders, setRawOrders] = useState<Order[]>([]);
   const [returnsList, setReturnsList] = useState<OrderReturn[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -188,11 +186,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [homeStories, setHomeStories] = useState<HomeStory[]>([]);
   const [homeFeaturedProducts, setHomeFeaturedProducts] = useState<HomeCuratedProduct[]>([]);
   const [homeBestSellers, setHomeBestSellers] = useState<HomeCuratedProduct[]>([]);
+  const lastAdminFetchRef = useRef<number>(0);
 
 
   const setOrders = useCallback((update: React.SetStateAction<Order[]>) => {
     setRawOrders((prev) => {
-      return typeof update === "function" ? (update as any)(prev) : update;
+      return typeof update === "function" ? (update as (prevState: Order[]) => Order[])(prev) : update;
     });
   }, []);
 
@@ -202,7 +201,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       try {
         const extraMetadataStr = localStorage.getItem("valens_orders_extra_metadata");
         if (extraMetadataStr) {
-          const extraMetadata = JSON.parse(extraMetadataStr) as Record<string, any>;
+          const extraMetadata = JSON.parse(extraMetadataStr) as Record<string, Record<string, unknown>>;
           list = rawOrders.map((order) => {
             const meta = extraMetadata[order.id];
             if (meta) {
@@ -303,10 +302,10 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const t = useCallback((key: string, variables?: Record<string, string | number>) => {
     const dict = locale === "ar" ? ar : en;
     const keys = key.split(".");
-    let val: any = dict;
+    let val: unknown = dict;
     for (const k of keys) {
       if (val && typeof val === "object" && k in val) {
-        val = val[k];
+        val = (val as Record<string, unknown>)[k];
       } else {
         return key;
       }
@@ -346,9 +345,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       console.error("Failed to fetch public homepage overview, falling back to active lists:", err);
       try {
         const prodList = await api.products.list({});
-        const homeOverview = await api.homeControl.getOverview();
-        if (homeOverview && (homeOverview as any).success) {
-          const payload = (homeOverview as any).data;
+        if (prodList) {
+          setProducts(safeArray<Record<string, unknown>>(prodList).map(mapApiProductToClient));
+        }
+        const homeOverview = await api.homeControl.getOverview() as Record<string, unknown>;
+        if (homeOverview && homeOverview.success) {
+          const payload = homeOverview.data as Record<string, unknown>;
           if (payload.heroBanners) {
             setHomeBanners(safeArray<Record<string, unknown>>(payload.heroBanners).map(mapApiBannerToClient));
           }
@@ -372,7 +374,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           if (data.categories) {
             setCategories(safeArray<Record<string, unknown>>(data.categories).map(mapApiCategoryToClient));
           }
-          const homeConfig = (data.settings || data.Settings || data.homePageSettings || data.homepageConfig) as any;
+          const homeConfig = (data.settings || data.Settings || data.homePageSettings || data.homepageConfig) as Record<string, string>;
           if (homeConfig) {
             setHomePageSettings({
               brandName: "Valens",
@@ -425,424 +427,396 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setHomePageSettings({
             brandName: "Valens",
             logoText: "VALENS",
-            heroTitle: homeConf.heroTitle || "FORGED IN SCIENCE, UNLEASHED IN PERFORMANCE",
-            heroSubtitle: homeConf.heroSubtitle || "Fuel your body with the highest quality formulations.",
-            heroCtaText: homeConf.heroCtaText || "SHOP PERFORMANCE",
-            heroCtaLink: homeConf.heroCtaLink || "/products",
-            firstBannerTitle: homeConf.firstBannerTitle || "Purity & Potency",
-            firstBannerSubtitle: homeConf.firstBannerSubtitle || "Clinically dosed ingredients to elevate performance.",
-            firstBannerCtaText: homeConf.firstBannerCtaText || "SHOP NOW",
-            promoBadge: homeConf.promoBadge || "VALENS LABS",
-            heroTitle_ar: homeConf.heroTitle_ar || homeConf.heroTitle || "مُصمم برؤية علمية، مُنفجر بقوة الأداء",
-            heroSubtitle_ar: homeConf.heroSubtitle_ar || homeConf.heroSubtitle || "ادعم جسمك بتركيبات عالية الجودة.",
-            promoBadge_ar: homeConf.promoBadge_ar || homeConf.promoBadge || "مختبرات فالنز"
+            heroTitle: "FORGED IN SCIENCE, UNLEASHED IN PERFORMANCE",
+            heroSubtitle: "Fuel your body with the highest quality formulations.",
+            heroCtaText: "SHOP PERFORMANCE",
+            heroCtaLink: "/products",
+            firstBannerTitle: "Purity & Potency",
+            firstBannerSubtitle: "Clinically dosed ingredients to elevate performance.",
+            firstBannerCtaText: "SHOP NOW",
+            promoBadge: "VALENS LABS",
+            heroTitle_ar: "مُصمم برؤية علمية، مُنفجر بقوة الأداء",
+            heroSubtitle_ar: "ادعم جسمك بتركيبات عالية الجودة.",
+            promoBadge_ar: "مختبرات فالنز"
           });
         }
-      } catch (fallbackErr) {
-        console.warn("Backend unreachable — data will load when connection is restored.");
       }
     }
   }, []);
 
-  const fetchAdminData = useCallback(async () => {
-    const lastAdminFetchRef = useRef<number>(0);
+  const fetchAdminData = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastAdminFetchRef.current < 20000) {
+      return;
+    }
+    lastAdminFetchRef.current = now;
 
-    const fetchAdminData = useCallback(async (force = false) => {
-      const now = Date.now();
-      if (!force && now - lastAdminFetchRef.current < 20000) {
-        return;
-      }
-      lastAdminFetchRef.current = now;
-
-      const results = await Promise.allSettled([
-        api.categories.listAdmin(),
-        api.coupons.listAdmin(),
-        api.customers.listAdmin({ search: "" }),
-        api.expenses.listAdmin({}),
-        api.orders.listAdmin({}),
-        api.products.list({}),
-      ]);
-
-      const [adminCats, adminCoupons, adminCustomers, adminExpenses, adminOrders, adminProducts] = results;
-
-      if (adminCats.status === "fulfilled" && adminCats.value)
-        setCategories(safeArray(adminCats.value).map(mapApiCategoryToClient));
-      else if (adminCats.status === "rejected")
-        console.error("Failed to load admin categories:", adminCats.reason);
-
-      if (adminCoupons.status === "fulfilled" && adminCoupons.value)
-        setCoupons(safeArray(adminCoupons.value).map(mapApiCouponToClient));
-      else if (adminCoupons.status === "rejected")
-        console.error("Failed to load admin coupons:", adminCoupons.reason);
-
-      if (adminCustomers.status === "fulfilled" && adminCustomers.value)
-        setCustomers(safeArray(adminCustomers.value).map(mapApiCustomerToClient));
-      else if (adminCustomers.status === "rejected")
-        console.error("Failed to load admin customers:", adminCustomers.reason);
-
-      if (adminExpenses.status === "fulfilled" && adminExpenses.value)
-        setExpenses(safeArray(adminExpenses.value).map(mapApiExpenseToClient));
-      else if (adminExpenses.status === "rejected")
-        console.error("Failed to load admin expenses:", adminExpenses.reason);
-
-      if (adminOrders.status === "fulfilled" && adminOrders.value)
-        setOrders(safeArray(adminOrders.value).map(mapApiOrderToClient));
-      else if (adminOrders.status === "rejected")
-        console.error("Failed to load admin orders:", adminOrders.reason);
-
-      if (adminProducts.status === "fulfilled" && adminProducts.value)
-        setProducts(safeArray(adminProducts.value).map(mapApiProductToClient));
-      else if (adminProducts.status === "rejected")
-        console.error("Failed to load admin products:", adminProducts.reason);
-
+    const results = await Promise.allSettled([
+      api.categories.listAdmin(),
+      api.coupons.listAdmin(),
+      api.customers.listAdmin({ search: "" }),
+      api.expenses.listAdmin({}),
+      api.orders.listAdmin({}),
+      api.products.list({}),
       api.returns.list(),
-        api.homeControl.banners.list(),
-        api.homeControl.stories.list(),
-        api.homeControl.sections.listProducts("featured_formulas"),
-        api.homeControl.sections.listProducts("best_selling_formulas"),
+      api.homeControl.banners.list(),
+      api.homeControl.stories.list(),
+      api.homeControl.sections.listProducts("featured_formulas"),
+      api.homeControl.sections.listProducts("best_selling_formulas"),
     ]);
 
-const [
-  adminCats,
-  adminCoupons,
-  adminCustomers,
-  adminExpenses,
-  adminOrders,
-  adminProducts,
-  adminReturns,
-  adminBanners,
-  adminStories,
-  adminFeatured,
-  adminBestsellers
-] = results;
+    const [
+      adminCats,
+      adminCoupons,
+      adminCustomers,
+      adminExpenses,
+      adminOrders,
+      adminProducts,
+      adminReturns,
+      adminBanners,
+      adminStories,
+      adminFeatured,
+      adminBestsellers
+    ] = results;
 
-// Check if ALL requests failed (server unreachable) - log only once
-const allFailed = results.every((r) => r.status === "rejected");
-if (allFailed) {
-  console.warn("Admin data: backend unreachable, will retry when connection is restored.");
-  return;
-}
+    // Check if ALL requests failed (server unreachable) - log only once
+    const allFailed = results.every((r) => r.status === "rejected");
+    if (allFailed) {
+      console.warn("Admin data: backend unreachable, will retry when connection is restored.");
+      return;
+    }
 
-if (adminCats.status === "fulfilled" && adminCats.value)
-  setCategories(safeArray(adminCats.value).map(mapApiCategoryToClient));
+    if (adminCats.status === "fulfilled" && adminCats.value)
+      setCategories(safeArray(adminCats.value).map(mapApiCategoryToClient));
+    else if (adminCats.status === "rejected")
+      console.error("Failed to load admin categories:", adminCats.reason);
 
-if (adminCoupons.status === "fulfilled" && adminCoupons.value)
-  setCoupons(safeArray(adminCoupons.value).map(mapApiCouponToClient));
+    if (adminCoupons.status === "fulfilled" && adminCoupons.value)
+      setCoupons(safeArray(adminCoupons.value).map(mapApiCouponToClient));
+    else if (adminCoupons.status === "rejected")
+      console.error("Failed to load admin coupons:", adminCoupons.reason);
 
-if (adminCustomers.status === "fulfilled" && adminCustomers.value)
-  setCustomers(safeArray(adminCustomers.value).map(mapApiCustomerToClient));
+    if (adminCustomers.status === "fulfilled" && adminCustomers.value)
+      setCustomers(safeArray(adminCustomers.value).map(mapApiCustomerToClient));
+    else if (adminCustomers.status === "rejected")
+      console.error("Failed to load admin customers:", adminCustomers.reason);
 
-if (adminExpenses.status === "fulfilled" && adminExpenses.value)
-  setExpenses(safeArray(adminExpenses.value).map(mapApiExpenseToClient));
+    if (adminExpenses.status === "fulfilled" && adminExpenses.value)
+      setExpenses(safeArray(adminExpenses.value).map(mapApiExpenseToClient));
+    else if (adminExpenses.status === "rejected")
+      console.error("Failed to load admin expenses:", adminExpenses.reason);
 
-if (adminOrders.status === "fulfilled" && adminOrders.value)
-  setOrders(safeArray(adminOrders.value).map(mapApiOrderToClient));
+    if (adminOrders.status === "fulfilled" && adminOrders.value)
+      setOrders(safeArray(adminOrders.value).map(mapApiOrderToClient));
+    else if (adminOrders.status === "rejected")
+      console.error("Failed to load admin orders:", adminOrders.reason);
 
-if (adminProducts.status === "fulfilled" && adminProducts.value)
-  setProducts(safeArray(adminProducts.value).map(mapApiProductToClient));
+    if (adminProducts.status === "fulfilled" && adminProducts.value)
+      setProducts(safeArray(adminProducts.value).map(mapApiProductToClient));
+    else if (adminProducts.status === "rejected")
+      console.error("Failed to load admin products:", adminProducts.reason);
 
-if (adminReturns.status === "fulfilled" && adminReturns.value)
-  setReturnsList(safeArray(adminReturns.value).map(mapApiReturnToClient));
+    if (adminReturns.status === "fulfilled" && adminReturns.value)
+      setReturnsList(safeArray(adminReturns.value).map(mapApiReturnToClient));
+    else if (adminReturns.status === "rejected")
+      console.error("Failed to load admin returns:", adminReturns.reason);
 
-if (adminBanners.status === "fulfilled" && adminBanners.value) {
-  const data = (adminBanners.value as any).data || adminBanners.value;
-  setHomeBanners(safeArray(data).map(mapApiBannerToClient));
-}
+    if (adminBanners.status === "fulfilled" && adminBanners.value) {
+      const data = (adminBanners.value as { data?: unknown }).data || adminBanners.value;
+      setHomeBanners(safeArray(data).map(mapApiBannerToClient));
+    }
 
-if (adminStories.status === "fulfilled" && adminStories.value) {
-  const data = (adminStories.value as any).data || adminStories.value;
-  setHomeStories(safeArray(data).map(mapApiStoryToClient));
-}
+    if (adminStories.status === "fulfilled" && adminStories.value) {
+      const data = (adminStories.value as { data?: unknown }).data || adminStories.value;
+      setHomeStories(safeArray(data).map(mapApiStoryToClient));
+    }
 
-if (adminFeatured.status === "fulfilled" && adminFeatured.value) {
-  const data = (adminFeatured.value as any).data || adminFeatured.value;
-  setHomeFeaturedProducts(safeArray(data).map(mapApiSectionProductToClient));
-}
+    if (adminFeatured.status === "fulfilled" && adminFeatured.value) {
+      const data = (adminFeatured.value as { data?: unknown }).data || adminFeatured.value;
+      setHomeFeaturedProducts(safeArray(data).map(mapApiSectionProductToClient));
+    }
 
-if (adminBestsellers.status === "fulfilled" && adminBestsellers.value) {
-  const data = (adminBestsellers.value as any).data || adminBestsellers.value;
-  setHomeBestSellers(safeArray(data).map(mapApiSectionProductToClient));
-}
+    if (adminBestsellers.status === "fulfilled" && adminBestsellers.value) {
+      const data = (adminBestsellers.value as { data?: unknown }).data || adminBestsellers.value;
+      setHomeBestSellers(safeArray(data).map(mapApiSectionProductToClient));
+    }
+  }, [setOrders]);
+
+  const fetchCustomerData = useCallback(async () => {
+    try {
+      const history = await api.orders.myHistory();
+      if (history) setOrders(safeArray(history).map(mapApiOrderToClient));
+    } catch (err) {
+      console.error("Failed to load customer order history:", err);
+    }
+  }, [setOrders]);
+
+  useEffect(() => {
+    const storedCart = getStorageItem<CartItem[]>(STORAGE_KEYS.CART);
+    if (storedCart !== undefined) setCart(storedCart);
+
+    if (typeof window !== "undefined") {
+      const storedToken = localStorage.getItem("valens_jwt_token");
+      if (storedToken) {
+        setToken(storedToken);
+        const claims = decodeJwt(storedToken);
+        if (claims) {
+          const email = (claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"]) as string | undefined;
+          const role = (claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]) as "Admin" | "Customer" | undefined;
+          setCurrentUserEmail(email || null);
+          setCurrentUserRole(role || null);
+        }
+      }
+    }
+
+    fetchPublicData();
+  }, [fetchPublicData]);
+
+  useEffect(() => {
+    if (token && currentUserRole === "Admin") {
+      fetchAdminData();
+    } else if (token && currentUserRole === "Customer") {
+      fetchCustomerData();
+    }
+  }, [token, currentUserRole, fetchAdminData, fetchCustomerData]);
+
+  const appToast: AppContextType["toast"] = useCallback((msg, type = "info") => {
+    showToast(msg, type);
   }, []);
 
-const fetchCustomerData = useCallback(async () => {
-  try {
-    const history = await api.orders.myHistory();
-    if (history) setOrders(safeArray(history).map(mapApiOrderToClient));
-  } catch (err) {
-    console.error("Failed to load customer order history:", err);
-  }
-}, []);
 
-/* eslint-disable react-hooks/set-state-in-effect */
-useEffect(() => {
-  const storedCart = getStorageItem<CartItem[]>(STORAGE_KEYS.CART);
-  if (storedCart !== undefined) setCart(storedCart);
 
-  if (typeof window !== "undefined") {
-    const storedToken = localStorage.getItem("valens_jwt_token");
-    if (storedToken) {
-      setToken(storedToken);
-      const claims = decodeJwt(storedToken);
-      if (claims) {
-        const email = (claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"]) as string | undefined;
-        const role = (claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]) as "Admin" | "Customer" | undefined;
-        setCurrentUserEmail(email || null);
-        setCurrentUserRole(role || null);
+  const loginUser = useCallback(async (email: string, password: string) => {
+    try {
+      const response = await api.auth.login({ email, password });
+      const jwtToken = response.token;
+      if (jwtToken) {
+        localStorage.setItem("valens_jwt_token", jwtToken);
+        if (response.refreshToken) {
+          localStorage.setItem("valens_refresh_token", response.refreshToken);
+        }
+        setToken(jwtToken);
+        const claims = decodeJwt(jwtToken);
+        if (claims) {
+          const parsedEmail = (claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || email) as string;
+          const parsedRole = (claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "Customer") as "Admin" | "Customer";
+          setCurrentUserEmail(parsedEmail);
+          setCurrentUserRole(parsedRole);
+        } else {
+          setCurrentUserEmail(email);
+          setCurrentUserRole("Customer");
+        }
+        showToast("Authenticated successfully!", "success");
+        return true;
       }
+      return false;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to authenticate";
+      showToast(message, "error");
+      return false;
     }
-  }
+  }, []);
 
-  fetchPublicData();
-}, [fetchPublicData]);
-/* eslint-enable react-hooks/set-state-in-effect */
-
-useEffect(() => {
-  if (token && currentUserRole === "Admin") {
-    fetchAdminData();
-  } else if (token && currentUserRole === "Customer") {
-    fetchCustomerData();
-  }
-}, [token, currentUserRole, fetchAdminData, fetchCustomerData]);
-
-const appToast: AppContextType["toast"] = useCallback((msg, type = "info") => {
-  showToast(msg, type);
-}, []);
-
-const productActions = useProductActions({ products, setProducts });
-const cartActions = useCartActions({ cart, setCart, coupons, setActiveCoupon });
-const orderActions = useOrderActions({
-  orders,
-  setOrders,
-  customers,
-  setCustomers,
-  products,
-  setProducts,
-  coupons,
-  setCoupons,
-  activeCoupon,
-  setActiveCoupon,
-  clearCart: cartActions.clearCart,
-  setCurrentUserEmail,
-  editProduct: productActions.editProduct,
-  setReturnsList,
-});
-
-const loginUser = useCallback(async (email: string, password: string) => {
-  try {
-    const response = await api.auth.login({ email, password });
-    const jwtToken = response.token;
-    if (jwtToken) {
-      localStorage.setItem("valens_jwt_token", jwtToken);
-      if (response.refreshToken) {
-        localStorage.setItem("valens_refresh_token", response.refreshToken);
-      }
-      setToken(jwtToken);
-      const claims = decodeJwt(jwtToken);
-      if (claims) {
-        const parsedEmail = (claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || email) as string;
-        const parsedRole = (claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || "Customer") as "Admin" | "Customer";
-        setCurrentUserEmail(parsedEmail);
-        setCurrentUserRole(parsedRole);
-      } else {
-        setCurrentUserEmail(email);
-        setCurrentUserRole("Customer");
-      }
-      showToast("Authenticated successfully!", "success");
-      return true;
-    }
-    return false;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to authenticate";
-    showToast(message, "error");
-    return false;
-  }
-}, []);
-
-const registerCustomer = useCallback(async (email: string, password: string, name: string) => {
-  try {
-    const response = await api.auth.registerCustomer({
-      email,
-      password,
-      firstName: name.split(" ")[0] || name,
-      lastName: name.split(" ").slice(1).join(" ") || "Customer",
-      fullName: name,
-      phone: "",
-      address: "",
-      city: "",
-    });
-    const jwtToken = response.token;
-    if (jwtToken) {
-      localStorage.setItem("valens_jwt_token", jwtToken);
-      if (response.refreshToken) {
-        localStorage.setItem("valens_refresh_token", response.refreshToken);
-      }
-      setToken(jwtToken);
-      const claims = decodeJwt(jwtToken);
-      if (claims) {
-        const parsedEmail = (claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || email) as string;
-        setCurrentUserEmail(parsedEmail);
-        setCurrentUserRole("Customer");
-      } else {
-        setCurrentUserEmail(email);
-        setCurrentUserRole("Customer");
-      }
-      showToast("Account registered successfully!", "success");
-      return true;
-    }
-    return true;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Registration failed";
-    showToast(message, "error");
-    return false;
-  }
-}, []);
-
-const logoutUser = useCallback(() => {
-  setCurrentUserEmail(null);
-  setCurrentUserRole(null);
-  setToken(null);
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("valens_jwt_token");
-    localStorage.removeItem("valens_current_user");
-  }
-
-  if (typeof window !== "undefined") {
-    const refreshToken = localStorage.getItem("valens_refresh_token");
-    if (refreshToken) {
-      api.auth.revokeToken({ refreshToken }).catch((err) => {
-        console.error("Failed to revoke token on backend", err);
+  const registerCustomer = useCallback(async (email: string, password: string, name: string) => {
+    try {
+      const response = await api.auth.registerCustomer({
+        email,
+        password,
+        firstName: name.split(" ")[0] || name,
+        lastName: name.split(" ").slice(1).join(" ") || "Customer",
+        fullName: name,
+        phone: "",
+        address: "",
+        city: "",
       });
-    }
-    localStorage.removeItem("valens_jwt_token");
-    localStorage.removeItem("valens_refresh_token");
-    localStorage.removeItem("valens_current_user");
-  }
-  setCurrentUserEmail(null);
-  setCurrentUserRole(null);
-  setToken(null);
-  showToast("Logged out successfully", "info");
-}, []);
-
-const updateCustomer = useCallback(async (email: string, updatedDetails: Partial<Customer>) => {
-  try {
-    await api.customers.updateProfile({
-      name: updatedDetails.name,
-      phone: updatedDetails.phone,
-      address: updatedDetails.address,
-      city: updatedDetails.city,
-    });
-
-    const updated = customers.map(c => {
-      if (c.email.toLowerCase() === email.toLowerCase()) {
-        return { ...c, ...updatedDetails };
+      const jwtToken = response.token;
+      if (jwtToken) {
+        localStorage.setItem("valens_jwt_token", jwtToken);
+        if (response.refreshToken) {
+          localStorage.setItem("valens_refresh_token", response.refreshToken);
+        }
+        setToken(jwtToken);
+        const claims = decodeJwt(jwtToken);
+        if (claims) {
+          const parsedEmail = (claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"] || email) as string;
+          setCurrentUserEmail(parsedEmail);
+          setCurrentUserRole("Customer");
+        } else {
+          setCurrentUserEmail(email);
+          setCurrentUserRole("Customer");
+        }
+        showToast("Account registered successfully!", "success");
+        return true;
       }
-      return c;
-    });
-    setCustomers(updated);
-    showToast("Profile updated successfully", "success");
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to update profile";
-    showToast(message, "error");
-  }
-}, [customers]);
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Registration failed";
+      showToast(message, "error");
+      return false;
+    }
+  }, []);
 
-const productActions = useProductActions({ products, setProducts });
+  const logoutUser = useCallback(() => {
+    setCurrentUserEmail(null);
+    setCurrentUserRole(null);
+    setToken(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("valens_jwt_token");
+      localStorage.removeItem("valens_current_user");
+    }
 
-const categoryActions = useCategoryActions({ categories, setCategories });
-const couponActions = useCouponActions({ coupons, setCoupons });
-const expenseActions = useExpenseActions({ expenses, setExpenses });
-const settingsActions = useSettingsActions({ setHomePageSettings, setStoreSettings });
+    if (typeof window !== "undefined") {
+      const refreshToken = localStorage.getItem("valens_refresh_token");
+      if (refreshToken) {
+        api.auth.revokeToken({ refreshToken }).catch((err) => {
+          console.error("Failed to revoke token on backend", err);
+        });
+      }
+      localStorage.removeItem("valens_jwt_token");
+      localStorage.removeItem("valens_refresh_token");
+      localStorage.removeItem("valens_current_user");
+    }
+    setCurrentUserEmail(null);
+    setCurrentUserRole(null);
+    setToken(null);
+    showToast("Logged out successfully", "info");
+  }, []);
 
-const value = useMemo<AppContextType>(() => ({
-  homeBanners,
-  setHomeBanners,
-  homeStories,
-  setHomeStories,
-  homeFeaturedProducts,
-  setHomeFeaturedProducts,
-  homeBestSellers,
-  setHomeBestSellers,
-  returnsList,
-  setReturnsList,
-  products,
-  setProducts,
-  categories,
-  cart,
-  orders,
-  setOrders,
-  customers,
-  setCustomers,
-  coupons,
-  setCoupons,
-  expenses,
-  homePageSettings,
-  storeSettings,
-  activeCoupon,
-  currentUserEmail,
-  token,
-  currentUserRole,
-  toast: appToast,
-  showToast: appToast,
-  loginUser,
-  registerCustomer,
-  logoutUser,
-  updateCustomer,
-  locale,
-  changeLanguage,
-  t,
-  fetchAdminData,
-  fetchCustomerData,
-  ...cartActions,
-  ...orderActions,
-  ...productActions,
-  ...categoryActions,
-  ...couponActions,
-  ...expenseActions,
-  ...settingsActions,
-}), [
-  homeBanners,
-  homeStories,
-  homeFeaturedProducts,
-  homeBestSellers,
-  returnsList,
-  activeCoupon,
-  currentUserEmail,
-  token,
-  currentUserRole,
-  appToast,
-  cart,
-  cartActions,
-  categories,
-  categoryActions,
-  couponActions,
-  coupons,
-  customers,
-  setCustomers,
-  setProducts,
-  setOrders,
-  setCoupons,
-  expenseActions,
-  expenses,
-  homePageSettings,
-  orderActions,
-  orders,
-  productActions,
-  products,
-  settingsActions,
-  storeSettings,
-  loginUser,
-  registerCustomer,
-  logoutUser,
-  updateCustomer,
-  locale,
-  changeLanguage,
-  t,
-  fetchAdminData,
-  fetchCustomerData,
-]);
+  const updateCustomer = useCallback(async (email: string, updatedDetails: Partial<Customer>) => {
+    try {
+      await api.customers.updateProfile({
+        name: updatedDetails.name,
+        phone: updatedDetails.phone,
+        address: updatedDetails.address,
+        city: updatedDetails.city,
+      });
 
-return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+      const updated = customers.map(c => {
+        if (c.email.toLowerCase() === email.toLowerCase()) {
+          return { ...c, ...updatedDetails };
+        }
+        return c;
+      });
+      setCustomers(updated);
+      showToast("Profile updated successfully", "success");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update profile";
+      showToast(message, "error");
+    }
+  }, [customers]);
+
+  const productActions = useProductActions({ products, setProducts });
+  const cartActions = useCartActions({ cart, setCart, setActiveCoupon });
+  const orderActions = useOrderActions({
+    orders,
+    setOrders,
+    customers,
+    setCustomers,
+    products,
+    setProducts,
+    setCoupons,
+    activeCoupon,
+    setActiveCoupon,
+    clearCart: cartActions.clearCart,
+    setCurrentUserEmail,
+    editProduct: productActions.editProduct,
+    setReturnsList,
+  });
+
+  const categoryActions = useCategoryActions({ categories, setCategories });
+  const couponActions = useCouponActions({ coupons, setCoupons });
+  const expenseActions = useExpenseActions({ expenses, setExpenses });
+  const settingsActions = useSettingsActions({ setHomePageSettings, setStoreSettings });
+
+  const value = useMemo<AppContextType>(() => ({
+    homeBanners,
+    setHomeBanners,
+    homeStories,
+    setHomeStories,
+    homeFeaturedProducts,
+    setHomeFeaturedProducts,
+    homeBestSellers,
+    setHomeBestSellers,
+    returnsList,
+    setReturnsList,
+    products,
+    setProducts,
+    categories,
+    cart,
+    orders,
+    setOrders,
+    customers,
+    setCustomers,
+    coupons,
+    setCoupons,
+    expenses,
+    homePageSettings,
+    storeSettings,
+    activeCoupon,
+    currentUserEmail,
+    token,
+    currentUserRole,
+    toast: appToast,
+    showToast: appToast,
+    loginUser,
+    registerCustomer,
+    logoutUser,
+    updateCustomer,
+    locale,
+    changeLanguage,
+    t,
+    fetchAdminData,
+    fetchCustomerData,
+    ...cartActions,
+    ...orderActions,
+    ...productActions,
+    ...categoryActions,
+    ...couponActions,
+    ...expenseActions,
+    ...settingsActions,
+  }), [
+    homeBanners,
+    homeStories,
+    homeFeaturedProducts,
+    homeBestSellers,
+    returnsList,
+    activeCoupon,
+    currentUserEmail,
+    token,
+    currentUserRole,
+    appToast,
+    cart,
+    cartActions,
+    categories,
+    categoryActions,
+    couponActions,
+    coupons,
+    customers,
+    setCustomers,
+    setProducts,
+    setOrders,
+    setCoupons,
+    expenseActions,
+    expenses,
+    homePageSettings,
+    orderActions,
+    orders,
+    productActions,
+    products,
+    settingsActions,
+    storeSettings,
+    loginUser,
+    registerCustomer,
+    logoutUser,
+    updateCustomer,
+    locale,
+    changeLanguage,
+    t,
+    fetchAdminData,
+    fetchCustomerData,
+  ]);
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
 
 export const useApp = () => {

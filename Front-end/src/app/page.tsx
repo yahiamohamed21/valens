@@ -10,6 +10,8 @@ import { Footer } from "@/components/Footer";
 import { ValensBrandCarousel } from "@/components/ValensBrandCarousel";
 import { Carousel } from "@/components/Carousel/Carousel";
 import { mockCarouselData } from "@/data/mockCarouselData";
+import { HeroScrollAnimation } from "@/components/HeroScrollAnimation";
+
 
 export default function Home() {
   const { products, categories, homePageSettings, locale, t } = useApp();
@@ -30,97 +32,26 @@ export default function Home() {
   const featuredProducts = products.filter((p) => p.featured && p.visible).slice(0, 4);
   const bestSellers = products.filter((p) => p.bestSeller && p.visible).slice(0, 4);
 
-  const heroTitleText = locale === "ar" && homePageSettings.heroTitle_ar ? homePageSettings.heroTitle_ar : homePageSettings.heroTitle;
-  const heroSubtitleText = locale === "ar" && homePageSettings.heroSubtitle_ar ? homePageSettings.heroSubtitle_ar : homePageSettings.heroSubtitle;
-  const heroCtaTextVal = locale === "ar" && homePageSettings.heroCtaText_ar ? homePageSettings.heroCtaText_ar : homePageSettings.heroCtaText;
-  const promoBadgeText = locale === "ar" && homePageSettings.promoBadge_ar ? homePageSettings.promoBadge_ar : homePageSettings.promoBadge;
-
   return (
     <div className="flex min-h-screen flex-col bg-main-bg text-white">
       <Navbar />
-      <main className="flex-1 relative w-full overflow-hidden bg-main-bg">
-        {/* Decorative background glows */}
-        <div className="absolute top-[10%] left-[-10%] -z-10 h-[500px] w-[500px] rounded-full bg-primary-coral/5 blur-[120px] animate-pulse-glow" />
-        <div className="absolute top-[40%] right-[-10%] -z-10 h-[600px] w-[600px] rounded-full bg-accent-orange/5 blur-[150px]" />
+      {/*
+        NO `overflow-hidden` on <main>. `overflow-hidden` on any ancestor of
+        a `position: sticky` element breaks the stickiness — that was the
+        exact cause of HeroScrollAnimation only playing the first bit of
+        frames and then leaving blank space instead of continuing to scrub
+        through the full scroll distance. Decorative glows that need
+        clipping now live in their own small overflow-hidden wrapper below,
+        scoped only to themselves — not wrapping HeroScrollAnimation.
+      */}
+      <main className="relative w-full flex-1 bg-main-bg">
+        <HeroScrollAnimation />
 
-        {/* 1. Hero Section */}
-        <section className="relative mx-auto max-w-7xl px-4 pt-16 pb-24 sm:px-6 lg:px-8 lg:pt-24 lg:pb-32">
-          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-12">
-            {/* Left Text Column */}
-            <div className={`flex flex-col items-start lg:col-span-6 ${locale === "ar" ? "text-right" : "text-left"}`}>
-              <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary-coral/30 bg-primary-coral/5 px-4 py-1.5 text-xs font-bold tracking-widest text-primary-coral uppercase">
-                <span className="h-1.5 w-1.5 rounded-full bg-accent-orange animate-ping" />
-                {promoBadgeText}
-              </span>
-              <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl uppercase leading-[1.1]">
-                {heroTitleText}
-              </h1>
-              <p className="mt-6 text-base leading-relaxed text-white sm:text-lg">
-                {heroSubtitleText}
-              </p>
-              <div className="mt-10 flex flex-col gap-4 sm:flex-row">
-                <Link
-                  href={homePageSettings.heroCtaLink}
-                  className="flex items-center justify-center gap-2 rounded-full bg-primary-coral px-8 py-4 text-sm font-black tracking-widest text-main-bg transition-luxury hover:bg-gray-600 hover:scale-105 shadow-[0_4px_20px_rgba(255,138,117,0.3)] hover:shadow-[0_4px_30px_rgba(255,255,255,0.4)]"
-                >
-                  {heroCtaTextVal}
-                  <Icon name="arrow-right" size={16} />
-                </Link>
-                <Link
-                  href="#science"
-                  className="flex items-center justify-center gap-2 rounded-full border border-border-color bg-surface-deep/40 px-8 py-4 text-sm font-black tracking-widest text-white transition-luxury hover:border-primary-coral hover:bg-primary-coral/5"
-                >
-                  {locale === "ar" ? "الجانب العلمي" : "THE SCIENCE"}
-                </Link>
-              </div>
-              {/* Quick stats badges */}
-              <div className="mt-12 grid grid-cols-3 gap-6 border-t border-border-color pt-8 w-full">
-                <div>
-                  <span className="text-2xl font-black text-white">100%</span>
-                  <p className="text-3xs font-bold uppercase tracking-widest text-muted-text mt-1">
-                    {locale === "ar" ? "نقاء معتمد معملياً" : "Lab Certified Purity"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-white">0g</span>
-                  <p className="text-3xs font-bold uppercase tracking-widest text-muted-text mt-1">
-                    {locale === "ar" ? "خلطات سرية مبهمة" : "Proprietary Blends"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-2xl font-black text-white">CLINICAL</span>
-                  <p className="text-3xs font-bold uppercase tracking-widest text-muted-text mt-1">
-                    {locale === "ar" ? "جرعات مكونات فاعلة" : "Ingredient Dosages"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Product Display */}
-            <div className="relative flex items-center justify-center lg:col-span-6 h-[400px] lg:h-[500px]">
-              {/* Ambient Coral Spotlights */}
-              <div className="absolute inset-0 -z-10 flex items-center justify-center">
-                <div className="h-64 w-64 rounded-full bg-primary-coral/10 blur-[80px]" />
-                <div className="h-48 w-48 rounded-full bg-accent-orange/10 blur-[60px]" />
-              </div>
-
-              {/* Left Bottle */}
-              <div className="absolute left-[5%] bottom-[10%] w-[180px] sm:w-[220px] transition-luxury hover:scale-105 hover:z-20 transform -rotate-6 filter brightness-75">
-                <ProductImage color="#D8C9C3" type="powder" glow={false} className="h-64 w-full" />
-              </div>
-
-              {/* Right Bottle */}
-              <div className="absolute right-[5%] bottom-[10%] w-[180px] sm:w-[220px] transition-luxury hover:scale-105 hover:z-20 transform rotate-6 filter brightness-75">
-                <ProductImage color="#FF5226" type="powder" glow={false} className="h-64 w-full" />
-              </div>
-
-              {/* Center Main Bottle */}
-              <div className="absolute bottom-[5%] w-[220px] sm:w-[260px] z-10 transition-luxury hover:scale-110 shadow-2xl">
-                <ProductImage color="#FF8A75" type="powder" glow={true} className="h-80 w-full" />
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Decorative background glows — clipped locally, not on <main> */}
+        <div className="pointer-events-none relative w-full overflow-hidden">
+          <div className="absolute top-[10%] left-[-10%] -z-10 h-[500px] w-[500px] rounded-full bg-primary-coral/5 blur-[120px] animate-pulse-glow" />
+          <div className="absolute top-[40%] right-[-10%] -z-10 h-[600px] w-[600px] rounded-full bg-accent-orange/5 blur-[150px]" />
+        </div>
 
         <ValensBrandCarousel />
 
@@ -154,7 +85,7 @@ export default function Home() {
                     {getCategoryName(cat.name)}
                   </h3>
                   <p className="mt-2 text-2xs text-muted-text font-bold">
-                    {locale === "ar" 
+                    {locale === "ar"
                       ? `حسّن مستويات وأهداف ${getCategoryName(cat.name)} الخاصة بك.`
                       : `Optimize your ${cat.name.toLowerCase()} targets.`
                     }
@@ -262,9 +193,8 @@ export default function Home() {
                   {locale === "ar" && homePageSettings.firstBannerSubtitle_ar ? homePageSettings.firstBannerSubtitle_ar : homePageSettings.firstBannerSubtitle}
                 </p>
                 <div className="mt-8 w-full">
-                  <blockquote className={`border-primary-coral text-xs italic text-muted-text ${
-                    locale === "ar" ? "border-r-2 pr-4 text-right" : "border-l-2 pl-4 text-left"
-                  }`}>
+                  <blockquote className={`border-primary-coral text-xs italic text-muted-text ${locale === "ar" ? "border-r-2 pr-4 text-right" : "border-l-2 pl-4 text-left"
+                    }`}>
                     {locale === "ar"
                       ? "\"لقد أنشأنا Valens لأننا سئمنا من التركيبات ضعيفة الجرعات، والألوان الاصطناعية، والادعاءات المشكوك فيها. كل غرام نصيغه يخدم غرضًا بيولوجيًا حقيقيًا.\""
                       : "\"We created Valens because we were tired of under-dosed formulas, synthetic dyes, and sketchy claims. Every gram we formulate serves a biological purpose.\""

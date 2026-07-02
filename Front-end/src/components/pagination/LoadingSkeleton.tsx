@@ -1,6 +1,4 @@
-import React, { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/SvgIcons";
+import React from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const LoadingSkeleton: React.FC = () => {

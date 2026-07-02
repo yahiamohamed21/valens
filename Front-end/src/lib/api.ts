@@ -300,8 +300,6 @@ const expenseCategories = [
   "Other",
 ] as const;
 
-const couponDiscountTypes = ["percentage", "fixed"] as const;
-
 const isProductImageType = (value: unknown): value is Product["imageType"] =>
   typeof value === "string" && productImageTypes.includes(value as Product["imageType"]);
 
@@ -313,9 +311,6 @@ const isOrderStatus = (value: unknown): value is Order["status"] =>
 
 const isExpenseCategory = (value: unknown): value is Expense["category"] =>
   typeof value === "string" && expenseCategories.includes(value as Expense["category"]);
-
-const isCouponDiscountType = (value: unknown): value is Coupon["discountType"] =>
-  typeof value === "string" && couponDiscountTypes.includes(value as Coupon["discountType"]);
 
 const toStringValue = (value: unknown, fallback = ""): string =>
   value === undefined || value === null ? fallback : String(value);
@@ -630,7 +625,7 @@ export const mapApiExpenseToClient = (e: Record<string, unknown>): Expense => ({
   title: toStringValue(e.title),
   category: isExpenseCategory(e.category)
     ? e.category
-    : "Miscellaneous expenses",
+    : "Other",
   amount: toNumberValue(e.amount),
   date: toStringValue(e.date, new Date().toISOString()),
   paymentMethod: toStringValue(e.paymentMethod, "Bank Transfer"),

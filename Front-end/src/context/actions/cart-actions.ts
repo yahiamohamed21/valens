@@ -9,11 +9,10 @@ import type { CartItem, Coupon, Product } from "@/types/store";
 interface CartActionDeps {
   cart: CartItem[];
   setCart: Dispatch<SetStateAction<CartItem[]>>;
-  coupons: Coupon[];
   setActiveCoupon: Dispatch<SetStateAction<Coupon | null>>;
 }
 
-export const useCartActions = ({ cart, setCart, coupons, setActiveCoupon }: CartActionDeps) => {
+export const useCartActions = ({ cart, setCart, setActiveCoupon }: CartActionDeps) => {
   const addToCart = useCallback((
     product: Product,
     quantity: number,

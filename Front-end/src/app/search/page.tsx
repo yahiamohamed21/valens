@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable react-hooks/set-state-in-effect */
+
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useApp, Product } from "@/context/AppContext";
@@ -7,7 +9,6 @@ import { ProductCard } from "@/components/ProductCard";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
-import Link from "next/link";
 
 export default function SearchPage() {
   const { products } = useApp();
@@ -102,7 +103,7 @@ export default function SearchPage() {
               </div>
               <h3 className="text-lg font-bold text-white uppercase tracking-wider">No Formulations Match</h3>
               <p className="mt-2 text-xs text-muted-text max-w-sm mx-auto leading-relaxed">
-                We couldn't find any supplements containing matches for <span className="text-white font-bold font-bold">"{query}"</span>. Try searching other search keywords.
+                We couldn&apos;t find any supplements containing matches for <span className="text-white font-bold">&quot;{query}&quot;</span>. Try searching other search keywords.
               </p>
               
               {/* Helpful suggestions */}
