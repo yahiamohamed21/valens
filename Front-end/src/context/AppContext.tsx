@@ -91,17 +91,23 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(emptyStoreSettings);
   const [activeCoupon, setActiveCoupon] = useState<Coupon | null>(null);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<"Admin" | "Customer" | null>(null);
 
-  const [locale, setLocale] = useState<"en" | "ar">("en");
-
-  useEffect(() => {
-    const storedLocale = localStorage.getItem("valens_locale") as "en" | "ar";
-    if (storedLocale === "en" || storedLocale === "ar") {
-      setLocale(storedLocale);
+  // Lazy initialization for locale, token, and role to avoid setState in effect
+  const [locale, setLocale] = useState<"en" | "ar">(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("valens_locale") as "en" | "ar" : null;
+    return stored === "en" || stored === "ar" ? stored : "en";
+  });
+  const [token, setToken] = useState<string | null>(() => {
+    return typeof window !== "undefined" ? localStorage.getItem("valens_jwt_token") : null;
+  });
+  const [currentUserRole, setCurrentUserRole] = useState<"Admin" | "Customer" | null>(() => {
+    const storedToken = typeof window !== "undefined" ? localStorage.getItem("valens_jwt_token") : null;
+    if (storedToken) {
+      const claims = decodeJwt(storedToken);
+      return (claims?.role || claims?.["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]) as "Admin" | "Customer" | null;
     }
-  }, []);
+    return null;
+  });
 
   const changeLanguage = useCallback((newLocale: "en" | "ar") => {
     setLocale(newLocale);
@@ -234,7 +240,6 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, []);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const storedCart = getStorageItem<CartItem[]>(STORAGE_KEYS.CART);
     if (storedCart !== undefined) setCart(storedCart);
@@ -242,20 +247,16 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (typeof window !== "undefined") {
       const storedToken = localStorage.getItem("valens_jwt_token");
       if (storedToken) {
-        setToken(storedToken);
         const claims = decodeJwt(storedToken);
         if (claims) {
           const email = (claims.email || claims["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"]) as string | undefined;
-          const role = (claims.role || claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]) as "Admin" | "Customer" | undefined;
           setCurrentUserEmail(email || null);
-          setCurrentUserRole(role || null);
         }
       }
     }
 
     fetchPublicData();
   }, [fetchPublicData]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (token && currentUserRole === "Admin") {

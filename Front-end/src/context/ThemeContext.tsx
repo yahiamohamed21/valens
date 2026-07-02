@@ -82,21 +82,21 @@ const darkenHex = (hex: string, percent: number) => {
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<ThemeConfig>(DEFAULT_THEME);
-  const [mounted, setMounted] = useState(false);
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.THEME);
-    if (saved) {
-      try {
-        setThemeState(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse theme", e);
+  const [theme, setThemeState] = useState<ThemeConfig>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(STORAGE_KEYS.THEME);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error("Failed to parse theme", e);
+        }
       }
     }
-    setMounted(true);
-  }, []);
+    return DEFAULT_THEME;
+  });
+  const [mounted, setMounted] = useState(true);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const setTheme = (newTheme: ThemeConfig) => {
     setThemeState(newTheme);
