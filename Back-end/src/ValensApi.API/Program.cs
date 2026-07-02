@@ -1,3 +1,4 @@
+using FluentValidation.AspNetCore;
 using ValensApi.Application;
 using ValensApi.Infrastructure;
 using ValensApi.API.Middleware;
@@ -7,6 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Clean Architecture Layers Dependency Injection
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Add FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
 
 // Add Controllers and JSON configuration
 builder.Services.AddControllers()

@@ -9,6 +9,7 @@ public class StoreSetting : BaseEntity
     public decimal FreeShippingThreshold { get; set; } = 1500; // 1500 EGP
     public string ContactPhone { get; set; } = string.Empty;
     public string ContactEmail { get; set; } = string.Empty;
+    public string SocialTikTok { get; set; } = string.Empty;
     
     // Homepage settings
     public string HomepageHeroTitle { get; set; } = "Premium Sports & Nutritional Supplements";

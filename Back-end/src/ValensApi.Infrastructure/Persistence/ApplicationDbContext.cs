@@ -28,6 +28,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Expense> Expenses => Set<Expense>();
     public DbSet<StoreSetting> StoreSettings => Set<StoreSetting>();
     public DbSet<UserOtp> UserOtps => Set<UserOtp>();
+    public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

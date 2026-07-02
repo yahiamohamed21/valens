@@ -26,6 +26,7 @@ public class UnitOfWork : IUnitOfWork
     public IGenericRepository<Expense> Expenses { get; }
     public IGenericRepository<StoreSetting> StoreSettings { get; }
     public IGenericRepository<UserOtp> UserOtps { get; }
+    public IGenericRepository<SupportMessage> SupportMessages { get; }
 
     public UnitOfWork(ApplicationDbContext context, IProductRepository products)
     {
@@ -41,6 +42,7 @@ public class UnitOfWork : IUnitOfWork
         Expenses = new GenericRepository<Expense>(context);
         StoreSettings = new GenericRepository<StoreSetting>(context);
         UserOtps = new GenericRepository<UserOtp>(context);
+        SupportMessages = new GenericRepository<SupportMessage>(context);
     }
 
     public async Task<int> SaveChangesAsync()

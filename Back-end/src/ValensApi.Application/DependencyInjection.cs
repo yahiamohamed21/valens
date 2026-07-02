@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 using ValensApi.Application.Interfaces;
@@ -18,6 +19,9 @@ public static class DependencyInjection
         services.AddScoped<IExpenseService, ExpenseService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<ISettingService, SettingService>();
+        services.AddScoped<ISupportMessageService, SupportMessageService>();
+
+        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
         return services;
     }

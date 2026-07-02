@@ -27,7 +27,8 @@ public class SettingService : ISettingService
             settings.ShippingCost,
             settings.FreeShippingThreshold,
             settings.ContactPhone,
-            settings.ContactEmail
+            settings.ContactEmail,
+            settings.SocialTikTok
         };
     }
 
@@ -53,6 +54,7 @@ public class SettingService : ISettingService
         settings.FreeShippingThreshold = dto.FreeShippingThreshold;
         settings.ContactPhone = dto.ContactPhone;
         settings.ContactEmail = dto.ContactEmail;
+        settings.SocialTikTok = dto.SocialTikTok;
 
         _unitOfWork.StoreSettings.Update(settings);
         await _unitOfWork.SaveChangesAsync();
