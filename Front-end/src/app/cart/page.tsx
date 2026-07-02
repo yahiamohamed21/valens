@@ -45,19 +45,19 @@ export default function CartPage() {
       discountAmount = activeCoupon.discountValue;
     }
   }
-
   // Shipping cost
-  const shippingCost = storeSettings.shippingCost;
+  const shippingCost = Number(storeSettings?.shippingCost) || 0;
 
   // Tax calculation
+  const taxRate = Number(storeSettings?.taxRate) || 0;
   const taxableAmount = Math.max(0, subtotal - discountAmount);
-  const taxAmount = (taxableAmount * storeSettings.taxRate) / 100;
+  const taxAmount = (taxableAmount * taxRate) / 100;
 
   // Final Total
   const finalTotal = taxableAmount + shippingCost + taxAmount;
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
       <Navbar />
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -190,7 +190,7 @@ export default function CartPage() {
                       />
                       <button
                         type="submit"
-                        className="cursor-pointer rounded-xl border border-primary-coral bg-primary-coral/10 px-4 text-2xs font-extrabold text-primary-coral hover:bg-primary-coral hover:text-main-bg transition-luxury"
+                        className="cursor-pointer rounded-xl border border-primary-coral bg-primary-coral/10 px-4 text-2xs font-extrabold text-primary-coral hover:bg-primary-coral hover:text-[#180f0d] transition-luxury"
                       >
                         APPLY
                       </button>
@@ -212,7 +212,7 @@ export default function CartPage() {
 
                 {/* Tax */}
                 <div className="flex justify-between items-center text-xs text-white mb-4">
-                  <span>Sales Tax ({storeSettings.taxRate}%)</span>
+                  <span>Sales Tax ({storeSettings?.taxRate || 0}%)</span>
                   <span className="font-bold text-white">{taxAmount.toLocaleString()} EGP</span>
                 </div>
 
@@ -225,7 +225,7 @@ export default function CartPage() {
                 {/* Proceed Checkout Button */}
                 <Link
                   href="/checkout"
-                  className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-4 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg shadow-primary-coral/10 hover:scale-102"
+                  className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-4 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-luxury shadow-lg shadow-primary-coral/10 hover:scale-102 hover:shadow-[0_0_20px_rgba(255,255,255,0.45)] cursor-pointer"
                 >
                   PROCEED TO CHECKOUT
                   <Icon name="arrow-right" size={14} />
@@ -248,7 +248,7 @@ export default function CartPage() {
             </p>
             <Link
               href="/products"
-              className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury"
+              className="mt-8 inline-flex items-center gap-2 rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 transition-luxury cursor-pointer"
             >
               BROWSE SUPPLEMENTS
             </Link>

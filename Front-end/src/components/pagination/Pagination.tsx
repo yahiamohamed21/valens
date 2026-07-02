@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/SvgIcons";
+import { useTranslation } from "@/context/LanguageContext";
 
 interface PaginationProps {
   totalItems: number;
@@ -27,74 +27,68 @@ const getPageNumbers = (totalPages: number, current: number): (number | string)[
   return pages;
 };
 
-export  const Pagination: React.FC<PaginationProps> = ({ totalItems, currentPage, perPage, onPageChange }) => {
+export const Pagination: React.FC<PaginationProps> = ({ totalItems, currentPage, perPage, onPageChange }) => {
+  const { t } = useTranslation();
   const totalPages = Math.ceil(totalItems / perPage);
-  if (totalPages <= 1) return null;
+  if (totalPages === 0) return null;
 
   const pageNumbers = getPageNumbers(totalPages, currentPage);
 
   return (
-    <nav className="flex items-center gap-2 mt-8 justify-center pb-10" aria-label="Pagination">
-      <Button 
-        variant="outline" 
-        size="icon" 
-        onClick={() => onPageChange(1)} 
+    <nav className="flex items-center justify-center gap-3 mt-8 pb-10 select-none animate-fade-in" aria-label="Pagination">
+      {/* Previous Button */}
+      <button
+        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
-        className="rounded-xl border-border-color bg-surface-deep text-white hover:bg-primary-coral transition-all"
+        className="px-4 py-2.5 text-xs font-black transition-all duration-300 rounded-xl border shadow-xs flex items-center gap-1.5 disabled:cursor-not-allowed cursor-pointer
+          bg-white border-neutral-200 text-neutral-800 hover:border-primary-coral hover:text-primary-coral
+          dark:bg-[#18110f] dark:border-border-color/60 dark:text-white dark:hover:border-primary-coral dark:hover:text-primary-coral
+          disabled:opacity-30 disabled:hover:border-neutral-200 disabled:hover:text-neutral-800
+          dark:disabled:hover:border-border-color/60 dark:disabled:hover:text-white"
       >
-        <Icon name="chevron-double-left" size={14} />
-      </Button>
-      
-      <Button 
-        variant="outline" 
-        size="icon" 
-        onClick={() => onPageChange(Math.max(1, currentPage - 1))} 
-        disabled={currentPage === 1}
-        className="rounded-xl border-border-color bg-surface-deep text-white hover:bg-primary-coral transition-all"
-      >
-        <Icon name="chevron-left" size={14} />
-      </Button>
+        <Icon name="chevron-left" size={10} className="rtl:rotate-180" />
+        <span>{t("common.previous") || "Previous"}</span>
+      </button>
 
-      <div className="flex items-center gap-1.5 mx-2">
+      {/* Page Numbers */}
+      <div className="flex items-center gap-2">
         {pageNumbers.map((p, idx) =>
           typeof p === 'number' ? (
-            <Button
+            <button
               key={p}
-              variant={p === currentPage ? "default" : "outline"}
               onClick={() => onPageChange(p)}
-              className={`min-w-[40px] h-10 rounded-xl font-bold text-xs transition-all ${
-                p === currentPage 
-                  ? "bg-primary-coral text-main-bg border-primary-coral shadow-lg shadow-primary-coral/20" 
-                  : "bg-surface-deep border-border-color text-muted-text hover:text-white hover:border-primary-coral/50"
-              }`}
+              className={`w-9 h-9 rounded-xl border flex items-center justify-center text-xs font-black transition-all duration-300 cursor-pointer shadow-xs
+                ${p === currentPage
+                  ? "bg-primary-coral border-primary-coral text-[#180f0d] shadow-md shadow-primary-coral/25"
+                  : "bg-white border-neutral-200 text-neutral-800 hover:border-primary-coral hover:text-primary-coral dark:bg-[#18110f] dark:border-border-color/60 dark:text-white dark:hover:border-primary-coral dark:hover:text-primary-coral"
+                }`}
             >
               {p}
-            </Button>
+            </button>
           ) : (
-            <span key={"ellipsis-" + idx} className="px-2 text-muted-text font-bold">...</span>
+            <span
+              key={"ellipsis-" + idx}
+              className="w-9 h-9 rounded-xl border border-dashed border-neutral-200 dark:border-border-color/30 text-xs font-bold text-muted-text flex items-center justify-center select-none bg-neutral-50/50 dark:bg-[#18110f]/30"
+            >
+              ...
+            </span>
           )
         )}
       </div>
 
-      <Button 
-        variant="outline" 
-        size="icon" 
-        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))} 
+      {/* Next Button */}
+      <button
+        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
-        className="rounded-xl border-border-color bg-surface-deep text-white hover:bg-primary-coral transition-all"
+        className="px-4 py-2.5 text-xs font-black transition-all duration-300 rounded-xl border shadow-xs flex items-center gap-1.5 disabled:cursor-not-allowed cursor-pointer
+          bg-white border-neutral-200 text-neutral-800 hover:border-primary-coral hover:text-primary-coral
+          dark:bg-[#18110f] dark:border-border-color/60 dark:text-white dark:hover:border-primary-coral dark:hover:text-primary-coral
+          disabled:opacity-30 disabled:hover:border-neutral-200 disabled:hover:text-neutral-800
+          dark:disabled:hover:border-border-color/60 dark:disabled:hover:text-white"
       >
-        <Icon name="chevron-right" size={14} />
-      </Button>
-      
-      <Button 
-        variant="outline" 
-        size="icon" 
-        onClick={() => onPageChange(totalPages)} 
-        disabled={currentPage === totalPages}
-        className="rounded-xl border-border-color bg-surface-deep text-white hover:bg-primary-coral transition-all"
-      >
-        <Icon name="chevron-double-right" size={14} />
-      </Button>
+        <span>{t("common.next") || "Next"}</span>
+        <Icon name="chevron-right" size={10} className="rtl:rotate-180" />
+      </button>
     </nav>
   );
 };

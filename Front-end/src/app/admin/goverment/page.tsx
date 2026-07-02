@@ -168,7 +168,7 @@ export default function AdminGovermentPage() {
         </div>
         <button
           onClick={handleOpenCreate}
-          className="flex items-center gap-2 rounded-xl bg-primary-coral px-4 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg"
+          className="flex items-center gap-2 rounded-xl bg-primary-coral px-4 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 transition-luxury shadow-lg cursor-pointer"
         >
           <Icon name="plus" size={14} />
           {locale === "ar" ? "إضافة محافظة" : "ADD GOVERNORATE"}
@@ -319,7 +319,7 @@ export default function AdminGovermentPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-full bg-primary-coral py-3 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg cursor-pointer disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-full bg-primary-coral py-3 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 transition-luxury shadow-lg cursor-pointer disabled:opacity-50"
                 >
                   {saving ? (locale === "ar" ? "جاري الحفظ..." : "SAVING...") : (locale === "ar" ? "حفظ الإعدادات" : "SAVE SETTINGS")}
                   <Icon name="check" size={14} />

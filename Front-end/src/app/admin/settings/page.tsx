@@ -97,7 +97,7 @@ export default function AdminSettingsPage() {
 
     setCreatingAdmin(true);
     try {
-      await api.settings.createAdminAccount({
+      await api.auth.registerNewAdmin({
         email: adminEmail,
         fullName: adminFullName,
         phone: adminPhone,
@@ -191,7 +191,7 @@ export default function AdminSettingsPage() {
           <button
             type="submit"
             disabled={loading}
-            className="  cursor-pointer flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 transition-luxury shadow-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? labels.updatingBtn : labels.submitBtn}
           </button>
@@ -286,7 +286,7 @@ export default function AdminSettingsPage() {
           <button
             type="submit"
             disabled={creatingAdmin}
-            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-500 py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-emerald-400 transition-luxury shadow-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-emerald-500 py-3.5 text-xs font-black tracking-widest text-white hover:bg-emerald-600 hover:scale-102 transition-luxury shadow-lg mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {creatingAdmin ? labels.creatingAdminBtn : labels.createAdminBtn}
           </button>

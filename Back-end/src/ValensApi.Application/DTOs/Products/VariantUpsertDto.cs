@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace ValensApi.Application.DTOs.Products;
 
 public class VariantUpsertDto
@@ -9,6 +11,12 @@ public class VariantUpsertDto
     public decimal DiscountPrice { get; set; }
     public int StockQuantity { get; set; }
     public string Sku { get; set; } = string.Empty;
+
+    // Legacy support for base64 / string URL
     public string Image { get; set; } = string.Empty;
+
+    // Professional multipart upload
+    public IFormFile? ImageFile { get; set; }
+
     public bool IsAvailable { get; set; } = true;
 }

@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { api } from "@/lib/api";
+import { api, mapApiReturnToClient, safeArray } from "@/lib/api";
 import { getStockStatus } from "@/lib/product-utils";
 import { showToast } from "@/lib/toast";
-import type { Coupon, Customer, Order, Product } from "@/types/store";
+import type { Coupon, Customer, Order, Product, OrderReturn } from "@/types/store";
 
 interface OrderActionDeps {
   orders: Order[];
@@ -18,6 +18,8 @@ interface OrderActionDeps {
   setActiveCoupon: Dispatch<SetStateAction<Coupon | null>>;
   clearCart: () => void;
   setCurrentUserEmail: Dispatch<SetStateAction<string | null>>;
+  editProduct: (productId: string, updatedFields: Partial<Product>) => Promise<void>;
+  setReturnsList: Dispatch<SetStateAction<OrderReturn[]>>;
 }
 
 export const useOrderActions = ({
@@ -33,6 +35,8 @@ export const useOrderActions = ({
   setActiveCoupon,
   clearCart,
   setCurrentUserEmail,
+  editProduct,
+  setReturnsList,
 }: OrderActionDeps) => {
   const placeOrder = useCallback(async (orderData: Omit<Order, "id" | "orderDate" | "status">) => {
     try {
@@ -121,6 +125,14 @@ export const useOrderActions = ({
         couponCode: response.couponCode || orderData.couponCode,
         orderDate: response.orderDate || new Date().toISOString(),
         status: response.status || "New Order",
+        ...(activeCoupon ? {
+          couponId: activeCoupon.id,
+          couponDiscountType: activeCoupon.discountType,
+          couponDiscountValue: activeCoupon.discountValue,
+          couponDiscountAmountApplied: response.discountAmount || orderData.discountAmount,
+          couponTotalBeforeDiscount: (response.totalPrice || orderData.totalPrice) + (response.discountAmount || orderData.discountAmount) - (response.shippingCost || orderData.shippingCost),
+          couponFinalTotalAfterDiscount: response.totalPrice || orderData.totalPrice
+        } : {})
       };
 
       setOrders((prev) => [newOrder, ...prev]);
@@ -189,6 +201,27 @@ export const useOrderActions = ({
             return c;
           })
         );
+
+        if (typeof window !== "undefined") {
+          try {
+            const extraMetadataStr = localStorage.getItem("valens_orders_extra_metadata");
+            const extraMetadata = extraMetadataStr ? JSON.parse(extraMetadataStr) : {};
+            extraMetadata[newOrder.id] = {
+              ...(extraMetadata[newOrder.id] || {}),
+              couponId: activeCoupon.id,
+              couponCode: activeCoupon.code,
+              couponDiscountType: activeCoupon.discountType,
+              couponDiscountValue: activeCoupon.discountValue,
+              couponDiscountAmountApplied: newOrder.discountAmount,
+              couponTotalBeforeDiscount: newOrder.totalPrice + newOrder.discountAmount - newOrder.shippingCost,
+              couponFinalTotalAfterDiscount: newOrder.totalPrice
+            };
+            localStorage.setItem("valens_orders_extra_metadata", JSON.stringify(extraMetadata));
+          } catch (e) {
+            console.error("Failed to save coupon metadata to localStorage", e);
+          }
+        }
+
         setActiveCoupon(null);
       }
 
@@ -243,8 +276,143 @@ export const useOrderActions = ({
     updateOrderStatus(orderId, "Cancelled");
   }, [updateOrderStatus]);
 
+  const returnOrder = useCallback(
+    async (
+      orderId: string,
+      returnDetails: {
+        returnReason: string;
+        returnDate: string;
+        refundAmount: number;
+        returnNotes: string;
+        isStockRestored: boolean;
+        returnedItems?: {
+          productId: string;
+          productName: string;
+          price: number;
+          quantity: number;
+          size: string;
+          variant: string;
+        }[];
+      }
+    ) => {
+      try {
+        // 1. Log return on backend
+        const ord = orders.find((o) => o.id === orderId);
+        if (ord) {
+          const itemsToReturn =
+            returnDetails.returnedItems && returnDetails.returnedItems.length > 0
+              ? returnDetails.returnedItems
+              : ord.items;
+
+          const returnPayload = {
+            orderId,
+            returnReason: returnDetails.returnReason,
+            isRestoredToStock: returnDetails.isStockRestored,
+            refundAmount: returnDetails.refundAmount,
+            notes: returnDetails.returnNotes,
+            items: itemsToReturn.map((item) => {
+              const prod = products.find((p) => p.id === item.productId);
+              const variantObj = prod?.variants?.find(
+                (v) => (!v.size || v.size === item.size) && (!v.flavor || v.flavor === item.variant)
+              );
+              return {
+                productId: item.productId,
+                variantId: variantObj?.id || null,
+                quantity: item.quantity,
+              };
+            }),
+          };
+
+          await api.returns.create(returnPayload);
+        } else {
+          // Fallback
+          await api.orders.updateStatus({ id: orderId, status: "Returned" });
+        }
+
+        // 2. Fetch updated returns list and update context state
+        const updatedReturnsList = await api.returns.list();
+        if (updatedReturnsList) {
+          setReturnsList(safeArray(updatedReturnsList).map(mapApiReturnToClient));
+        }
+
+        // 3. Save metadata to localStorage for local compatibility
+        if (typeof window !== "undefined") {
+          const extraMetadataStr = localStorage.getItem("valens_orders_extra_metadata");
+          const extraMetadata = extraMetadataStr ? JSON.parse(extraMetadataStr) : {};
+          extraMetadata[orderId] = {
+            ...(extraMetadata[orderId] || {}),
+            ...returnDetails,
+            status: "Returned",
+          };
+          localStorage.setItem("valens_orders_extra_metadata", JSON.stringify(extraMetadata));
+        }
+
+        // 3. Update orders state
+        setOrders((prev) =>
+          prev.map((ord) => {
+            if (ord.id === orderId) {
+              return {
+                ...ord,
+                status: "Returned",
+                ...returnDetails,
+              };
+            }
+            return ord;
+          })
+        );
+
+        // 4. Restore stock if checked
+        if (returnDetails.isStockRestored) {
+          const ord = orders.find((o) => o.id === orderId);
+          if (ord) {
+            const itemsToRestore =
+              returnDetails.returnedItems && returnDetails.returnedItems.length > 0
+                ? returnDetails.returnedItems
+                : ord.items;
+
+            for (const item of itemsToRestore) {
+              const prod = products.find((p) => p.id === item.productId);
+              if (prod) {
+                let updatedVariants = prod.variants;
+                if (prod.variants && prod.variants.length > 0) {
+                  updatedVariants = prod.variants.map((v) => {
+                    const matchSize = !v.size || v.size === item.size;
+                    const matchFlavor = !v.flavor || v.flavor === item.variant;
+                    if (matchSize && matchFlavor) {
+                      const newQty = v.stockQuantity + item.quantity;
+                      return {
+                        ...v,
+                        stockQuantity: newQty,
+                        isAvailable: true,
+                      };
+                    }
+                    return v;
+                  });
+                }
+                const newStock = prod.stock + item.quantity;
+
+                // Sync locally and to backend via editProduct
+                await editProduct(prod.id, {
+                  variants: updatedVariants,
+                  stock: newStock,
+                });
+              }
+            }
+          }
+        }
+
+        showToast(`Order ${orderId} marked as Returned and stock updated.`, "success");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to return order";
+        showToast(message, "error");
+        throw error;
+      }
+    },
+    [orders, products, setOrders, editProduct, setReturnsList]
+  );
+
   return useMemo(
-    () => ({ placeOrder, updateOrderStatus, confirmOrder, cancelOrder }),
-    [placeOrder, updateOrderStatus, confirmOrder, cancelOrder]
+    () => ({ placeOrder, updateOrderStatus, confirmOrder, cancelOrder, returnOrder }),
+    [placeOrder, updateOrderStatus, confirmOrder, cancelOrder, returnOrder]
   );
 };

@@ -39,14 +39,12 @@ export const ThemeSettingsPanel = () => {
 
       {/* Slide-out Drawer */}
       <div
-        className={`fixed top-0 right-0 z-[9999] h-full w-[320px] transform border-l border-border-color bg-surface-deep/95 backdrop-blur-xl transition-transform duration-500 ease-out flex flex-col ${
-          isPanelOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className={`fixed top-0 right-0 z-[9999] h-full w-[320px] transform border-l border-border-color bg-surface-deep/95 backdrop-blur-xl transition-transform duration-500 ease-out flex flex-col ${isPanelOpen ? "translate-x-0" : "translate-x-full"
+          }`}
       >
         {/* Header */}
-        <div className={`flex items-center justify-between border-b border-border-color px-6 py-5 ${
-          locale === "ar" ? "flex-row-reverse" : ""
-        }`}>
+        <div className={`flex items-center justify-between border-b border-border-color px-6 py-5 ${locale === "ar" ? "flex-row-reverse" : ""
+          }`}>
           <h2 className="text-sm font-black uppercase tracking-widest text-white">
             {locale === "ar" ? "إعدادات المظهر" : "Theme Settings"}
           </h2>
@@ -59,7 +57,7 @@ export const ThemeSettingsPanel = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          
+
           {/* Language Selector */}
           <div className="space-y-3">
             <span className="text-[10px] font-bold uppercase tracking-widest text-white">
@@ -68,21 +66,19 @@ export const ThemeSettingsPanel = () => {
             <div className="flex rounded-xl border border-border-color bg-card-bg p-1">
               <button
                 onClick={() => changeLanguage("en")}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
-                  locale === "en"
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${locale === "en"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-gray-800"
-                }`}
+                    : "text-muted-text hover:text-white"
+                  }`}
               >
                 <span>🇺🇸</span> EN
               </button>
               <button
                 onClick={() => changeLanguage("ar")}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
-                  locale === "ar"
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${locale === "ar"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-gray-800"
-                }`}
+                    : "text-muted-text hover:text-white"
+                  }`}
               >
                 <span>🇪🇬</span> AR
               </button>
@@ -97,21 +93,19 @@ export const ThemeSettingsPanel = () => {
             <div className="flex rounded-xl border border-border-color bg-card-bg p-1">
               <button
                 onClick={() => setMode("dark")}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
-                  theme.mode === "dark"
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${theme.mode === "dark"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-gray-800"
-                }`}
+                    : "text-muted-text hover:text-white"
+                  }`}
               >
                 {locale === "ar" ? "داكن" : "Dark"}
               </button>
               <button
                 onClick={() => setMode("light")}
-                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
-                  theme.mode === "light"
+                className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${theme.mode === "light"
                     ? "bg-surface-deep text-primary-coral shadow-sm"
-                    : "text-muted-text hover:text-gray-800"
-                }`}
+                    : "text-muted-text hover:text-white"
+                  }`}
               >
                 {locale === "ar" ? "فاتح" : "Light"}
               </button>
@@ -151,7 +145,7 @@ export const ThemeSettingsPanel = () => {
             <span className="text-[10px] font-bold uppercase tracking-widest text-white">
               {locale === "ar" ? "تخصيص الألوان" : "Custom Palette"}
             </span>
-            
+
             <div className={`flex items-center justify-between rounded-xl border border-border-color bg-card-bg p-3 ${locale === "ar" ? "flex-row-reverse" : ""}`}>
               <span className="text-xs font-bold text-white">
                 {locale === "ar" ? "الأساسي" : "Primary"}
@@ -196,7 +190,7 @@ export const ThemeSettingsPanel = () => {
           </p>
           <button
             onClick={resetToDefault}
-            className="w-full rounded-xl border border-border-color bg-surface-sec py-3 text-xs font-bold uppercase tracking-widest text-white transition-all hover:border-primary-coral hover:text-gray-800 cursor-pointer"
+            className="w-full rounded-xl border border-border-color bg-surface-sec py-3 text-xs font-bold uppercase tracking-widest text-soft-text transition-all hover:border-primary-coral hover:text-white cursor-pointer"
           >
             {locale === "ar" ? "إعادة الضبط الافتراضي" : "Reset to Default"}
           </button>

@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useApp, Order } from "@/context/AppContext";
 import { useAdminStats } from "@/app/admin/hooks/useAdminStats";
 import { Icon } from "@/components/SvgIcons";
 import { OrderDetailsModal } from "@/app/admin/components/OrderDetailsModal";
+import { api } from "@/lib/api";
 
 export default function AdminDashboard() {
   const {
@@ -19,21 +20,67 @@ export default function AdminDashboard() {
 
   const { totals } = useAdminStats(orders, expenses, products, customers);
   const [selectedOrderDetails, setSelectedOrderDetails] = useState<Order | null>(null);
+  const [dashboardSummary, setDashboardSummary] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const data = await api.reports.dashboardSummary();
+        if (data) {
+          setDashboardSummary(data);
+        }
+      } catch (err) {
+        console.error("Failed to load dashboard summary from backend:", err);
+      }
+    };
+    fetchSummary();
+  }, []);
+
+  const displayGrossSales = dashboardSummary ? dashboardSummary.totalSales : totals.grossSales;
+  const displayReturnedValue = dashboardSummary ? dashboardSummary.totalRefunds : totals.returnedOrdersValue;
+  const displayNetSales = dashboardSummary ? dashboardSummary.netSales : totals.netSales;
+  const displayTotalExpenses = dashboardSummary ? dashboardSummary.totalExpenses : totals.totalExpenses;
+  const displayNetProfit = dashboardSummary ? dashboardSummary.netProfit : totals.netProfit;
+  const displaySalesCount = dashboardSummary ? dashboardSummary.salesCount : (totals.totalOrdersCount - totals.cancelledOrders - totals.returnedOrdersCount);
 
   return (
     <div className="flex flex-col gap-6">
       {/* Stat HUD grid */}
-      <div className={`grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6 ${locale === "ar" ? "text-right" : "text-left"}`}>
+      <div className={`grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8 ${locale === "ar" ? "text-right" : "text-left"}`}>
 
         <div className="rounded-2xl border border-border-color bg-card-bg p-4 flex flex-col justify-between">
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">
-            {locale === "ar" ? "إجمالي الإيرادات" : "TOTAL REVENUES"}
+            {locale === "ar" ? "إجمالي المبيعات" : "TOTAL SALES (GROSS)"}
           </span>
-          <span className="mt-1.5 text-lg font-black text-white">
-            {Math.round(totals.totalSales).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
+          <span className="mt-1.5 text-lg font-black text-white font-mono">
+            {Math.round(displayGrossSales).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
           </span>
-          <span className="text-4xs text-success-green mt-1">
-            {locale === "ar" ? "طلبات مؤكدة" : "Confirmed orders"}
+          <span className="text-4xs text-muted-text mt-1">
+            {locale === "ar" ? "المبيعات الإجمالية" : "Gross order totals"}
+          </span>
+        </div>
+
+        <div className="rounded-2xl border border-border-color bg-card-bg p-4 flex flex-col justify-between">
+          <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">
+            {locale === "ar" ? "قيمة المرتجعات" : "RETURNS VALUE"}
+          </span>
+          <span className="mt-1.5 text-lg font-black text-red-500 font-mono">
+            {Math.round(displayReturnedValue).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
+          </span>
+          <span className="text-4xs text-muted-text mt-1">
+            {totals.returnedOrdersCount} {locale === "ar" ? "طلبات مرتجعة" : "Returned orders"}
+          </span>
+        </div>
+
+        <div className="rounded-2xl border border-border-color bg-card-bg p-4 flex flex-col justify-between">
+          <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">
+            {locale === "ar" ? "صافي المبيعات" : "NET SALES"}
+          </span>
+          <span className="mt-1.5 text-lg font-black text-success-green font-mono">
+            {Math.round(displayNetSales).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
+          </span>
+          <span className="text-4xs text-muted-text mt-1">
+            {locale === "ar" ? "المبيعات - المرتجعات" : "Gross sales - Returns"}
           </span>
         </div>
 
@@ -41,8 +88,8 @@ export default function AdminDashboard() {
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">
             {locale === "ar" ? "إجمالي المصاريف" : "TOTAL EXPENSES"}
           </span>
-          <span className="mt-1.5 text-lg font-black text-accent-orange">
-            {Math.round(totals.totalExpenses).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
+          <span className="mt-1.5 text-lg font-black text-accent-orange font-mono">
+            {Math.round(displayTotalExpenses).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
           </span>
           <span className="text-4xs text-muted-text mt-1">
             {locale === "ar" ? "شراء وتوريد" : "Brand procurement"}
@@ -53,11 +100,11 @@ export default function AdminDashboard() {
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">
             {locale === "ar" ? "صافي الأرباح" : "NET PROFITS"}
           </span>
-          <span className={`mt-1.5 text-lg font-black ${totals.netProfit >= 0 ? "text-success-green" : "text-red-500"}`}>
-            {Math.round(totals.netProfit).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
+          <span className={`mt-1.5 text-lg font-black font-mono ${displayNetProfit >= 0 ? "text-success-green" : "text-red-500"}`}>
+            {Math.round(displayNetProfit).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
           </span>
           <span className="text-4xs text-muted-text mt-1">
-            {locale === "ar" ? "المبيعات - المصاريف" : "Sales - Expenses"}
+            {locale === "ar" ? "الصافي - المصاريف" : "Net sales - Expenses"}
           </span>
         </div>
 
@@ -65,9 +112,9 @@ export default function AdminDashboard() {
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">
             {locale === "ar" ? "الطلبات النشطة" : "ACTIVE ORDERS"}
           </span>
-          <span className="mt-1.5 text-lg font-black text-white">{totals.totalOrdersCount}</span>
+          <span className="mt-1.5 text-lg font-black text-white font-mono">{displaySalesCount}</span>
           <span className="text-4xs text-primary-coral mt-1">
-            {totals.newOrders} {locale === "ar" ? "طلبات جديدة واردة" : "New Order arrivals"}
+            {totals.newOrders} {locale === "ar" ? "طلبات جديدة" : "New Order arrivals"}
           </span>
         </div>
 
@@ -75,7 +122,7 @@ export default function AdminDashboard() {
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">
             {locale === "ar" ? "مخزون المنتجات" : "PRODUCT INVENTORY"}
           </span>
-          <span className="mt-1.5 text-lg font-black text-white">{totals.totalProducts}</span>
+          <span className="mt-1.5 text-lg font-black text-white font-mono">{totals.totalProducts}</span>
           <span className="text-4xs text-muted-text mt-1">
             {locale === "ar" ? "تركيبة علاجية" : "Formulations"}
           </span>
@@ -85,7 +132,7 @@ export default function AdminDashboard() {
           <span className="text-4xs font-extrabold uppercase tracking-widest text-muted-text">
             {locale === "ar" ? "تنبيهات المخزون" : "LOW STOCK WARNS"}
           </span>
-          <span className={`mt-1.5 text-lg font-black ${totals.lowStockProducts > 0 ? "text-accent-orange" : "text-success-green"}`}>
+          <span className={`mt-1.5 text-lg font-black font-mono ${totals.lowStockProducts > 0 ? "text-accent-orange" : "text-success-green"}`}>
             {totals.lowStockProducts}
           </span>
           <span className="text-4xs text-muted-text mt-1">
@@ -116,17 +163,17 @@ export default function AdminDashboard() {
               <div className="border-b border-border-color/10 w-full" />
             </div>
 
-            {/* Sales Column */}
+            {/* Net Sales Column */}
             <div className="flex flex-col items-center gap-2 z-10 w-1/3">
               <div
                 className="w-16 rounded-t-xl bg-gradient-to-t from-primary-coral to-accent-orange shadow-[0_0_15px_rgba(255,138,117,0.2)]"
-                style={{ height: `${Math.min(180, (totals.totalSales / Math.max(1, totals.totalSales + totals.totalExpenses)) * 180)}px` }}
+                style={{ height: `${Math.min(180, (displayNetSales / Math.max(1, displayNetSales + displayTotalExpenses)) * 180)}px` }}
               />
               <span className="text-4xs font-black uppercase tracking-widest text-white">
-                {locale === "ar" ? "الإيرادات" : "REVENUES"}
+                {locale === "ar" ? "صافي المبيعات" : "NET SALES"}
               </span>
-              <span className="text-2xs font-extrabold text-primary-coral">
-                {Math.round(totals.totalSales).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
+              <span className="text-2xs font-extrabold text-primary-coral font-mono">
+                {Math.round(displayNetSales).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
               </span>
             </div>
 
@@ -134,27 +181,27 @@ export default function AdminDashboard() {
             <div className="flex flex-col items-center gap-2 z-10 w-1/3">
               <div
                 className="w-16 rounded-t-xl bg-surface-sec border border-border-color"
-                style={{ height: `${Math.min(180, (totals.totalExpenses / Math.max(1, totals.totalSales + totals.totalExpenses)) * 180)}px` }}
+                style={{ height: `${Math.min(180, (displayTotalExpenses / Math.max(1, displayNetSales + displayTotalExpenses)) * 180)}px` }}
               />
               <span className="text-4xs font-black uppercase tracking-widest text-muted-text">
                 {locale === "ar" ? "المصاريف" : "EXPENSES"}
               </span>
-              <span className="text-2xs font-extrabold text-white">
-                {Math.round(totals.totalExpenses).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
+              <span className="text-2xs font-extrabold text-white font-mono">
+                {Math.round(displayTotalExpenses).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
               </span>
             </div>
 
             {/* Net Profit Column */}
             <div className="flex flex-col items-center gap-2 z-10 w-1/3">
               <div
-                className={`w-16 rounded-t-xl ${totals.netProfit >= 0 ? "bg-[#10D981] shadow-[0_0_15px_rgba(16,217,129,0.2)]" : "bg-red-500"}`}
-                style={{ height: `${Math.min(180, (Math.abs(totals.netProfit) / Math.max(1, totals.totalSales + totals.totalExpenses)) * 180)}px` }}
+                className={`w-16 rounded-t-xl ${displayNetProfit >= 0 ? "bg-[#10D981] shadow-[0_0_15px_rgba(16,217,129,0.2)]" : "bg-red-500"}`}
+                style={{ height: `${Math.min(180, (Math.abs(displayNetProfit) / Math.max(1, displayNetSales + displayTotalExpenses)) * 180)}px` }}
               />
               <span className="text-4xs font-black uppercase tracking-widest text-white">
                 {locale === "ar" ? "صافي الربح" : "NET PROFIT"}
               </span>
-              <span className="text-2xs font-extrabold text-white">
-                {Math.round(totals.netProfit).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
+              <span className="text-2xs font-extrabold text-white font-mono">
+                {Math.round(displayNetProfit).toLocaleString()} {locale === "ar" ? "ج.م" : "EGP"}
               </span>
             </div>
 

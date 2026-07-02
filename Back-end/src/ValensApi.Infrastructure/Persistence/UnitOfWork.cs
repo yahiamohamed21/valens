@@ -18,7 +18,6 @@ public class UnitOfWork : IUnitOfWork
     public IProductRepository Products { get; }
     public IGenericRepository<Category> Categories { get; }
     public IGenericRepository<ProductVariant> ProductVariants { get; }
-    public IGenericRepository<Review> Reviews { get; }
     public IGenericRepository<User> Users { get; }
     public IGenericRepository<Customer> Customers { get; }
     public IGenericRepository<Order> Orders { get; }
@@ -27,6 +26,12 @@ public class UnitOfWork : IUnitOfWork
     public IGenericRepository<Expense> Expenses { get; }
     public IGenericRepository<StoreSetting> StoreSettings { get; }
     public IGenericRepository<UserOtp> UserOtps { get; }
+    public IGenericRepository<GovernorateShipping> GovernorateShippings { get; }
+    public IGenericRepository<OrderReturn> OrderReturns { get; }
+    public IGenericRepository<HomeBanner> HomeBanners { get; }
+    public IGenericRepository<HomeSectionProduct> HomeSectionProducts { get; }
+    public IGenericRepository<HomeStory> HomeStories { get; }
+    public IGenericRepository<ProductReview> ProductReviews { get; }
 
     public UnitOfWork(ApplicationDbContext context, IProductRepository products)
     {
@@ -34,7 +39,6 @@ public class UnitOfWork : IUnitOfWork
         Products = products;
         Categories = new GenericRepository<Category>(context);
         ProductVariants = new GenericRepository<ProductVariant>(context);
-        Reviews = new GenericRepository<Review>(context);
         Users = new GenericRepository<User>(context);
         Customers = new GenericRepository<Customer>(context);
         Orders = new GenericRepository<Order>(context);
@@ -43,6 +47,12 @@ public class UnitOfWork : IUnitOfWork
         Expenses = new GenericRepository<Expense>(context);
         StoreSettings = new GenericRepository<StoreSetting>(context);
         UserOtps = new GenericRepository<UserOtp>(context);
+        GovernorateShippings = new GenericRepository<GovernorateShipping>(context);
+        OrderReturns = new GenericRepository<OrderReturn>(context);
+        HomeBanners = new GenericRepository<HomeBanner>(context);
+        HomeSectionProducts = new GenericRepository<HomeSectionProduct>(context);
+        HomeStories = new GenericRepository<HomeStory>(context);
+        ProductReviews = new GenericRepository<ProductReview>(context);
     }
 
     public async Task<int> SaveChangesAsync()
@@ -55,14 +65,16 @@ public class UnitOfWork : IUnitOfWork
         await _context.Database.ExecuteSqlRawAsync(sql, parameters);
     }
 
-    public async Task BeginTransactionAsync(System.Data.IsolationLevel isolationLevel = System.Data.IsolationLevel.ReadCommitted)
+    public async Task BeginTransactionAsync()
     {
         if (_currentTransaction != null)
         {
             return;
         }
 
-        _currentTransaction = await _context.Database.BeginTransactionAsync(isolationLevel);
+        var strategy = _context.Database.CreateExecutionStrategy();
+        _currentTransaction = await strategy.ExecuteAsync(async () => 
+            await _context.Database.BeginTransactionAsync());
     }
 
     public async Task CommitTransactionAsync()
@@ -120,6 +132,27 @@ public class UnitOfWork : IUnitOfWork
                 await action();
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        });
+    }
+
+    public async Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var result = await action();
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return result;
             }
             catch
             {

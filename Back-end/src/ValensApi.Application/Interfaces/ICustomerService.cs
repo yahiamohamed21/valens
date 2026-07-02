@@ -8,7 +8,7 @@ namespace ValensApi.Application.Interfaces;
 
 public interface ICustomerService
 {
-    Task<IEnumerable<Customer>> GetAllAsync(string? search);
+    Task<ValensApi.Application.DTOs.Common.PaginatedList<Customer>> GetAllAsync(string? search, int pageNumber = 1, int pageSize = 10);
     Task<object?> GetByIdAsync(Guid id);
     Task<bool> UpdateProfileAsync(Guid userId, UpdateProfileDto dto);
 }

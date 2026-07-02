@@ -12,8 +12,8 @@ export default function LoginPage() {
   const { showToast, loginUser, registerCustomer } = useApp();
   const router = useRouter();
 
-  // Active view: "login" | "signup" | "forgot"
-  const [activeTab, setActiveTab] = useState<"login" | "signup" | "forgot">("login");
+  // Active view: "login" | "signup" | "forgot" | "otp"
+  const [activeTab, setActiveTab] = useState<"login" | "signup" | "forgot" | "otp">("login");
 
   // Form Fields
   const [email, setEmail] = useState("");
@@ -21,6 +21,11 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+
+  // OTP Reset Fields
+  const [otpCode, setOtpCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPasswordReset, setConfirmPasswordReset] = useState("");
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,9 +88,8 @@ export default function LoginPage() {
 
     try {
       await api.auth.forgotPassword({ email });
-      showToast(`Password recovery code dispatched to ${email}`, "info");
-      setEmail("");
-      setActiveTab("login");
+      showToast(`Password recovery OTP code dispatched to ${email}`, "info");
+      setActiveTab("otp");
     } catch (err: unknown) {
       if (err instanceof Error) {
         showToast(err.message || "Failed to send recovery code", "error");
@@ -95,8 +99,41 @@ export default function LoginPage() {
     }
   };
 
+  const handleOtpResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || !newPassword || !confirmPasswordReset) {
+      showToast("All fields are required.", "error");
+      return;
+    }
+
+    if (newPassword !== confirmPasswordReset) {
+      showToast("Passwords do not match.", "error");
+      return;
+    }
+
+    try {
+      await api.auth.resetPasswordOtp({
+        otpCode,
+        newPassword,
+        confirmPassword: confirmPasswordReset,
+      });
+      showToast("Password has been reset successfully. Please log in.", "success");
+      setOtpCode("");
+      setNewPassword("");
+      setConfirmPasswordReset("");
+      setEmail("");
+      setActiveTab("login");
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        showToast(err.message || "Failed to reset password", "error");
+      } else {
+        showToast("Failed to reset password", "error");
+      }
+    }
+  };
+
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
       <Navbar />
 
       <main className="flex-1 flex items-center justify-center py-16 px-4">
@@ -190,7 +227,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg shadow-primary-coral/10"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 shadow-lg shadow-primary-coral/10 hover:scale-[1.01] cursor-pointer"
               >
                 AUTHENTICATE
                 <Icon name="lock" size={14} />
@@ -275,7 +312,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg shadow-primary-coral/10"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 shadow-lg shadow-primary-coral/10 hover:scale-[1.01] cursor-pointer"
               >
                 CREATE ELITE STACK
                 <Icon name="check" size={14} />
@@ -302,7 +339,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 hover:scale-[1.01] cursor-pointer"
               >
                 SEND RECOVERY LINK
               </button>
@@ -313,6 +350,65 @@ export default function LoginPage() {
                 className="text-3xs font-black uppercase tracking-wider text-muted-text hover:text-gray-800 text-center mt-3"
               >
                 Back to Authentication
+              </button>
+            </form>
+          )}
+
+          {activeTab === "otp" && (
+            <form onSubmit={handleOtpResetSubmit} className="flex flex-col gap-4 animate-fade-in">
+              <p className="text-xs text-muted-text leading-relaxed text-center mb-2 uppercase font-bold tracking-wide">
+                Enter the 6-digit OTP sent to your email and your new password.
+              </p>
+              <div>
+                <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">OTP Verification Code</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 123456"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none focus:border-primary-coral text-center tracking-widest font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">New Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Enter New Password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none focus:border-primary-coral"
+                />
+              </div>
+
+              <div>
+                <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">Confirm New Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="Verify New Password"
+                  value={confirmPasswordReset}
+                  onChange={(e) => setConfirmPasswordReset(e.target.value)}
+                  className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:outline-none focus:border-primary-coral"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 shadow-lg hover:scale-[1.01] cursor-pointer"
+              >
+                RESET CREDENTIALS
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("login")}
+                className="text-3xs font-black uppercase tracking-wider text-muted-text hover:text-gray-800 text-center mt-3"
+              >
+                Cancel & Back to Log In
               </button>
             </form>
           )}

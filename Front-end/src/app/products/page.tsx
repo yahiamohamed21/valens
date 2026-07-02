@@ -40,6 +40,20 @@ export default function ProductsPage() {
 
 
   const [searchQuery, setSearchQuery] = useState(initialFilters.query);
+  const [searchInput, setSearchInput] = useState(initialFilters.query);
+
+  // Sync searchInput when searchQuery is reset or changed externally
+  useEffect(() => {
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
   const [selectedCategory, setSelectedCategory] = useState(initialFilters.category);
   const [maxPrice, setMaxPrice] = useState(5000);
   const [selectedStock, setSelectedStock] = useState<string[]>([]);
@@ -121,7 +135,7 @@ export default function ProductsPage() {
   }, [products, searchQuery, selectedCategory, maxPrice, selectedStock, sortBy]);
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
       <Navbar />
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -140,8 +154,8 @@ export default function ProductsPage() {
           <div className="relative w-full max-w-md">
             <input
               type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder={locale === "ar" ? "ابحث عن مكونات أو أسماء المكملات..." : "Search supplement ingredients or names..."}
               className={`w-full rounded-full border border-border-color bg-surface-deep px-4 py-3 text-xs text-white placeholder-muted-text focus:border-primary-coral focus:outline-none focus:ring-1 focus:ring-primary-coral/30 transition-all duration-500 ease-out ${
                 locale === "ar" ? "pr-11 pl-4" : "pl-11 pr-4"
@@ -154,7 +168,7 @@ export default function ProductsPage() {
                 locale === "ar" ? "right-4" : "left-4"
               }`}
             />
-            {searchQuery && (
+            {searchInput && (
               <button
                 onClick={() => setSearchQuery("")}
                 className={`absolute top-1/2 -translate-y-1/2 text-muted-text hover:text-gray-600 ${
@@ -341,12 +355,6 @@ export default function ProductsPage() {
                     : "We couldn't find any products matching your active filters. Try adjusting your queries or price limits."
                   }
                 </p>
-                <button
-                  onClick={resetFilters}
-                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-all duration-500 ease-out cursor-pointer"
-                >
-                  {locale === "ar" ? "إعادة تعيين التصفية" : "RESET ALL FILTERS"}
-                </button>
               </div>
             )}
 

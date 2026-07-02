@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using ValensApi.Domain.Common;
 
 namespace ValensApi.Domain.Entities;
@@ -7,7 +9,9 @@ namespace ValensApi.Domain.Entities;
 public class Product : SoftDeletableEntity
 {
     public string Name { get; set; } = string.Empty;
+    public string NameAr { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string DescriptionAr { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
     
     public Guid? CategoryId { get; set; }
@@ -30,22 +34,26 @@ public class Product : SoftDeletableEntity
     // JSON lists in database
     public List<string> Images { get; set; } = new();
     public List<string> Ingredients { get; set; } = new();
+    public List<string> IngredientsAr { get; set; } = new();
     public List<string> Benefits { get; set; } = new();
+    public List<string> BenefitsAr { get; set; } = new();
 
     public string Usage { get; set; } = string.Empty;
+    public string UsageAr { get; set; } = string.Empty;
     public string ImageType { get; set; } = "powder"; // "powder", "capsule", "liquid"
     public string ImageColor { get; set; } = "#FF8A75";
 
     public List<ProductVariant> Variants { get; set; } = new();
-    public List<Review> Reviews { get; set; } = new();
+    public List<ProductReview> Reviews { get; set; } = new();
 
-    // Average rating (calculated/cached)
-    public double Rating { get; set; }
-
-    // Arabic translation fields
-    public string? NameAr { get; set; }
-    public string? DescriptionAr { get; set; }
-    public string? UsageAr { get; set; }
-    public List<string>? IngredientsAr { get; set; }
-    public List<string>? BenefitsAr { get; set; }
+    [NotMapped]
+    public double Rating
+    {
+        get
+        {
+            if (Reviews == null || !Reviews.Any(r => r.IsApproved && r.Rating > 0))
+                return 5.0;
+            return Math.Round(Reviews.Where(r => r.IsApproved && r.Rating > 0).Average(r => r.Rating), 1);
+        }
+    }
 }

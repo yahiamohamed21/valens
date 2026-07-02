@@ -86,6 +86,13 @@ export default function CheckoutPage() {
   // Success Modal State
   const [placedOrder, setPlacedOrder] = useState<OrderConfirmation | null>(null);
 
+  // Server-side calculations preview state
+  const [previewSubtotal, setPreviewSubtotal] = useState<number | null>(null);
+  const [previewShippingCost, setPreviewShippingCost] = useState<number | null>(null);
+  const [previewDiscountAmount, setPreviewDiscountAmount] = useState<number | null>(null);
+  const [previewTotal, setPreviewTotal] = useState<number | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
   // Cart Calculations
   const subtotal = cart.reduce((acc, item) => {
     const price = item.selectedVariantPrice !== undefined ? item.selectedVariantPrice : (item.product.discountPrice || item.product.price);
@@ -101,17 +108,83 @@ export default function CheckoutPage() {
       discountAmount = activeCoupon.discountValue;
     }
   }
-
   // Shipping Fee
   const selectedGov = governorates.find(g => g.governorateName.toLowerCase() === city.toLowerCase());
-  const shippingCost = selectedGov ? selectedGov.shippingCost : storeSettings.shippingCost;
+  const shippingCost = selectedGov ? selectedGov.shippingCost : (Number(storeSettings?.shippingCost) || 0);
 
   // Tax
+  const taxRate = Number(storeSettings?.taxRate) || 0;
   const taxableAmount = Math.max(0, subtotal - discountAmount);
-  const taxAmount = (taxableAmount * storeSettings.taxRate) / 100;
+  const taxAmount = (taxableAmount * taxRate) / 100;
 
   // Grand Total
   const finalTotal = taxableAmount + shippingCost + taxAmount;
+  // Resolve calculations (Use server-side preview calculations if available, otherwise fallback to local math)
+  const subtotalVal = previewSubtotal !== null ? previewSubtotal : subtotal;
+  const discountVal = previewDiscountAmount !== null ? previewDiscountAmount : discountAmount;
+  const shippingVal = previewShippingCost !== null ? previewShippingCost : shippingCost;
+  const taxVal = previewTotal !== null ? 0 : taxAmount;
+  const totalVal = previewTotal !== null ? previewTotal : finalTotal;
+
+  // Fetch server-side checkout preview reactively
+  useEffect(() => {
+    if (cart.length === 0) return;
+
+    const fetchCheckoutPreview = async () => {
+      setPreviewLoading(true);
+      try {
+        const checkoutItems = cart.map((item) => {
+          // Find matching variant
+          const matchingVariant = item.product.variants?.find(
+            (v) => v.size === item.selectedSize && v.flavor === item.selectedVariant
+          );
+          return {
+            productId: item.product.id,
+            variantId: matchingVariant?.id || undefined,
+            quantity: item.quantity,
+          };
+        });
+
+        const data = await api.orders.previewCheckout({
+          customerName: `${firstName} ${lastName}`.trim() || "Guest User",
+          customerEmail: email || "guest@valens.com",
+          customerPhone: phone || "01000000000",
+          shippingAddress: address || "Cairo",
+          shippingCity: city || "Cairo",
+          couponCode: activeCoupon?.code || undefined,
+          items: checkoutItems,
+        }) as {
+          subtotal: number;
+          shippingCost: number;
+          discountAmount: number;
+          total: number;
+        };
+
+        if (data) {
+          setPreviewSubtotal(data.subtotal);
+          setPreviewShippingCost(data.shippingCost);
+          setPreviewDiscountAmount(data.discountAmount);
+          setPreviewTotal(data.total);
+        }
+      } catch (err) {
+        console.error("Failed to load checkout preview calculations from server:", err);
+        // Clear preview stats to fallback to client-side math
+        setPreviewSubtotal(null);
+        setPreviewShippingCost(null);
+        setPreviewDiscountAmount(null);
+        setPreviewTotal(null);
+      } finally {
+        setPreviewLoading(false);
+      }
+    };
+
+    // Debounce the preview call slightly to avoid hammering the API
+    const timer = setTimeout(() => {
+      fetchCheckoutPreview();
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [cart, city, activeCoupon, firstName, lastName, email, phone, address]);
 
   // Form submit handler
   const handleConfirmOrder = async (e: React.FormEvent) => {
@@ -145,11 +218,11 @@ export default function CheckoutPage() {
         imageType: item.product.imageType,
         image: item.image || item.product.mainImage || undefined
       })),
-      totalPrice: finalTotal,
+      totalPrice: totalVal,
       paymentMethod,
       shippingMethod,
-      shippingCost,
-      discountAmount,
+      shippingCost: shippingVal,
+      discountAmount: discountVal,
       couponCode: activeCoupon?.code || undefined
     };
 
@@ -164,7 +237,7 @@ export default function CheckoutPage() {
   // If cart is empty and order hasn't been placed, redirect to products
   if (cart.length === 0 && !placedOrder) {
     return (
-      <div className="flex min-h-screen flex-col bg-main-bg text-white">
+      <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
         <Navbar />
         <main className="flex-1 flex flex-col items-center justify-center py-24 text-center">
           <h2 className="text-xl font-bold uppercase tracking-wider">Checkout is Empty</h2>
@@ -173,7 +246,7 @@ export default function CheckoutPage() {
           </p>
           <Link
             href="/products"
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300"
           >
             CATALOG SHOP
           </Link>
@@ -184,7 +257,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
       <Navbar />
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 relative">
@@ -371,33 +444,40 @@ export default function CheckoutPage() {
               {/* pricing recap */}
               <div className="flex justify-between items-center text-2xs text-white mb-2.5">
                 <span>Items Subtotal</span>
-                <span className="font-bold text-white">{subtotal.toLocaleString()} EGP</span>
+                <span className="font-bold text-white">{subtotalVal.toLocaleString()} EGP</span>
               </div>
               {activeCoupon && (
                 <div className="flex justify-between items-center text-2xs text-success-green mb-2.5 font-semibold">
                   <span>Coupon Applied ({activeCoupon.code})</span>
-                  <span>-{discountAmount.toLocaleString()} EGP</span>
+                  <span>-{discountVal.toLocaleString()} EGP</span>
                 </div>
               )}
               <div className="flex justify-between items-center text-2xs text-white mb-2.5">
-                <span>Shipping Fee</span>
-                <span>{shippingCost === 0 ? "FREE" : `${shippingCost.toLocaleString()} EGP`}</span>
+                <span>Shipping Cost</span>
+                <span>{shippingVal.toLocaleString()} EGP</span>
               </div>
-              <div className="flex justify-between items-center text-2xs text-white mb-4">
-                <span>Sales Tax ({storeSettings.taxRate}%)</span>
-                <span className="font-bold text-white">{taxAmount.toLocaleString()} EGP</span>
-              </div>
+              {taxVal > 0 && (
+                <div className="flex justify-between items-center text-2xs text-white mb-4">
+                  <span>Sales Tax ({storeSettings?.taxRate || 0}%)</span>
+                  <span className="font-bold text-white">{taxVal.toLocaleString()} EGP</span>
+                </div>
+              )}
 
               {/* Grand Total */}
               <div className="flex justify-between items-center border-t border-border-color pt-4 text-sm font-black text-white uppercase mb-6 tracking-wider">
-                <span>Grand Total</span>
-                <span className="text-base text-primary-coral font-black">{finalTotal.toLocaleString()} EGP</span>
+                <span className="flex items-center gap-2">
+                  Grand Total
+                  {previewLoading && (
+                    <span className="animate-spin inline-block h-3 w-3 border-t border-primary-coral border-r border-transparent rounded-full" />
+                  )}
+                </span>
+                <span className="text-base text-primary-coral font-black">{totalVal.toLocaleString()} EGP</span>
               </div>
 
               {/* Submit trigger button */}
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-4 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury shadow-lg shadow-primary-coral/10"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-4 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 shadow-lg shadow-primary-coral/10 hover:scale-[1.02] cursor-pointer"
               >
                 PLACE SECURE ORDER
                 <Icon name="check" size={14} />
@@ -457,7 +537,7 @@ export default function CheckoutPage() {
                     setPlacedOrder(null);
                     router.push("/dashboard");
                   }}
-                  className="rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury cursor-pointer"
+                  className="rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 cursor-pointer"
                 >
                   GO TO MY DASHBOARD
                 </button>

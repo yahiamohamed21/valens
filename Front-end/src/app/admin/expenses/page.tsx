@@ -5,29 +5,20 @@ import { useApp, Expense } from "@/context/AppContext";
 import { useAdminStats } from "@/app/admin/hooks/useAdminStats";
 import { Icon } from "@/components/SvgIcons";
 import { showConfirmToast } from "@/lib/toast";
-
 const EXPENSE_CATEGORIES: Expense["category"][] = [
-  "Product purchasing cost",
-  "Shipping expenses",
-  "Marketing and ads",
-  "Packaging",
-  "Website maintenance",
-  "Staff salaries",
-  "Storage / warehouse",
-  "Delivery company fees",
-  "Miscellaneous expenses",
+  "Advertising",
+  "Salaries",
+  "Shipping",
+  "Rent",
+  "Other",
 ];
 
 const CATEGORY_LABELS_AR: Record<string, string> = {
-  "Product purchasing cost": "تكلفة شراء وتصنيع المكملات",
-  "Shipping expenses": "تكاليف ومصاريف الشحن",
-  "Marketing and ads": "التسويق والإعلانات والترويج",
-  "Packaging": "علب ومواد التغليف الفاخرة",
-  "Website maintenance": "صيانة وتطوير الموقع الإلكتروني",
-  "Staff salaries": "مرتبات الموظفين والعمال",
-  "Storage / warehouse": "إيجار المخازن والمستودعات",
-  "Delivery company fees": "رسوم ومستحقات شركة التوصيل",
-  "Miscellaneous expenses": "نفقات ومصاريف متنوعة طارئة",
+  "Advertising": "التسويق والإعلانات والترويج",
+  "Salaries": "مرتبات الموظفين والعمال",
+  "Shipping": "تكاليف ومصاريف الشحن والتوصيل",
+  "Rent": "إيجار المستودعات والمقرات",
+  "Other": "مصاريف ونفقات أخرى متنوعة",
 };
 
 export default function AdminExpensesPage() {
@@ -47,10 +38,9 @@ export default function AdminExpensesPage() {
   // Expense modal state
   const [expenseModalOpen, setExpenseModalOpen] = useState(false);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
-
   // Form states - Expenses
   const [expTitle, setExpTitle] = useState("");
-  const [expCategory, setExpCategory] = useState<Expense["category"]>("Product purchasing cost");
+  const [expCategory, setExpCategory] = useState<Expense["category"]>("Other");
   const [expAmount, setExpAmount] = useState("");
   const [expDate, setExpDate] = useState("");
   const [expPayMethod, setExpPayMethod] = useState("Bank Transfer");
@@ -106,14 +96,14 @@ export default function AdminExpensesPage() {
           onClick={() => {
             setEditingExpenseId(null);
             setExpTitle("");
-            setExpCategory("Product purchasing cost");
+            setExpCategory("Other");
             setExpAmount("");
             setExpDate("");
             setExpPayMethod("Bank Transfer");
             setExpNotes("");
             setExpenseModalOpen(true);
           }}
-          className="flex items-center gap-2 rounded-xl bg-primary-coral px-4 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg"
+          className="flex items-center gap-2 rounded-xl bg-primary-coral px-4 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 transition-luxury shadow-lg cursor-pointer"
         >
           <Icon className="cursor-pointer" name="plus" size={14} />
           {locale === "ar" ? "إضافة مصروف" : "ADD EXPENSE"}
@@ -314,7 +304,7 @@ export default function AdminExpensesPage() {
 
               <button
                 type="submit"
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg mt-4"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-primary-coral py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 transition-luxury shadow-lg mt-4 cursor-pointer"
               >
                 {locale === "ar" ? "تسجيل المصروف" : "LOG EXPENSE RECORD"}
                 <Icon name="check" size={14} />

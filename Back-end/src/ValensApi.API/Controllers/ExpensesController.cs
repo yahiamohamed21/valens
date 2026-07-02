@@ -21,9 +21,9 @@ public class ExpensesController : BaseApiController
     }
 
     [HttpPost("list-admin-expenses")]
-    public async Task<ActionResult<IEnumerable<Expense>>> GetAdminExpenses([FromBody] ExpenseFilterDto dto)
+    public async Task<IActionResult> GetAdminExpenses([FromBody] ExpenseFilterDto dto)
     {
-        var expenses = await _expenseService.GetAllExpensesAsync(dto?.Search, dto?.Category);
+        var expenses = await _expenseService.GetAllExpensesAsync(dto?.Search, dto?.Category, dto?.PageNumber ?? 1, dto?.PageSize ?? 10);
         return Ok(expenses);
     }
 

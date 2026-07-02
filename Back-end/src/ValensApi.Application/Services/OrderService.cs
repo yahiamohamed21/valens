@@ -19,39 +19,50 @@ public class OrderService : IOrderService
         _unitOfWork = unitOfWork;
         _emailService = emailService;
     }
-    private static OrderResponseDto MapToResponseDto(Order order)
+
+    // ── Checkout Profile ────────────────────────────────────────────────────────
+    /// <summary>
+    /// Returns the logged-in user's saved profile so the frontend can
+    /// pre-fill checkout form fields without asking the user to retype them.
+    /// Customer record takes precedence over User record for address/city
+    /// because it may have been updated after a previous order.
+    /// </summary>
+    public async Task<CheckoutProfileDto?> GetCheckoutProfileAsync(Guid userId)
     {
-        return new OrderResponseDto
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
+        if (user == null) return null;
+
+        // Try to find the linked customer record (may have richer/updated data)
+        var customers = await _unitOfWork.Customers.FindAsync(c => c.UserId == userId);
+        var customer  = customers.FirstOrDefault();
+
+        return new CheckoutProfileDto
         {
-            Id = order.Id,
-            OrderNumber = order.OrderNumber,
-            CustomerName = order.CustomerName,
-            CustomerPhone = order.CustomerPhone,
-            CustomerEmail = order.CustomerEmail,
-            CustomerAddress = order.ShippingAddress,
-            CustomerCity = order.ShippingCity,
-            Notes = order.Notes,
-            TotalPrice = order.Total,
-            PaymentMethod = order.PaymentMethod,
-            ShippingMethod = order.ShippingMethod,
-            ShippingCost = order.ShippingCost,
-            DiscountAmount = order.DiscountAmount,
-            CouponCode = order.CouponCode,
-            OrderDate = order.CreatedAt,
-            Status = order.Status,
-            Items = order.Items?.Select(item => new OrderItemResponseDto
-            {
-                ProductId = item.ProductId,
-                ProductName = item.ProductName,
-                Price = item.Price,
-                Quantity = item.Quantity,
-                Size = item.Size,
-                Variant = item.Flavor
-            }).ToList() ?? new()
+            FullName = customer?.FullName ?? user.FullName,
+            Email    = customer?.Email    ?? user.Email,
+            Phone    = customer?.Phone    ?? user.Phone,
+            Address  = customer?.Address  ?? user.Address,
+            City     = customer?.City     ?? user.City,
         };
     }
+
+    // ── Create Order ────────────────────────────────────────────────────────────
     public async Task<object> CreateOrderAsync(CheckoutDto dto, Guid? loggedInUserId, bool isAuthenticated)
     {
+        // Populate DTO from User Profile if authenticated and fields are not provided
+        if (isAuthenticated && loggedInUserId.HasValue && loggedInUserId.Value != Guid.Empty)
+        {
+            var user = await _unitOfWork.Users.GetByIdAsync(loggedInUserId.Value);
+            if (user != null)
+            {
+                dto.CustomerName = string.IsNullOrWhiteSpace(dto.CustomerName) ? user.FullName : dto.CustomerName;
+                dto.CustomerEmail = string.IsNullOrWhiteSpace(dto.CustomerEmail) ? user.Email : dto.CustomerEmail;
+                dto.CustomerPhone = string.IsNullOrWhiteSpace(dto.CustomerPhone) ? user.Phone : dto.CustomerPhone;
+                dto.ShippingAddress = string.IsNullOrWhiteSpace(dto.ShippingAddress) ? user.Address : dto.ShippingAddress;
+                dto.ShippingCity = string.IsNullOrWhiteSpace(dto.ShippingCity) ? user.City : dto.ShippingCity;
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(dto.CustomerName) ||
             string.IsNullOrWhiteSpace(dto.CustomerEmail) ||
             string.IsNullOrWhiteSpace(dto.CustomerPhone) ||
@@ -62,10 +73,7 @@ public class OrderService : IOrderService
             throw new ArgumentException("All checkout fields (Name, Email, Phone, Address, City) are required and cannot be empty.");
         }
 
-        await _unitOfWork.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
-        try
-        {
-            Customer? customer = null;
+        Customer? customer = null;
 
             // 1. Resolve Customer profile
             if (isAuthenticated && loggedInUserId.HasValue && loggedInUserId.Value != Guid.Empty)
@@ -130,7 +138,23 @@ public class OrderService : IOrderService
 
             // 2. Validate inventory & calculate prices
             decimal subtotal = 0;
+            decimal couponEligibleSubtotal = 0;
+            decimal percentageDiscountSum = 0;
             var orderItems = new List<OrderItem>();
+
+            Coupon? coupon = null;
+            if (!string.IsNullOrEmpty(dto.CouponCode))
+            {
+                var coupons = await _unitOfWork.Coupons.FindAsync(c => c.Code.ToLower() == dto.CouponCode.ToLower());
+                var tempCoupon = coupons.FirstOrDefault();
+
+                if (tempCoupon != null && tempCoupon.IsActive && 
+                    (!tempCoupon.ExpiryDate.HasValue || tempCoupon.ExpiryDate.Value > DateTimeOffset.UtcNow) &&
+                    (!tempCoupon.MaxUsage.HasValue || tempCoupon.UsageCount < tempCoupon.MaxUsage.Value))
+                {
+                    coupon = tempCoupon;
+                }
+            }
 
             foreach (var cartItem in dto.Items)
             {
@@ -140,17 +164,17 @@ public class OrderService : IOrderService
 
                 if (product == null)
                 {
-                    await _unitOfWork.RollbackTransactionAsync();
                     throw new KeyNotFoundException($"Product with ID {cartItem.ProductId} was not found.");
                 }
 
-                decimal price = 0;
-                string size = string.Empty;
+                decimal originalPrice = product.Price;
+                decimal discountPrice = product.DiscountPrice;
+                string size = product.Size;
                 string flavor = string.Empty;
+                ProductVariant? variant = null;
 
                 if (product.VariantType != "none")
                 {
-                    ProductVariant? variant = null;
                     if (!string.IsNullOrEmpty(cartItem.VariantId))
                     {
                         variant = product.Variants.FirstOrDefault(v => v.VariantId == cartItem.VariantId);
@@ -165,7 +189,6 @@ public class OrderService : IOrderService
 
                     if (variant == null)
                     {
-                        await _unitOfWork.RollbackTransactionAsync();
                         string details = !string.IsNullOrEmpty(cartItem.VariantId) 
                             ? $"VariantId '{cartItem.VariantId}'"
                             : $"Size '{cartItem.Size}' and Flavor '{cartItem.Flavor}'";
@@ -174,14 +197,14 @@ public class OrderService : IOrderService
 
                     if (variant.StockQuantity < cartItem.Quantity)
                     {
-                        await _unitOfWork.RollbackTransactionAsync();
                         throw new InvalidOperationException($"Requested quantity of '{product.Name} - {variant.Size} {variant.Flavor}' is not available. Available stock: {variant.StockQuantity}.");
                     }
 
                     variant.StockQuantity -= cartItem.Quantity;
                     product.Stock -= cartItem.Quantity;
 
-                    price = variant.DiscountPrice > 0 ? variant.DiscountPrice : variant.Price;
+                    originalPrice = variant.Price;
+                    discountPrice = variant.DiscountPrice;
                     size = variant.Size;
                     flavor = variant.Flavor;
 
@@ -191,17 +214,68 @@ public class OrderService : IOrderService
                 {
                     if (product.Stock < cartItem.Quantity)
                     {
-                        await _unitOfWork.RollbackTransactionAsync();
                         throw new InvalidOperationException($"Requested quantity of '{product.Name}' is not available. Available stock: {product.Stock}.");
                     }
 
                     product.Stock -= cartItem.Quantity;
-                    price = product.DiscountPrice > 0 ? product.DiscountPrice : product.Price;
                 }
 
                 _unitOfWork.Products.Update(product);
 
-                subtotal += price * cartItem.Quantity;
+                // Check discount eligibility
+                bool hasProductDiscount = discountPrice > 0 && discountPrice < originalPrice;
+                decimal productDiscountAmount = hasProductDiscount ? (originalPrice - discountPrice) : 0;
+
+                bool isEligibleForCoupon = true;
+                decimal itemFinalPrice = 0;
+
+                if (coupon != null)
+                {
+                    decimal couponDiscountForThisItem = 0;
+                    if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
+                    {
+                        couponDiscountForThisItem = originalPrice * (coupon.DiscountValue / 100);
+                    }
+                    else
+                    {
+                        couponDiscountForThisItem = coupon.DiscountValue;
+                    }
+
+                    if (hasProductDiscount)
+                    {
+                        if (couponDiscountForThisItem > productDiscountAmount)
+                        {
+                            isEligibleForCoupon = true;
+                            itemFinalPrice = originalPrice; // Remove product discount, apply coupon
+                        }
+                        else
+                        {
+                            isEligibleForCoupon = false;
+                            itemFinalPrice = discountPrice; // Keep product discount, cannot use coupon
+                        }
+                    }
+                    else
+                    {
+                        isEligibleForCoupon = true;
+                        itemFinalPrice = originalPrice;
+                    }
+                }
+                else
+                {
+                    isEligibleForCoupon = false;
+                    itemFinalPrice = hasProductDiscount ? discountPrice : originalPrice;
+                }
+
+                subtotal += itemFinalPrice * cartItem.Quantity;
+
+                if (coupon != null && isEligibleForCoupon)
+                {
+                    couponEligibleSubtotal += originalPrice * cartItem.Quantity;
+                    if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
+                    {
+                        percentageDiscountSum += Math.Round(originalPrice * cartItem.Quantity * (coupon.DiscountValue / 100), 2);
+                    }
+                }
 
                 orderItems.Add(new OrderItem
                 {
@@ -210,42 +284,37 @@ public class OrderService : IOrderService
                     VariantId = cartItem.VariantId ?? string.Empty,
                     Size = size,
                     Flavor = flavor,
-                    Price = price,
+                    Price = itemFinalPrice,
                     Quantity = cartItem.Quantity
                 });
             }
 
             // 3. Process Coupon
             decimal discountAmount = 0;
-            if (!string.IsNullOrEmpty(dto.CouponCode))
+            if (coupon != null)
             {
-                var coupons = await _unitOfWork.Coupons.FindAsync(c => c.Code.ToLower() == dto.CouponCode.ToLower());
-                var coupon = coupons.FirstOrDefault();
-
-                if (coupon != null && coupon.IsActive && coupon.ExpiryDate > DateTimeOffset.UtcNow)
+                if (subtotal >= coupon.MinOrderAmount)
                 {
-                    if (coupon.MaxUsage == null || coupon.UsageCount < coupon.MaxUsage.Value)
+                    if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
                     {
-                        if (subtotal >= coupon.MinOrderAmount)
-                        {
-                            if (coupon.DiscountType.ToLower() == "percentage")
-                            {
-                                discountAmount = Math.Round(subtotal * (coupon.DiscountValue / 100), 2);
-                            }
-                            else
-                            {
-                                discountAmount = coupon.DiscountValue;
-                            }
-
-                            if (discountAmount > subtotal)
-                            {
-                                discountAmount = subtotal;
-                            }
-
-                            coupon.UsageCount += 1;
-                            _unitOfWork.Coupons.Update(coupon);
-                        }
+                        discountAmount = percentageDiscountSum;
                     }
+                    else
+                    {
+                        discountAmount = coupon.DiscountValue;
+                    }
+
+                    if (discountAmount > couponEligibleSubtotal)
+                    {
+                        discountAmount = couponEligibleSubtotal;
+                    }
+                    if (discountAmount > subtotal)
+                    {
+                        discountAmount = subtotal;
+                    }
+
+                    coupon.UsageCount += 1;
+                    _unitOfWork.Coupons.Update(coupon);
                 }
             }
 
@@ -261,34 +330,61 @@ public class OrderService : IOrderService
                 freeShippingThreshold = settings.FreeShippingThreshold;
             }
 
+            // Look up governorate-specific shipping cost
+            if (!string.IsNullOrWhiteSpace(dto.ShippingCity))
+            {
+                var governorateName = dto.ShippingCity.Trim();
+                var govShippings = await _unitOfWork.GovernorateShippings.FindAsync(g => 
+                    g.GovernorateName.ToLower() == governorateName.ToLower()
+                );
+                var govShipping = govShippings.FirstOrDefault();
+                if (govShipping != null)
+                {
+                    shippingCost = govShipping.ShippingCost;
+                }
+            }
+
+            // Apply free shipping if order meets threshold
             if (subtotal >= freeShippingThreshold)
             {
                 shippingCost = 0;
             }
 
-            decimal total = subtotal + shippingCost - discountAmount;
+            decimal total = subtotal - discountAmount + shippingCost;
 
-            // Generate Numeric Order Code (VL- followed by strictly numbers like Ticks / Timestamp)
-            string orderCode = $"VL-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+            // 5. Save Order
+            var lastOrder = await _unitOfWork.Orders.GetQueryable()
+                .Where(o => o.OrderNumber.StartsWith("VL-"))
+                .OrderByDescending(o => o.CreatedAt)
+                .FirstOrDefaultAsync();
 
-            // 5. Create Order
+            int nextNumber = 10001;
+            if (lastOrder != null)
+            {
+                var numPart = lastOrder.OrderNumber.Substring(3);
+                if (int.TryParse(numPart, out int lastNum))
+                {
+                    nextNumber = lastNum + 1;
+                }
+            }
+            string orderNumber = $"VL-{nextNumber}";
+
             var order = new Order
             {
-                OrderNumber = orderCode,
+                OrderNumber = orderNumber,
                 CustomerId = customer.Id,
+                Customer = customer,
                 CustomerName = dto.CustomerName,
                 CustomerEmail = dto.CustomerEmail,
                 CustomerPhone = dto.CustomerPhone,
                 ShippingAddress = dto.ShippingAddress,
                 ShippingCity = dto.ShippingCity,
-                Notes = dto.Notes,
-                Status = "New Order",
+                Status = "NEW ORDER",
                 PaymentMethod = "Cash on Delivery", // COD
-                ShippingMethod = dto.ShippingMethod ?? "Standard",
                 Subtotal = subtotal,
                 ShippingCost = shippingCost,
                 DiscountAmount = discountAmount,
-                CouponCode = dto.CouponCode ?? string.Empty,
+                CouponCode = coupon?.Code ?? string.Empty,
                 Total = total,
                 Items = orderItems
             };
@@ -302,44 +398,38 @@ public class OrderService : IOrderService
             _unitOfWork.Customers.Update(customer);
             await _unitOfWork.SaveChangesAsync();
 
-            await _unitOfWork.CommitTransactionAsync();
-
-            return new
-            {
-                Message = "Order created successfully and is being prepared.",
-                OrderNumber = order.OrderNumber,
-                OrderId = order.Id,
-                Total = order.Total,
-                PaymentMethod = order.PaymentMethod
-            };
-        }
-        catch
+        return new
         {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
-        }
+            Message = "Order created successfully and is being prepared.",
+            OrderNumber = order.OrderNumber,
+            OrderId = order.Id,
+            Total = order.Total,
+            PaymentMethod = order.PaymentMethod
+        };
     }
 
-    public async Task<IEnumerable<OrderResponseDto>> GetMyOrdersAsync(Guid userId)
+    public async Task<ValensApi.Application.DTOs.Common.PaginatedList<Order>> GetMyOrdersAsync(Guid userId, int pageNumber = 1, int pageSize = 10)
     {
         var customerList = await _unitOfWork.Customers.FindAsync(c => c.UserId == userId);
         var customer = customerList.FirstOrDefault();
 
         if (customer == null)
         {
-            return new List<OrderResponseDto>();
+            return new ValensApi.Application.DTOs.Common.PaginatedList<Order>(new List<Order>(), 0, pageNumber, pageSize);
         }
 
-        var orders = await _unitOfWork.Orders.GetQueryable()
+        var query = _unitOfWork.Orders.GetQueryable()
             .Include(o => o.Items)
             .Where(o => o.CustomerId == customer.Id)
-            .OrderByDescending(o => o.CreatedAt)
-            .ToListAsync();
+            .OrderByDescending(o => o.CreatedAt);
 
-        return orders.Select(MapToResponseDto);
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return new ValensApi.Application.DTOs.Common.PaginatedList<Order>(items, totalCount, pageNumber, pageSize);
     }
 
-    public async Task<IEnumerable<OrderResponseDto>> GetAllOrdersAsync(string? search, string? category)
+    public async Task<ValensApi.Application.DTOs.Common.PaginatedList<Order>> GetAllOrdersAsync(string? search, string? category, int pageNumber = 1, int pageSize = 10)
     {
         var query = _unitOfWork.Orders.GetQueryable()
             .Include(o => o.Items)
@@ -368,7 +458,10 @@ public class OrderService : IOrderService
             )).ToList();
         }
 
-        return orders.Select(MapToResponseDto);
+        var totalCount = orders.Count;
+        var paginatedItems = orders.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+
+        return new ValensApi.Application.DTOs.Common.PaginatedList<Order>(paginatedItems, totalCount, pageNumber, pageSize);
     }
 
     public async Task<bool> UpdateStatusAsync(Guid id, string status)
@@ -376,6 +469,38 @@ public class OrderService : IOrderService
         var order = await _unitOfWork.Orders.GetQueryable()
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (order == null)
+        {
+            return false;
+        }
+
+        string oldStatus = order.Status;
+        order.Status = status;
+        _unitOfWork.Orders.Update(order);
+        await _unitOfWork.SaveChangesAsync();
+
+        if (status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) && 
+            !oldStatus.Equals("Confirmed", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                await _emailService.SendOrderConfirmationEmailAsync(order);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending order confirmation email: {ex.Message}");
+            }
+        }
+
+        return true;
+    }
+
+    public async Task<bool> UpdateStatusByNumberAsync(string orderNumber, string status)
+    {
+        var order = await _unitOfWork.Orders.GetQueryable()
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.OrderNumber == orderNumber);
 
         if (order == null)
         {
@@ -419,5 +544,191 @@ public class OrderService : IOrderService
         _unitOfWork.Orders.Update(order);
         await _unitOfWork.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<CheckoutPreviewDto> PreviewCheckoutAsync(CheckoutDto dto)
+    {
+        decimal subtotal = 0;
+        decimal couponEligibleSubtotal = 0;
+        decimal percentageDiscountSum = 0;
+
+        Coupon? coupon = null;
+        if (!string.IsNullOrEmpty(dto.CouponCode))
+        {
+            var coupons = await _unitOfWork.Coupons.FindAsync(c => c.Code.ToLower() == dto.CouponCode.ToLower());
+            var tempCoupon = coupons.FirstOrDefault();
+
+            if (tempCoupon != null && tempCoupon.IsActive && 
+                (!tempCoupon.ExpiryDate.HasValue || tempCoupon.ExpiryDate.Value > DateTimeOffset.UtcNow) &&
+                (!tempCoupon.MaxUsage.HasValue || tempCoupon.UsageCount < tempCoupon.MaxUsage.Value))
+            {
+                coupon = tempCoupon;
+            }
+        }
+
+        foreach (var cartItem in dto.Items)
+        {
+            var product = await _unitOfWork.Products.GetQueryable()
+                .Include(p => p.Variants)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == cartItem.ProductId);
+
+            if (product == null)
+            {
+                throw new KeyNotFoundException($"Product with ID {cartItem.ProductId} was not found.");
+            }
+
+            decimal originalPrice = product.Price;
+            decimal discountPrice = product.DiscountPrice;
+            ProductVariant? variant = null;
+
+            if (product.VariantType != "none")
+            {
+                if (!string.IsNullOrEmpty(cartItem.VariantId))
+                {
+                    variant = product.Variants.FirstOrDefault(v => v.VariantId == cartItem.VariantId);
+                }
+                else if (!string.IsNullOrEmpty(cartItem.Size) || !string.IsNullOrEmpty(cartItem.Flavor))
+                {
+                    variant = product.Variants.FirstOrDefault(v =>
+                        (string.IsNullOrEmpty(cartItem.Size) || v.Size.Equals(cartItem.Size, StringComparison.OrdinalIgnoreCase)) &&
+                        (string.IsNullOrEmpty(cartItem.Flavor) || v.Flavor.Equals(cartItem.Flavor, StringComparison.OrdinalIgnoreCase))
+                    );
+                }
+
+                if (variant == null)
+                {
+                    string details = !string.IsNullOrEmpty(cartItem.VariantId) 
+                        ? $"VariantId '{cartItem.VariantId}'"
+                        : $"Size '{cartItem.Size}' and Flavor '{cartItem.Flavor}'";
+                    throw new KeyNotFoundException($"Matching variant ({details}) for product '{product.Name}' was not found.");
+                }
+
+                originalPrice = variant.Price;
+                discountPrice = variant.DiscountPrice;
+            }
+
+            // Check discount eligibility
+            bool hasProductDiscount = discountPrice > 0 && discountPrice < originalPrice;
+            decimal productDiscountAmount = hasProductDiscount ? (originalPrice - discountPrice) : 0;
+
+            bool isEligibleForCoupon = true;
+            decimal itemFinalPrice = 0;
+
+            if (coupon != null)
+            {
+                decimal couponDiscountForThisItem = 0;
+                if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
+                {
+                    couponDiscountForThisItem = originalPrice * (coupon.DiscountValue / 100);
+                }
+                else
+                {
+                    couponDiscountForThisItem = coupon.DiscountValue;
+                }
+
+                if (hasProductDiscount)
+                {
+                    if (couponDiscountForThisItem > productDiscountAmount)
+                    {
+                        isEligibleForCoupon = true;
+                        itemFinalPrice = originalPrice; // Remove product discount, apply coupon
+                    }
+                    else
+                    {
+                        isEligibleForCoupon = false;
+                        itemFinalPrice = discountPrice; // Keep product discount, cannot use coupon
+                    }
+                }
+                else
+                {
+                    isEligibleForCoupon = true;
+                    itemFinalPrice = originalPrice;
+                }
+            }
+            else
+            {
+                isEligibleForCoupon = false;
+                itemFinalPrice = hasProductDiscount ? discountPrice : originalPrice;
+            }
+
+            subtotal += itemFinalPrice * cartItem.Quantity;
+
+            if (coupon != null && isEligibleForCoupon)
+            {
+                couponEligibleSubtotal += originalPrice * cartItem.Quantity;
+                if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
+                {
+                    percentageDiscountSum += Math.Round(originalPrice * cartItem.Quantity * (coupon.DiscountValue / 100), 2);
+                }
+            }
+        }
+
+        // Process Coupon
+        decimal discountAmount = 0;
+        if (coupon != null)
+        {
+            if (subtotal >= coupon.MinOrderAmount)
+            {
+                if (coupon.DiscountType.Equals("Percentage", StringComparison.OrdinalIgnoreCase))
+                {
+                    discountAmount = percentageDiscountSum;
+                }
+                else
+                {
+                    discountAmount = coupon.DiscountValue;
+                }
+
+                if (discountAmount > couponEligibleSubtotal)
+                {
+                    discountAmount = couponEligibleSubtotal;
+                }
+                if (discountAmount > subtotal)
+                {
+                    discountAmount = subtotal;
+                }
+            }
+        }
+
+        // Calculate Shipping Cost
+        decimal shippingCost = 60;
+        decimal freeShippingThreshold = 1500;
+
+        var settingsList = await _unitOfWork.StoreSettings.GetAllAsync();
+        var settings = settingsList.FirstOrDefault();
+        if (settings != null)
+        {
+            shippingCost = settings.ShippingCost;
+            freeShippingThreshold = settings.FreeShippingThreshold;
+        }
+
+        // Look up governorate-specific shipping cost
+        if (!string.IsNullOrWhiteSpace(dto.ShippingCity))
+        {
+            var governorateName = dto.ShippingCity.Trim();
+            var govShippings = await _unitOfWork.GovernorateShippings.FindAsync(g => 
+                g.GovernorateName.ToLower() == governorateName.ToLower()
+            );
+            var govShipping = govShippings.FirstOrDefault();
+            if (govShipping != null)
+            {
+                shippingCost = govShipping.ShippingCost;
+            }
+        }
+
+        if (subtotal >= freeShippingThreshold)
+        {
+            shippingCost = 0;
+        }
+
+        decimal total = subtotal + shippingCost - discountAmount;
+
+        return new CheckoutPreviewDto
+        {
+            Subtotal = subtotal,
+            ShippingCost = shippingCost,
+            DiscountAmount = discountAmount,
+            Total = total
+        };
     }
 }

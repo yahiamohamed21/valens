@@ -18,7 +18,7 @@ public class ExpenseService : IExpenseService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IEnumerable<Expense>> GetAllExpensesAsync(string? search, string? category)
+    public async Task<ValensApi.Application.DTOs.Common.PaginatedList<Expense>> GetAllExpensesAsync(string? search, string? category, int pageNumber = 1, int pageSize = 10)
     {
         var query = _unitOfWork.Expenses.GetQueryable().AsNoTracking();
 
@@ -33,7 +33,12 @@ public class ExpenseService : IExpenseService
             query = query.Where(e => e.Title.ToLower().Contains(searchLower));
         }
 
-        return await query.OrderByDescending(e => e.Date).ToListAsync();
+        query = query.OrderByDescending(e => e.Date);
+
+        var totalCount = await query.CountAsync();
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
+
+        return new ValensApi.Application.DTOs.Common.PaginatedList<Expense>(items, totalCount, pageNumber, pageSize);
     }
 
     public async Task<Expense?> CreateExpenseAsync(ExpenseDto dto)

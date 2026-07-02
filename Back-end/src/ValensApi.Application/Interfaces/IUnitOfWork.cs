@@ -16,6 +16,12 @@ public interface IUnitOfWork : IDisposable
     IGenericRepository<Expense> Expenses { get; }
     IGenericRepository<StoreSetting> StoreSettings { get; }
     IGenericRepository<UserOtp> UserOtps { get; }
+    IGenericRepository<GovernorateShipping> GovernorateShippings { get; }
+    IGenericRepository<OrderReturn> OrderReturns { get; }
+    IGenericRepository<HomeBanner> HomeBanners { get; }
+    IGenericRepository<HomeSectionProduct> HomeSectionProducts { get; }
+    IGenericRepository<HomeStory> HomeStories { get; }
+    IGenericRepository<ProductReview> ProductReviews { get; }
     
     Task<int> SaveChangesAsync();
     Task ExecuteSqlRawAsync(string sql, params object[] parameters);
@@ -23,4 +29,5 @@ public interface IUnitOfWork : IDisposable
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
     Task ExecuteInTransactionAsync(Func<Task> action);
+    Task<T> ExecuteInTransactionAsync<T>(Func<Task<T>> action);
 }

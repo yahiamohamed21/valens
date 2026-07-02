@@ -34,6 +34,44 @@ export default function UserDashboard() {
   const [isEditing, setIsEditing] = useState(false);
   const [governorates, setGovernorates] = useState<{ id: string; governorateName: string }[]>([]);
 
+  // Change Password state
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      showToast("All password fields are required.", "error");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast("New passwords do not match.", "error");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await api.auth.changeCustomerPassword({
+        oldPassword,
+        newPassword,
+        confirmPassword,
+      });
+      showToast("Password updated successfully!", "success");
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setIsChangingPassword(false);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to update password";
+      showToast(message, "error");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   // Fetch Governorates on mount
   useEffect(() => {
     const loadGovs = async () => {
@@ -83,7 +121,7 @@ export default function UserDashboard() {
 
   if (!currentUserEmail) {
     return (
-      <div className="flex min-h-screen flex-col bg-main-bg text-white">
+      <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
         <Navbar />
         <main className="flex-1 flex flex-col items-center justify-center py-24 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary-coral border-r-2 mb-4"></div>
@@ -93,7 +131,7 @@ export default function UserDashboard() {
           </p>
           <button
             onClick={() => router.push("/login")}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 cursor-pointer"
           >
             LOG IN PAGE
           </button>
@@ -163,7 +201,7 @@ export default function UserDashboard() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white font-sans relative overflow-x-hidden">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground font-sans relative overflow-x-hidden">
       <Navbar />
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -330,7 +368,7 @@ export default function UserDashboard() {
                   <div className="flex gap-3 mt-2">
                     <button
                       type="submit"
-                      className="flex-1 rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-main-bg hover:bg-white transition-all duration-300 uppercase cursor-pointer"
+                      className="flex-1 rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 uppercase cursor-pointer"
                     >
                       SAVE PROFILE
                     </button>
@@ -382,6 +420,91 @@ export default function UserDashboard() {
                 </div>
               </div>
             )}
+
+            {/* Change Password Panel */}
+            <div className="rounded-2xl border border-border-color bg-card-bg p-6 relative overflow-hidden backdrop-blur-md bg-opacity-70 flex flex-col gap-4 animate-fade-in">
+              <div className="flex justify-between items-center border-b border-border-color pb-3 mb-2">
+                <h3 className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
+                  <Icon name="lock" size={16} className="text-primary-coral" />
+                  Change Password
+                </h3>
+                {!isChangingPassword && (
+                  <button
+                    onClick={() => setIsChangingPassword(true)}
+                    className="text-4xs font-black uppercase tracking-widest text-primary-coral hover:underline cursor-pointer"
+                  >
+                    Modify
+                  </button>
+                )}
+              </div>
+
+              {isChangingPassword ? (
+                <form onSubmit={handleChangePasswordSubmit} className="flex flex-col gap-4 text-xs">
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-1.5">
+                      Current Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-1.5">
+                      New Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-1.5">
+                      Confirm New Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-2.5 text-xs text-white focus:outline-none focus:border-primary-coral"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 mt-2">
+                    <button
+                      type="submit"
+                      disabled={passwordLoading}
+                      className="flex-1 rounded-full bg-primary-coral py-2.5 text-3xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 uppercase cursor-pointer disabled:opacity-50"
+                    >
+                      {passwordLoading ? "SAVING..." : "UPDATE"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsChangingPassword(false);
+                        setOldPassword("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                      }}
+                      className="flex-1 rounded-full border border-border-color bg-surface-deep/60 py-2.5 text-3xs font-black tracking-widest text-white hover:border-primary-coral transition-all duration-300 uppercase cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <p className="text-[10px] text-muted-text uppercase font-semibold">
+                  Secure your athlete account credentials by changing your password periodically.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Orders Tracking Details (Right Panel) */}
@@ -405,7 +528,7 @@ export default function UserDashboard() {
                   </p>
                   <button
                     onClick={() => router.push("/products")}
-                    className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white cursor-pointer"
+                    className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300 cursor-pointer"
                   >
                     SHOP SUPPLEMENTS
                   </button>

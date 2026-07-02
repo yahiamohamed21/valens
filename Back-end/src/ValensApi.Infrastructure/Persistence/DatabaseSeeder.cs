@@ -10,29 +10,72 @@ namespace ValensApi.Infrastructure.Persistence;
 
 public static class DatabaseSeeder
 {
+    // ── Force wipe & re-seed ────────────────────────────────────────────────────
+    /// <summary>
+    /// Deletes ALL data from every table (in FK-safe order) then runs
+    /// the normal seed. Call this ONLY from a protected admin endpoint.
+    /// </summary>
+    public static async Task ForceReseedAsync(ApplicationDbContext context)
+    {
+        // Ensure DB exists and all migrations are applied FIRST
+        await context.Database.MigrateAsync();
+
+        // Delete in child-first order to satisfy FK constraints
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [ProductReviews]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [OrderItems]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Orders]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Customers]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [ProductVariants]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Products]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Categories]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Coupons]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Expenses]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [GovernorateShippings]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [UserOtps]");
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Users]"); // wipe all users (admin re-seeds)
+
+        await SeedDataAsync(context);
+    }
+
+    // ── Normal seed (idempotent) ────────────────────────────────────────────────
     public static async Task SeedDataAsync(ApplicationDbContext context)
     {
-        // 1. Ensure Database is created and migrations are applied
+        // Ensure DB + migrations are applied (no-op if already up to date)
         await context.Database.MigrateAsync();
 
         // 2. Seed Categories
-        if (!await context.Categories.AnyAsync())
+        var categoriesToSeed = new[] { "Whey Protein", "Pre-Workout", "Creatine", "Vitamins" };
+        foreach (var catName in categoriesToSeed)
         {
-            var categories = new List<Category>
+            var exists = await context.Categories.IgnoreQueryFilters().AnyAsync(c => c.Name == catName);
+            if (!exists)
             {
-                new() { Id = Guid.NewGuid(), Name = "Whey Protein", IsActive = true, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
-                new() { Id = Guid.NewGuid(), Name = "Pre-Workout", IsActive = true, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
-                new() { Id = Guid.NewGuid(), Name = "Creatine", IsActive = true, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
-                new() { Id = Guid.NewGuid(), Name = "Vitamins", IsActive = true, CreatedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow }
-            };
-
-            await context.Categories.AddRangeAsync(categories);
-            await context.SaveChangesAsync();
+                var newCat = new Category 
+                { 
+                    Id = Guid.NewGuid(), 
+                    Name = catName, 
+                    IsActive = true, 
+                    CreatedAt = DateTimeOffset.UtcNow, 
+                    UpdatedAt = DateTimeOffset.UtcNow 
+                };
+                await context.Categories.AddAsync(newCat);
+            }
+            else
+            {
+                var existingCat = await context.Categories.IgnoreQueryFilters().FirstAsync(c => c.Name == catName);
+                if (existingCat.IsDeleted)
+                {
+                    existingCat.IsDeleted = false;
+                    existingCat.DeletedAt = null;
+                    context.Categories.Update(existingCat);
+                }
+            }
         }
+        await context.SaveChangesAsync();
 
-        var wheyCategory = await context.Categories.FirstAsync(c => c.Name == "Whey Protein");
-        var preCategory = await context.Categories.FirstAsync(c => c.Name == "Pre-Workout");
-        var creatineCategory = await context.Categories.FirstAsync(c => c.Name == "Creatine");
+        var wheyCategory = await context.Categories.IgnoreQueryFilters().FirstAsync(c => c.Name == "Whey Protein");
+        var preCategory = await context.Categories.IgnoreQueryFilters().FirstAsync(c => c.Name == "Pre-Workout");
+        var creatineCategory = await context.Categories.IgnoreQueryFilters().FirstAsync(c => c.Name == "Creatine");
 
         // 3. Seed Products and Variants
         if (!await context.Products.AnyAsync())
@@ -43,7 +86,9 @@ public static class DatabaseSeeder
                 CategoryId = wheyCategory.Id,
                 CategoryName = wheyCategory.Name,
                 Name = "Valens Whey Premium",
+                NameAr = "فالينز واي بريميوم",
                 Description = "High quality grass-fed whey protein isolate designed for optimal muscle recovery.",
+                DescriptionAr = "عزل بروتين مصل اللبن عالي الجودة متغذى على العشب ومصمم لتحقيق التعافي الأمثل للعضلات.",
                 Price = 1200,
                 DiscountPrice = 1080,
                 Stock = 100,
@@ -56,8 +101,11 @@ public static class DatabaseSeeder
                 MainImage = "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?w=500",
                 Images = new List<string> { "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?w=500" },
                 Ingredients = new List<string> { "Whey Protein Isolate", "Natural Cocoa Powder", "Soy Lecithin", "Sucralose" },
+                IngredientsAr = new List<string> { "بروتين واي معزول", "بودرة كاكاو طبيعية", "ليسيثين الصويا", "سكرالوز" },
                 Benefits = new List<string> { "25g Pure Protein per serving", "Fast digesting isolate", "Zero added sugars", "Delicious double chocolate flavor" },
+                BenefitsAr = new List<string> { "25 جرام بروتين نقي لكل جرعة", "سريع الامتصاص والتعافي", "بدون سكر مضاف", "نكهة الشوكولاتة المزدوجة اللذيذة" },
                 Usage = "Mix 1 scoop with 250ml of water or skimmed milk post-workout.",
+                UsageAr = "امزج مكيالاً واحداً مع 250 مل من الماء أو الحليب خالي الدسم بعد التمرين.",
                 ImageType = "powder",
                 ImageColor = "#FF8A75",
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -70,7 +118,9 @@ public static class DatabaseSeeder
                 CategoryId = preCategory.Id,
                 CategoryName = preCategory.Name,
                 Name = "Valens Pre-Ignite",
+                NameAr = "فالينز بري إيجنيت",
                 Description = "High-stimulant pre-workout formula to maximize power output, endurance, and mental focus.",
+                DescriptionAr = "تركيبة ما قبل التمرين عالية التحفيز لزيادة القوة والتحمل والتركيز الذهني.",
                 Price = 850,
                 DiscountPrice = 790,
                 Stock = 50,
@@ -83,8 +133,11 @@ public static class DatabaseSeeder
                 MainImage = "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500",
                 Images = new List<string> { "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=500" },
                 Ingredients = new List<string> { "Beta-Alanine", "L-Citrulline Malate", "Caffeine Anhydrous", "L-Tyrosine" },
+                IngredientsAr = new List<string> { "بيتا ألانين", "إل سيترولين مالات", "كافيين لا مائي", "إل تيروزين" },
                 Benefits = new List<string> { "Explosive energy boost", "Skin-splitting muscle pumps", "Enhanced mental focus", "Delay muscle fatigue" },
+                BenefitsAr = new List<string> { "طاقة متفجرة ونشاط بدني", "ضخ دم هائل للعضلات", "زيادة التركيز والانتباه", "تأخير الشعور بالتعب العضلي" },
                 Usage = "Take 1 scoop 20-30 minutes before training with cold water.",
+                UsageAr = "تناول مكيالاً واحداً قبل التمرين بـ 20-30 دقيقة مع ماء بارد.",
                 ImageType = "powder",
                 ImageColor = "#FF5226",
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -97,7 +150,9 @@ public static class DatabaseSeeder
                 CategoryId = creatineCategory.Id,
                 CategoryName = creatineCategory.Name,
                 Name = "Valens Creatine Pure",
+                NameAr = "فالينز كرياتين بيور",
                 Description = "100% pure micronized creatine monohydrate. Increases physical performance in high-intensity exercise.",
+                DescriptionAr = "كرياتين مونوهيدرات نقي وميكروني 100%. يزيد من الأداء البدني في التمارين عالية الكثافة.",
                 Price = 600,
                 DiscountPrice = 0,
                 Stock = 150,
@@ -110,8 +165,11 @@ public static class DatabaseSeeder
                 MainImage = "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=500",
                 Images = new List<string> { "https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=500" },
                 Ingredients = new List<string> { "100% Micronized Creatine Monohydrate" },
+                IngredientsAr = new List<string> { "كرياتين مونوهيدرات نقي 100%" },
                 Benefits = new List<string> { "Increases muscle strength", "Improves power output", "Hydrates muscle cells", "Unflavored for easy mixing" },
+                BenefitsAr = new List<string> { "زيادة قوة وحجم العضلات", "تحسين القدرة الانفجارية", "ترطيب الخلايا العضلية", "بدون نكهة ليسهل خلطه" },
                 Usage = "Take 1 serving (5g) daily. Mix into your pre/post workout shake.",
+                UsageAr = "تناول جرعة واحدة (5 جرام) يومياً. امزجه مع مشروب قبل أو بعد التمرين.",
                 ImageType = "powder",
                 ImageColor = "#00F2FE",
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -314,6 +372,66 @@ public static class DatabaseSeeder
                 new() { Id = Guid.NewGuid(), Title = "Courier Delivery Settlement", Amount = 120, Category = "Shipping", Date = DateTimeOffset.UtcNow.AddDays(-3), CreatedAt = DateTimeOffset.UtcNow.AddDays(-3), UpdatedAt = DateTimeOffset.UtcNow.AddDays(-3) }
             };
             await context.Expenses.AddRangeAsync(expenses);
+            await context.SaveChangesAsync();
+        }
+
+        // 7. Seed Governorate Shippings
+        if (!await context.GovernorateShippings.AnyAsync())
+        {
+            var governorates = new List<string>
+            {
+                "Cairo", "Giza", "Alexandria", "Qalyubia", "Sharqia", "Gharbia", "Monufia", "Beheira", "Dakahlia", 
+                "Damietta", "Kafr El Sheikh", "Port Said", "Ismailia", "Suez", "North Sinai", "South Sinai", 
+                "Beni Suef", "Fayoum", "Minya", "Assiut", "Sohag", "Qena", "Luxor", "Aswan", "Red Sea", 
+                "New Valley", "Matrouh"
+            };
+
+            var list = governorates.Select(g => new GovernorateShipping
+            {
+                Id = Guid.NewGuid(),
+                GovernorateName = g,
+                ShippingCost = 60.00m,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            }).ToList();
+
+            await context.GovernorateShippings.AddRangeAsync(list);
+            await context.SaveChangesAsync();
+        }
+
+        // 8. Seed Product Reviews
+        if (!await context.ProductReviews.AnyAsync())
+        {
+            var products = await context.Products.ToListAsync();
+            var reviews = new List<ProductReview>();
+            foreach (var product in products)
+            {
+                reviews.Add(new ProductReview
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = product.Id,
+                    CustomerName = "Sherif Mohamed",
+                    CustomerEmail = "sherif@example.com",
+                    Rating = 5,
+                    Comment = "ممتاز جداً وجودة عالية وأنصح به!",
+                    IsApproved = true,
+                    CreatedAt = DateTimeOffset.UtcNow.AddDays(-2),
+                    UpdatedAt = DateTimeOffset.UtcNow.AddDays(-2)
+                });
+                reviews.Add(new ProductReview
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = product.Id,
+                    CustomerName = "Sarah Aly",
+                    CustomerEmail = "sarah@example.com",
+                    Rating = 4,
+                    Comment = "Good product, but the package was slightly delayed.",
+                    IsApproved = true,
+                    CreatedAt = DateTimeOffset.UtcNow.AddDays(-5),
+                    UpdatedAt = DateTimeOffset.UtcNow.AddDays(-5)
+                });
+            }
+            await context.ProductReviews.AddRangeAsync(reviews);
             await context.SaveChangesAsync();
         }
     }

@@ -1,7 +1,9 @@
 using ValensApi.Application;
 using ValensApi.Infrastructure;
 using ValensApi.API.Middleware;
-using FluentValidation.AspNetCore;
+using ValensApi.API.Filters;
+using Microsoft.AspNetCore.Mvc;
+using ValensApi.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,57 +12,58 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // Add Controllers and JSON configuration
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ValidationFilter>();
+    })
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 
-// Enable FluentValidation Automatic Validation
-builder.Services.AddFluentValidationAutoValidation();
+// Suppress default validation filter to let ValidationFilter handle it custom-tailored
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.SuppressModelStateInvalidFilter = true;
+});
+
+builder.Services.AddHttpContextAccessor();
 
 // Configure OpenAPI
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Add CORS Policy with configuration and fallback
-builder.Services.AddCors(options =>
+builder.Services.AddSwaggerGen(c =>
 {
-    options.AddPolicy("DefaultCorsPolicy", policy =>
+    c.SwaggerDoc("v1", new global::Microsoft.OpenApi.OpenApiInfo { Title = "Valens API", Version = "v1" });
+    
+    c.AddSecurityDefinition("Bearer", new global::Microsoft.OpenApi.OpenApiSecurityScheme
     {
-        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
-        if (allowedOrigins != null && allowedOrigins.Length > 0)
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = global::Microsoft.OpenApi.ParameterLocation.Header,
+        Type = global::Microsoft.OpenApi.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(doc => new global::Microsoft.OpenApi.OpenApiSecurityRequirement
+    {
         {
-            policy.WithOrigins(allowedOrigins)
-                  .AllowAnyMethod()
-                  .AllowAnyHeader()
-                  .AllowCredentials();
-        }
-        else
-        {
-            policy.AllowAnyOrigin()
-                  .AllowAnyMethod()
-                  .AllowAnyHeader();
+            new global::Microsoft.OpenApi.OpenApiSecuritySchemeReference("Bearer", doc),
+            new System.Collections.Generic.List<string>()
         }
     });
 });
 
-// Configure Global Rate Limiting (100 requests per minute per IP)
-builder.Services.AddRateLimiter(options =>
+// Add CORS Policy
+builder.Services.AddCors(options =>
 {
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? httpContext.Request.Headers.Host.ToString(),
-            factory: partition => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-            {
-                AutoReplenishment = true,
-                PermitLimit = 100,
-                QueueLimit = 0,
-                Window = TimeSpan.FromMinutes(1)
-            }));
+    options.AddPolicy("DefaultCorsPolicy", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
 });
 
 var app = builder.Build();
@@ -84,9 +87,6 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 // Enable CORS
 app.UseCors("DefaultCorsPolicy");
 
-// Enable Rate Limiting
-app.UseRateLimiter();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -104,6 +104,22 @@ if (app.Environment.IsDevelopment())
         context.Response.Redirect("/swagger");
         return Task.CompletedTask;
     });
+}
+
+// Seed database on startup
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        await DatabaseSeeder.SeedDataAsync(context);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+    }
 }
 
 app.Run();

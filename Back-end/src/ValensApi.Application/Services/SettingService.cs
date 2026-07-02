@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using ValensApi.Application.DTOs.Settings;
-using ValensApi.Application.DTOs.Categories;
-using ValensApi.Application.DTOs.Products;
 using ValensApi.Application.Interfaces;
 using ValensApi.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -15,52 +13,37 @@ namespace ValensApi.Application.Services;
 public class SettingService : ISettingService
 {
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IFileStorageService _fileStorageService;
 
-    public SettingService(IUnitOfWork unitOfWork)
+    public SettingService(IUnitOfWork unitOfWork, IFileStorageService fileStorageService)
     {
         _unitOfWork = unitOfWork;
+        _fileStorageService = fileStorageService;
     }
 
-    public async Task<StoreSettingsResponseDto> GetStoreSettingsAsync()
+    public async Task<object> GetStoreSettingsAsync()
     {
         var settings = await GetOrCreateSettingsAsync();
-        return new StoreSettingsResponseDto
+        return new
         {
-            BrandName = settings.BrandName,
-            LogoText = settings.LogoText,
-            ContactEmail = settings.ContactEmail,
-            ContactPhone = settings.ContactPhone,
-            Address = settings.Address,
-            ShippingCost = settings.ShippingCost,
-            TaxRate = settings.TaxRate,
-            SocialInstagram = settings.SocialInstagram,
-            SocialTwitter = settings.SocialTwitter,
-            SocialFacebook = settings.SocialFacebook
+            settings.ShippingCost,
+            settings.FreeShippingThreshold,
+            settings.ContactPhone,
+            settings.ContactEmail
         };
     }
 
-    public async Task<HomePageSettingsResponseDto> GetHomepageSettingsAsync()
+    public async Task<object> GetHomepageSettingsAsync()
     {
         var settings = await GetOrCreateSettingsAsync();
-        return new HomePageSettingsResponseDto
+        return new
         {
-            BrandName = settings.BrandName,
-            LogoText = settings.LogoText,
-            HeroTitle = settings.HomepageHeroTitle,
-            HeroSubtitle = settings.HomepageHeroSubtitle,
-            HeroCtaText = settings.HeroCtaText,
-            HeroCtaLink = settings.HeroCtaLink,
-            FirstBannerTitle = settings.FirstBannerTitle,
-            FirstBannerSubtitle = settings.FirstBannerSubtitle,
-            FirstBannerCtaText = settings.FirstBannerCtaText,
-            PromoBadge = settings.PromoBadge,
-            HeroTitleAr = settings.HeroTitleAr,
-            HeroSubtitleAr = settings.HeroSubtitleAr,
-            HeroCtaTextAr = settings.HeroCtaTextAr,
-            FirstBannerTitleAr = settings.FirstBannerTitleAr,
-            FirstBannerSubtitleAr = settings.FirstBannerSubtitleAr,
-            FirstBannerCtaTextAr = settings.FirstBannerCtaTextAr,
-            PromoBadgeAr = settings.PromoBadgeAr
+            settings.HomepageHeroTitle,
+            settings.HomepageHeroSubtitle,
+            settings.HomepageDiscountBannerText,
+            settings.HeroImage,
+            settings.PromoBannerImage,
+            settings.HomepageSliderImages
         };
     }
 
@@ -68,17 +51,10 @@ public class SettingService : ISettingService
     {
         var settings = await GetOrCreateSettingsAsync();
 
-        settings.BrandName = dto.BrandName;
-        settings.LogoText = dto.LogoText;
-        settings.ContactPhone = dto.ContactPhone;
-        settings.ContactEmail = dto.ContactEmail;
-        settings.Address = dto.Address;
         settings.ShippingCost = dto.ShippingCost;
         settings.FreeShippingThreshold = dto.FreeShippingThreshold;
-        settings.TaxRate = dto.TaxRate;
-        settings.SocialInstagram = dto.SocialInstagram;
-        settings.SocialTwitter = dto.SocialTwitter;
-        settings.SocialFacebook = dto.SocialFacebook;
+        settings.ContactPhone = dto.ContactPhone;
+        settings.ContactEmail = dto.ContactEmail;
 
         _unitOfWork.StoreSettings.Update(settings);
         await _unitOfWork.SaveChangesAsync();
@@ -89,35 +65,108 @@ public class SettingService : ISettingService
     {
         var settings = await GetOrCreateSettingsAsync();
 
-        settings.BrandName = dto.BrandName;
-        settings.LogoText = dto.LogoText;
-        settings.HomepageHeroTitle = dto.HeroTitle;
-        settings.HomepageHeroSubtitle = dto.HeroSubtitle;
-        settings.HeroCtaText = dto.HeroCtaText;
-        settings.HeroCtaLink = dto.HeroCtaLink;
-        settings.FirstBannerTitle = dto.FirstBannerTitle;
-        settings.FirstBannerSubtitle = dto.FirstBannerSubtitle;
-        settings.FirstBannerCtaText = dto.FirstBannerCtaText;
-        settings.PromoBadge = dto.PromoBadge;
+        settings.HomepageHeroTitle = dto.HomepageHeroTitle;
+        settings.HomepageHeroSubtitle = dto.HomepageHeroSubtitle;
+        settings.HomepageDiscountBannerText = dto.HomepageDiscountBannerText;
 
-        settings.HeroTitleAr = dto.HeroTitleAr;
-        settings.HeroSubtitleAr = dto.HeroSubtitleAr;
-        settings.HeroCtaTextAr = dto.HeroCtaTextAr;
-        settings.FirstBannerTitleAr = dto.FirstBannerTitleAr;
-        settings.FirstBannerSubtitleAr = dto.FirstBannerSubtitleAr;
-        settings.FirstBannerCtaTextAr = dto.FirstBannerCtaTextAr;
-        settings.PromoBadgeAr = dto.PromoBadgeAr;
-
-        settings.HeroImage = SaveBase64Image(dto.HeroImage);
-        settings.PromoBannerImage = SaveBase64Image(dto.PromoBannerImage);
-
-        if (dto.HomepageSliderImages != null)
+        // Hero Image
+        if (dto.HeroImageFile != null)
         {
-            settings.HomepageSliderImages = dto.HomepageSliderImages
-                .Select(img => SaveBase64Image(img))
-                .Where(url => !string.IsNullOrEmpty(url))
-                .ToList();
+            if (!_fileStorageService.IsValidImage(dto.HeroImageFile, out var error))
+                throw new ArgumentException($"Hero image: {error}");
+            string newHeroImage = await _fileStorageService.SaveFileAsync(dto.HeroImageFile, "uploads/settings");
+            if (!string.IsNullOrEmpty(settings.HeroImage))
+            {
+                _fileStorageService.DeleteFile(settings.HeroImage);
+            }
+            settings.HeroImage = newHeroImage;
         }
+        else if (!string.IsNullOrEmpty(dto.HeroImage))
+        {
+            string processedImage = SaveBase64Image(dto.HeroImage, "settings");
+            if (processedImage != settings.HeroImage)
+            {
+                if (!string.IsNullOrEmpty(settings.HeroImage))
+                {
+                    _fileStorageService.DeleteFile(settings.HeroImage);
+                }
+                settings.HeroImage = processedImage;
+            }
+        }
+
+        // Promo Banner Image
+        if (dto.PromoBannerImageFile != null)
+        {
+            if (!_fileStorageService.IsValidImage(dto.PromoBannerImageFile, out var error))
+                throw new ArgumentException($"Promo banner image: {error}");
+            string newPromoImage = await _fileStorageService.SaveFileAsync(dto.PromoBannerImageFile, "uploads/settings");
+            if (!string.IsNullOrEmpty(settings.PromoBannerImage))
+            {
+                _fileStorageService.DeleteFile(settings.PromoBannerImage);
+            }
+            settings.PromoBannerImage = newPromoImage;
+        }
+        else if (!string.IsNullOrEmpty(dto.PromoBannerImage))
+        {
+            string processedImage = SaveBase64Image(dto.PromoBannerImage, "settings");
+            if (processedImage != settings.PromoBannerImage)
+            {
+                if (!string.IsNullOrEmpty(settings.PromoBannerImage))
+                {
+                    _fileStorageService.DeleteFile(settings.PromoBannerImage);
+                }
+                settings.PromoBannerImage = processedImage;
+            }
+        }
+
+        // Slider Images
+        var finalSliderImages = new List<string>();
+        if (dto.ExistingSliderImages != null)
+        {
+            finalSliderImages.AddRange(dto.ExistingSliderImages.Where(url => !string.IsNullOrEmpty(url)));
+        }
+
+        if (dto.HomepageSliderImageFiles != null && dto.HomepageSliderImageFiles.Count > 0)
+        {
+            foreach (var file in dto.HomepageSliderImageFiles)
+            {
+                if (!_fileStorageService.IsValidImage(file, out var error))
+                    throw new ArgumentException($"Slider image: {error}");
+                var url = await _fileStorageService.SaveFileAsync(file, "uploads/settings");
+                if (!string.IsNullOrEmpty(url))
+                    finalSliderImages.Add(url);
+            }
+        }
+
+        if (dto.HomepageSliderImages != null && dto.HomepageSliderImages.Count > 0)
+        {
+            foreach (var imgStr in dto.HomepageSliderImages)
+            {
+                if (imgStr.StartsWith("http") || imgStr.StartsWith("/uploads"))
+                {
+                    if (!finalSliderImages.Contains(imgStr))
+                        finalSliderImages.Add(imgStr);
+                }
+                else
+                {
+                    var url = SaveBase64Image(imgStr, "settings");
+                    if (!string.IsNullOrEmpty(url) && !finalSliderImages.Contains(url))
+                        finalSliderImages.Add(url);
+                }
+            }
+        }
+
+        // Clean up old slider images no longer kept
+        if (settings.HomepageSliderImages != null)
+        {
+            var sliderImagesToDelete = settings.HomepageSliderImages.Except(finalSliderImages).ToList();
+            foreach (var oldSliderImg in sliderImagesToDelete)
+            {
+                _fileStorageService.DeleteFile(oldSliderImg);
+            }
+        }
+
+        settings.HomepageSliderImages = finalSliderImages;
 
         _unitOfWork.StoreSettings.Update(settings);
         await _unitOfWork.SaveChangesAsync();
@@ -132,32 +181,13 @@ public class SettingService : ISettingService
         {
             settings = new StoreSetting
             {
-                BrandName = "VALENS",
-                LogoText = "VALENS",
-                ContactPhone = "+1 (800) 825-3677",
-                ContactEmail = "elite@valens.com",
-                Address = "88 Science & Athletics Drive, Sector 4, CA 90210",
                 ShippingCost = 60,
                 FreeShippingThreshold = 1500,
-                TaxRate = 5,
-                SocialInstagram = "@valens_nutrition",
-                SocialTwitter = "@valens_performance",
-                SocialFacebook = "valens.elite",
-                HomepageHeroTitle = "FORGED IN SCIENCE, UNLEASHED IN PERFORMANCE",
-                HomepageHeroSubtitle = "Engineered for elite athletes. Premium supplements formulated with clinical dosages, clean ingredients, and zero compromises.",
-                HeroCtaText = "SHOP THE NUTRITION",
-                HeroCtaLink = "/products",
-                FirstBannerTitle = "THE VALENS FORMULA",
-                FirstBannerSubtitle = "Cold-filtered processing, zero artificial coloring, complete transparency. We don't hide behind proprietary blends. What you see is exactly what powers you.",
-                FirstBannerCtaText = "DISCOVER THE SCIENCE",
-                PromoBadge = "ELITE PERFORMANCE LINE",
-                HeroTitleAr = "مُصمم برؤية علمية، مُنفجر بقوة الأداء",
-                HeroSubtitleAr = "مُهندس خصيصاً للرياضيين النخبة. مكملات فاخرة مُصممة بجرعات سريرية ومكونات نظيفة وبدون تنازلات.",
-                HeroCtaTextAr = "تسوق التغذية الفاخرة",
-                FirstBannerTitleAr = "تركيبة VALENS النخبوية",
-                FirstBannerSubtitleAr = "معالجة بالفلترة الباردة، خالية تمامًا من الألوان الاصطناعية، وشفافية مطلقة للبطاقات. لا نختبئ خلف تركيبات احتكارية مبهمة.",
-                FirstBannerCtaTextAr = "اكتشف الجانب العلمي",
-                PromoBadgeAr = "خط الأداء الرياضي الفاخر",
+                ContactPhone = "+201000000000",
+                ContactEmail = "support@valens.com",
+                HomepageHeroTitle = "Premium Sports & Nutritional Supplements",
+                HomepageHeroSubtitle = "Fuel your body with the highest quality formulations.",
+                HomepageDiscountBannerText = "Get 10% off your first order! Use code: FIRST10",
                 HeroImage = string.Empty,
                 PromoBannerImage = string.Empty,
                 HomepageSliderImages = new List<string>()
@@ -168,7 +198,7 @@ public class SettingService : ISettingService
         return settings;
     }
 
-    private string SaveBase64Image(string base64String)
+    private string SaveBase64Image(string base64String, string subFolder = "settings")
     {
         if (string.IsNullOrEmpty(base64String)) return string.Empty;
 
@@ -190,7 +220,7 @@ public class SettingService : ISettingService
             else if (base64String.Contains("image/gif")) extension = ".gif";
 
             string fileName = Guid.NewGuid().ToString() + extension;
-            string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", subFolder);
 
             if (!Directory.Exists(uploadsFolder))
             {
@@ -200,7 +230,7 @@ public class SettingService : ISettingService
             string filePath = Path.Combine(uploadsFolder, fileName);
             System.IO.File.WriteAllBytes(filePath, imageBytes);
 
-            return "/uploads/" + fileName;
+            return $"/uploads/{subFolder}/{fileName}";
         }
         catch
         {
@@ -216,7 +246,6 @@ public class SettingService : ISettingService
         
         var products = await _unitOfWork.Products.GetQueryable()
             .Include(p => p.Variants)
-            .Include(p => p.Reviews)
             .Where(p => p.Visible)
             .AsNoTracking()
             .ToListAsync();
@@ -224,78 +253,57 @@ public class SettingService : ISettingService
         return new
         {
             Settings = settings,
-            Categories = categories.Select(c => new CategoryResponseDto
-            {
-                Id = c.Id,
-                Name = c.Name,
-                Slug = c.Slug,
-                ImageColor = c.ImageColor,
-                Visible = c.IsActive
-            }).OrderBy(c => c.Name).ToList(),
+            Categories = categories,
             Products = new
             {
-                Featured = products.Where(p => p.Featured).Select(MapProductToResponseDto).ToList(),
-                BestSellers = products.Where(p => p.BestSeller).Select(MapProductToResponseDto).ToList(),
-                NewArrivals = products.Where(p => p.NewArrival).Select(MapProductToResponseDto).ToList()
+                Featured = products.Where(p => p.Featured).ToList(),
+                BestSellers = products.Where(p => p.BestSeller).ToList(),
+                NewArrivals = products.Where(p => p.NewArrival).ToList()
             }
         };
     }
 
-    private static ProductResponseDto MapProductToResponseDto(Product product)
+    public async Task<System.Collections.Generic.IEnumerable<GovernorateShipping>> GetGovernorateShippingsAsync()
     {
-        return new ProductResponseDto
+        var list = await _unitOfWork.GovernorateShippings.GetAllAsync();
+        return list.OrderBy(g => g.GovernorateName);
+    }
+
+    public async Task<bool> UpdateGovernorateShippingAsync(UpdateGovernorateShippingDto dto)
+    {
+        var gov = await _unitOfWork.GovernorateShippings.GetByIdAsync(dto.Id);
+        if (gov == null)
         {
-            Id = product.Id,
-            CreatedAt = product.CreatedAt,
-            UpdatedAt = product.UpdatedAt,
-            Name = product.Name,
-            Description = product.Description,
-            CategoryName = product.CategoryName,
-            CategoryId = product.CategoryId,
-            Featured = product.Featured,
-            BestSeller = product.BestSeller,
-            NewArrival = product.NewArrival,
-            Visible = product.Visible,
-            VariantType = product.VariantType,
-            Price = product.Price,
-            DiscountPrice = product.DiscountPrice,
-            Size = product.Size,
-            Stock = product.Stock,
-            Sku = product.Sku,
-            MainImage = product.MainImage,
-            Images = product.Images ?? new(),
-            Ingredients = product.Ingredients ?? new(),
-            Benefits = product.Benefits ?? new(),
-            Usage = product.Usage,
-            ImageType = product.ImageType,
-            ImageColor = product.ImageColor,
-            Variants = product.Variants?.Select(v => new ProductVariantResponseDto
-            {
-                VariantId = v.VariantId,
-                ProductId = v.ProductId,
-                Size = v.Size,
-                Flavor = v.Flavor,
-                Price = v.Price,
-                DiscountPrice = v.DiscountPrice,
-                StockQuantity = v.StockQuantity,
-                Sku = v.Sku,
-                Image = v.Image,
-                IsAvailable = v.IsAvailable
-            }).ToList() ?? new(),
-            Rating = product.Rating,
-            Reviews = product.Reviews?.Select(r => new ReviewResponseDto
-            {
-                Id = r.Id,
-                Author = r.Author,
-                Rating = r.Rating,
-                Comment = r.Comment,
-                Date = r.Date
-            }).ToList() ?? new(),
-            NameAr = product.NameAr,
-            DescriptionAr = product.DescriptionAr,
-            IngredientsAr = product.IngredientsAr ?? new(),
-            UsageAr = product.UsageAr,
-            BenefitsAr = product.BenefitsAr ?? new()
+            return false;
+        }
+
+        gov.ShippingCost = dto.ShippingCost;
+        _unitOfWork.GovernorateShippings.Update(gov);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<GovernorateShipping?> CreateGovernorateShippingAsync(CreateGovernorateShippingDto dto)
+    {
+        var exists = await _unitOfWork.GovernorateShippings.FindAsync(g => 
+            g.GovernorateName.ToLower() == dto.GovernorateName.Trim().ToLower()
+        );
+        if (exists.Any())
+        {
+            return null; // Already exists
+        }
+
+        var gov = new GovernorateShipping
+        {
+            Id = Guid.NewGuid(),
+            GovernorateName = dto.GovernorateName.Trim(),
+            ShippingCost = dto.ShippingCost,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
         };
+
+        await _unitOfWork.GovernorateShippings.AddAsync(gov);
+        await _unitOfWork.SaveChangesAsync();
+        return gov;
     }
 }

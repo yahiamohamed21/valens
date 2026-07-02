@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { api } from "@/lib/api";
+import { api, mapApiProductToClient } from "@/lib/api";
 import { getStockStatus } from "@/lib/product-utils";
 import { showToast } from "@/lib/toast";
 import type { Product } from "@/types/store";
@@ -10,211 +10,132 @@ interface ProductActionDeps {
   setProducts: Dispatch<SetStateAction<Product[]>>;
 }
 
-const isGuid = (str: string): boolean => {
-  if (!str) return false;
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-};
-
 /**
- * Builds a FormData object matching the backend ProductUpsertDto exactly.
- * Docs: POST /api/products/create-product  &  POST /api/products/update-product
+ * Builds a JSON payload for creating or updating a product.
+ * Uses the JSON endpoint option from the API guide:
+ *   Create: POST /api/products/create-product (Content-Type: application/json)
+ *   Update: POST /api/products/update-product (Content-Type: application/json)
  *
- * - String arrays (ingredients, benefits, etc.) → repeated same-key appends
- * - Nested variants → dot-notation: variants[0].size, variants[0].price, etc.
- * - Booleans → explicit "true" / "false" strings
- * - id → only included for updates (must be valid GUID)
+ * Images are sent as base64 strings (new images) or as their existing URL strings
+ * (unchanged images the server already has).
  */
-const dataURLtoFile = (dataurl: string, filename: string): File | null => {
-  if (!dataurl || !dataurl.startsWith("data:")) return null;
-  try {
-    const arr = dataurl.split(",");
-    const mimeMatch = arr[0].match(/:(.*?);/);
-    if (!mimeMatch) return null;
-    const mime = mimeMatch[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new File([u8arr], filename, { type: mime });
-  } catch (e) {
-    console.error("Failed to convert base64 to file:", e);
-    return null;
-  }
-};
-
-const cleanImageUrl = (url: string): string => {
-  if (!url) return "";
-  const domain = "http://valens-api.runasp.net";
-  if (url.startsWith(domain)) {
-    return url.substring(domain.length);
-  }
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    try {
-      return new URL(url).pathname;
-    } catch {
-      return url;
-    }
-  }
-  return url;
-};
-
-/**
- * Builds a FormData object matching the backend ProductUpsertDto exactly.
- * Docs: POST /api/products/create-product  &  POST /api/products/update-product
- */
-const buildProductFormData = (prod: Partial<Product>, isUpdate: boolean): FormData => {
-  const fd = new FormData();
+export const buildProductJsonPayload = (
+  prod: Partial<Product>,
+  isUpdate: boolean
+): Record<string, unknown> => {
   const prodObj = prod as Record<string, unknown>;
-
-  // Resolve English values (used as Arabic fallbacks when Arabic is empty)
-  const name = prod.name || "";
-  const description = prod.description || "";
-  const ingredients: string[] = Array.isArray(prod.ingredients) ? prod.ingredients : [];
-  const usage = prod.usage || "";
-  const benefits: string[] = Array.isArray(prod.benefits) ? prod.benefits : [];
-
-  // ── ID (only for update, must be valid GUID) ──
-  if (isUpdate && prod.id && isGuid(prod.id)) {
-    fd.append("id", prod.id);
-  }
-
-  // ── Required string fields ──
-  fd.append("name", name);
-  fd.append("nameAr", prod.name_ar || (prodObj.nameAr as string | undefined) || name);
-  fd.append("category", prod.category || "");
-  fd.append("description", description);
-  fd.append("descriptionAr", prod.description_ar || (prodObj.descriptionAr as string | undefined) || description);
-
-  // ── Boolean fields ──
-  fd.append("featured", String(prod.featured ?? false));
-  fd.append("bestSeller", String(prod.bestSeller ?? false));
-  fd.append("newArrival", String(prod.newArrival ?? false));
-  fd.append("visible", String(prod.visible ?? true));
-
-  // ── Variant type (required: none | size | flavor | both) ──
   const variantType = prod.variantType || "none";
-  fd.append("variantType", variantType);
-
-  // ── Numeric fields ──
   const hasVariants = variantType !== "none";
-  fd.append("price", hasVariants ? "0" : String(Number(prod.price) || 0));
-  fd.append("stock", hasVariants ? "0" : String(Number(prod.stock) || 0));
 
-  if (!hasVariants && prod.discountPrice !== undefined && prod.discountPrice !== null && Number(prod.discountPrice) > 0) {
-    fd.append("discountPrice", String(Number(prod.discountPrice)));
-  } else {
-    fd.append("discountPrice", "0");
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const payload: Record<string, any> = {
+    name: prod.name || "",
+    nameAr: prod.name_ar || (prodObj.nameAr as string) || prod.name || "",
+    category: prod.category || "",
+    description: prod.description || "",
+    descriptionAr: prod.description_ar || (prodObj.descriptionAr as string) || prod.description || "",
+    featured: Boolean(prod.featured),
+    bestSeller: Boolean(prod.bestSeller),
+    newArrival: Boolean(prod.newArrival),
+    visible: prod.visible !== undefined ? Boolean(prod.visible) : true,
+    variantType,
+    price: Number(prod.price) || 0,
+    discountPrice: Number(prod.discountPrice) || 0,
+    size: prod.size || "",
+    stock: Number(prod.stock) || 0,
+    sku: prod.sku || "",
+    imageType: prod.imageType || "powder",
+    imageColor: prod.imageColor || "#FF8A75",
+    usage: prod.usage || "",
+    usageAr: prod.usage_ar || (prodObj.usageAr as string) || prod.usage || "",
+  };
 
-  // ── Simple string fields ──
-  fd.append("size", prod.size || "");
-  fd.append("sku", prod.sku || "");
-  fd.append("imageType", prod.imageType || "powder");
-  fd.append("imageColor", prod.imageColor || "#FF8A75");
-  fd.append("usage", usage);
-  fd.append("usageAr", prod.usage_ar || (prodObj.usageAr as string | undefined) || usage);
-
-  // ── Main Image File upload ──
+  // Main image: send as base64 string or existing URL as-is
   if (prod.mainImage) {
-    if (prod.mainImage.startsWith("data:")) {
-      const mainFile = dataURLtoFile(prod.mainImage, "main-image.png");
-      if (mainFile) {
-        fd.append("mainImageFile", mainFile);
-      }
-    } else {
-      fd.append("mainImage", cleanImageUrl(prod.mainImage));
-    }
+    payload.mainImage = prod.mainImage;
   }
 
-  // ── String array fields ──
-  ingredients.forEach((item) => {
-    if (item) fd.append("ingredients", item);
-  });
-
-  const ingredientsAr = prod.ingredients_ar || (prodObj.ingredientsAr as string[] | undefined) || ingredients;
-  if (Array.isArray(ingredientsAr)) {
-    ingredientsAr.forEach((item: string) => {
-      if (item) fd.append("ingredientsAr", item);
-    });
+  // Gallery images: send as base64 strings or existing URLs
+  if (prod.images && prod.images.length > 0) {
+    payload.images = prod.images.filter(Boolean);
   }
 
-  benefits.forEach((item) => {
-    if (item) fd.append("benefits", item);
-  });
-
-  const benefitsAr = prod.benefits_ar || (prodObj.benefitsAr as string[] | undefined) || benefits;
-  if (Array.isArray(benefitsAr)) {
-    benefitsAr.forEach((item: string) => {
-      if (item) fd.append("benefitsAr", item);
-    });
+  // Ingredients
+  const ingredients = Array.isArray(prod.ingredients) ? prod.ingredients.filter(Boolean) : [];
+  if (ingredients.length > 0) {
+    payload.ingredients = ingredients;
   }
 
-  // ── Gallery Images & Files ──
-  const galleryImages = prod.images || [];
-  if (Array.isArray(galleryImages)) {
-    galleryImages.forEach((img, index) => {
-      if (img && typeof img === "string") {
-        if (img.startsWith("data:")) {
-          const file = dataURLtoFile(img, `gallery-image-${index}.png`);
-          if (file) {
-            fd.append("imageFiles", file);
-          }
-        } else {
-          fd.append("existingImages", cleanImageUrl(img));
-        }
-      }
-    });
+  const ingredientsAr = Array.isArray(prod.ingredients_ar)
+    ? prod.ingredients_ar.filter(Boolean)
+    : Array.isArray(prodObj.ingredientsAr)
+    ? (prodObj.ingredientsAr as string[]).filter(Boolean)
+    : ingredients;
+  if (ingredientsAr.length > 0) {
+    payload.ingredientsAr = ingredientsAr;
   }
 
-  // ── Variants ──
-  const variants = prod.variants || [];
-  variants.forEach((v, i) => {
-    if (v.id && isGuid(v.id)) {
-      fd.append(`variants[${i}].id`, v.id);
-    }
-    fd.append(`variants[${i}].size`, v.size || "");
-    fd.append(`variants[${i}].flavor`, v.flavor || "");
-    fd.append(`variants[${i}].price`, String(Number(v.price) || 0));
-    if (v.discountPrice !== undefined && v.discountPrice !== null && Number(v.discountPrice) > 0) {
-      fd.append(`variants[${i}].discountPrice`, String(Number(v.discountPrice)));
-    } else {
-      fd.append(`variants[${i}].discountPrice`, "0");
-    }
-    fd.append(`variants[${i}].stockQuantity`, String(Number(v.stockQuantity) || 0));
-    fd.append(`variants[${i}].sku`, v.sku || "");
+  // Benefits
+  const benefits = Array.isArray(prod.benefits) ? prod.benefits.filter(Boolean) : [];
+  if (benefits.length > 0) {
+    payload.benefits = benefits;
+  }
 
-    if (v.image) {
-      if (v.image.startsWith("data:")) {
-        const file = dataURLtoFile(v.image, `variant-image-${i}.png`);
-        if (file) {
-          fd.append(`variants[${i}].imageFile`, file);
-        }
-      } else {
-        fd.append(`variants[${i}].image`, cleanImageUrl(v.image));
-      }
-    }
-    fd.append(`variants[${i}].isAvailable`, String(v.isAvailable ?? true));
-  });
+  const benefitsAr = Array.isArray(prod.benefits_ar)
+    ? prod.benefits_ar.filter(Boolean)
+    : Array.isArray(prodObj.benefitsAr)
+    ? (prodObj.benefitsAr as string[]).filter(Boolean)
+    : benefits;
+  if (benefitsAr.length > 0) {
+    payload.benefitsAr = benefitsAr;
+  }
 
-  return fd;
+  // Variants
+  if (hasVariants && prod.variants && prod.variants.length > 0) {
+    payload.variants = prod.variants.map((v) => ({
+      ...(v.id ? { id: v.id } : {}),
+      size: v.size || "",
+      flavor: v.flavor || "",
+      price: Number(v.price) || 0,
+      discountPrice: Number(v.discountPrice) || 0,
+      stockQuantity: Number(v.stockQuantity) || 0,
+      sku: v.sku || "",
+      image: v.image || "",
+      isAvailable: v.isAvailable !== undefined ? Boolean(v.isAvailable) : true,
+    }));
+  }
+
+  // Add product ID for updates
+  if (isUpdate && prod.id) {
+    payload.id = prod.id.trim();
+  }
+
+  return payload;
 };
 
 export const useProductActions = ({ products, setProducts }: ProductActionDeps) => {
   const addProduct = useCallback(async (prodData: Omit<Product, "id" | "reviews">) => {
     try {
-      const formData = buildProductFormData(prodData, false);
-      const created = await api.products.create(formData);
+      const jsonPayload = buildProductJsonPayload(prodData, false);
 
-      const newProduct: Product = {
-        ...prodData,
-        id: created.id || `prod-${Date.now()}`,
-        reviews: [],
-        stockStatus: getStockStatus(created.stock !== undefined ? created.stock : prodData.stock),
-      };
-      setProducts((prev) => [...prev, newProduct]);
-      showToast(`Product "${newProduct.name}" added`, "success");
+      // Debug: log payload
+      console.log("=== Product Create JSON Debug ===", jsonPayload);
+
+      const created = await api.products.create(jsonPayload);
+      if (created) {
+        const mapped = mapApiProductToClient(created as Record<string, unknown>);
+        setProducts((prev) => [...prev, mapped]);
+        showToast(`Product "${mapped.name}" added`, "success");
+      } else {
+        const newProduct: Product = {
+          ...prodData,
+          id: `prod-${Date.now()}`,
+          reviews: [],
+          stockStatus: getStockStatus(prodData.stock),
+        };
+        setProducts((prev) => [...prev, newProduct]);
+        showToast(`Product "${newProduct.name}" added`, "success");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to add product";
       showToast(message, "error");
@@ -230,24 +151,45 @@ export const useProductActions = ({ products, setProducts }: ProductActionDeps) 
 
       if (isToggleOnly) {
         await api.products.toggle(productId);
+        setProducts((prev) =>
+          prev.map((prod) => {
+            if (prod.id === productId) {
+              const merged: Product = { ...prod, ...updatedFields };
+              merged.stockStatus = getStockStatus(merged.stock);
+              return merged;
+            }
+            return prod;
+          })
+        );
       } else {
         const merged = { ...existing, ...updatedFields };
-        const formData = buildProductFormData(merged, true);
-        await api.products.update(formData);
-      }
+        const jsonPayload = buildProductJsonPayload(merged, true);
 
-      setProducts((prev) =>
-        prev.map((prod) => {
-          if (prod.id === productId) {
-            const merged: Product = { ...prod, ...updatedFields };
-            merged.stockStatus = getStockStatus(merged.stock);
-            return merged;
-          }
-          return prod;
-        })
-      );
+        // Debug: log payload
+        console.log("=== Product Update JSON Debug ===", jsonPayload);
+
+        const updated = await api.products.update(jsonPayload);
+        if (updated) {
+          const mapped = mapApiProductToClient(updated as Record<string, unknown>);
+          setProducts((prev) =>
+            prev.map((prod) => (prod.id === productId ? mapped : prod))
+          );
+        } else {
+          setProducts((prev) =>
+            prev.map((prod) => {
+              if (prod.id === productId) {
+                const mergedProd: Product = { ...prod, ...updatedFields };
+                mergedProd.stockStatus = getStockStatus(mergedProd.stock);
+                return mergedProd;
+              }
+              return prod;
+            })
+          );
+        }
+      }
       showToast("Product updated successfully", "success");
     } catch (error) {
+      console.error("=== Product Update Error ===", error);
       const message = error instanceof Error ? error.message : "Failed to update product";
       showToast(message, "error");
     }

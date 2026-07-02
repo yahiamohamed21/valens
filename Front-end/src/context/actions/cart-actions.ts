@@ -102,7 +102,7 @@ export const useCartActions = ({ cart, setCart, coupons, setActiveCoupon }: Cart
       const coupon: Coupon = {
         id: `validated-${response.code}`,
         code: response.code,
-        discountType: response.discountType as "percentage" | "fixed",
+        discountType: response.discountType.toLowerCase() === "fixed" ? "fixed" : "percentage",
         discountValue: Number(response.discountValue),
         expiryDate: new Date(Date.now() + 86400000).toISOString(),
         usageLimit: 99999,

@@ -1,3 +1,5 @@
+import { Dispatch, SetStateAction } from "react";
+
 export interface ProductVariant {
   id: string;
   size?: string;
@@ -105,6 +107,29 @@ export interface Order {
     | "Cancelled"
     | "Rejected"
     | "Returned";
+
+  // Return Info
+  refundAmount?: number;
+  returnReason?: string;
+  returnDate?: string;
+  returnNotes?: string;
+  isStockRestored?: boolean;
+  returnedItems?: {
+    productId: string;
+    productName: string;
+    price: number;
+    quantity: number;
+    size: string;
+    variant: string;
+  }[];
+
+  // Coupon Info
+  couponId?: string;
+  couponDiscountType?: "percentage" | "fixed";
+  couponDiscountValue?: number;
+  couponDiscountAmountApplied?: number;
+  couponTotalBeforeDiscount?: number;
+  couponFinalTotalAfterDiscount?: number;
 }
 
 export interface Customer {
@@ -135,15 +160,11 @@ export interface Expense {
   id: string;
   title: string;
   category:
-    | "Product purchasing cost"
-    | "Shipping expenses"
-    | "Marketing and ads"
-    | "Packaging"
-    | "Website maintenance"
-    | "Staff salaries"
-    | "Storage / warehouse"
-    | "Delivery company fees"
-    | "Miscellaneous expenses";
+    | "Advertising"
+    | "Salaries"
+    | "Shipping"
+    | "Rent"
+    | "Other";
   amount: number;
   date: string;
   paymentMethod: string;
@@ -183,13 +204,85 @@ export interface StoreSettings {
   socialFacebook: string;
 }
 
+export interface HomeBanner {
+  id: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  mobileImage?: string;
+  ctaText: string;
+  ctaLink: string;
+  isActive: boolean;
+  displayOrder: number;
+  altText?: string;
+}
+
+export interface CarouselItem {
+  id: string;
+  title: string;
+  imageUrl: string;
+  imageAlt: string;
+  description?: string;
+  category?: string;
+  title_ar?: string;
+  category_ar?: string;
+  description_ar?: string;
+}
+
+export interface HomeStory {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  link?: string;
+  isActive: boolean;
+  displayOrder: number;
+  altText?: string;
+}
+
+export interface HomeCuratedProduct {
+  id?: string;
+  productId: string;
+  isActive: boolean;
+  displayOrder: number;
+}
+
+export interface OrderReturn {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  returnDate: string;
+  customerName: string;
+  returnedFormulations: string;
+  returnReason: string;
+  isRestoredToStock: boolean;
+  refundAmount: number;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface AppContextType {
+  returnsList: OrderReturn[];
+  setReturnsList: Dispatch<SetStateAction<OrderReturn[]>>;
+  homeBanners: HomeBanner[];
+  setHomeBanners: Dispatch<SetStateAction<HomeBanner[]>>;
+  homeStories: HomeStory[];
+  setHomeStories: Dispatch<SetStateAction<HomeStory[]>>;
+  homeFeaturedProducts: HomeCuratedProduct[];
+  setHomeFeaturedProducts: Dispatch<SetStateAction<HomeCuratedProduct[]>>;
+  homeBestSellers: HomeCuratedProduct[];
+  setHomeBestSellers: Dispatch<SetStateAction<HomeCuratedProduct[]>>;
   products: Product[];
+  setProducts: Dispatch<SetStateAction<Product[]>>;
   categories: Category[];
   cart: CartItem[];
   orders: Order[];
+  setOrders: Dispatch<SetStateAction<Order[]>>;
   customers: Customer[];
+  setCustomers: Dispatch<SetStateAction<Customer[]>>;
   coupons: Coupon[];
+  setCoupons: Dispatch<SetStateAction<Coupon[]>>;
   expenses: Expense[];
   homePageSettings: HomePageSettings;
   storeSettings: StoreSettings;
@@ -207,7 +300,7 @@ export interface AppContextType {
   registerCustomer: (email: string, password: string, name: string) => Promise<boolean>;
   logoutUser: () => void;
   updateCustomer: (email: string, updatedDetails: Partial<Customer>) => void;
-  fetchAdminData: () => Promise<void>;
+  fetchAdminData: (force?: boolean) => Promise<void>;
   fetchCustomerData: () => Promise<void>;
 
   // Cart operations
@@ -231,6 +324,24 @@ export interface AppContextType {
   updateOrderStatus: (orderId: string, status: Order["status"]) => void;
   confirmOrder: (orderId: string) => void;
   cancelOrder: (orderId: string) => void;
+  returnOrder: (
+    orderId: string,
+    returnDetails: {
+      returnReason: string;
+      returnDate: string;
+      refundAmount: number;
+      returnNotes: string;
+      isStockRestored: boolean;
+      returnedItems?: {
+        productId: string;
+        productName: string;
+        price: number;
+        quantity: number;
+        size: string;
+        variant: string;
+      }[];
+    }
+  ) => Promise<void>;
 
   // Admin CRUD operations
   addProduct: (product: Omit<Product, "id" | "reviews">) => void;

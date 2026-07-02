@@ -20,7 +20,7 @@ public class ProductsController : BaseApiController
     }
 
     [HttpPost("list-products")]
-    public async Task<ActionResult<PagedResult<ProductResponseDto>>> GetProducts([FromBody] ProductFilterDto dto)
+    public async Task<IActionResult> GetProducts([FromBody] ProductFilterDto dto)
     {
         bool isAdmin = User.Identity?.IsAuthenticated == true && User.IsInRole("Admin");
         var products = await _productService.GetAllAsync(
@@ -29,9 +29,9 @@ public class ProductsController : BaseApiController
             dto.MinPrice, 
             dto.MaxPrice, 
             dto.SortBy, 
+            isAdmin,
             dto.PageNumber,
-            dto.PageSize,
-            isAdmin
+            dto.PageSize
         );
         return Ok(products);
     }
@@ -44,7 +44,7 @@ public class ProductsController : BaseApiController
     }
 
     [HttpPost("detail-product")]
-    public async Task<ActionResult<ProductResponseDto>> GetProductById([FromBody] IdRequestDto dto)
+    public async Task<ActionResult<Product>> GetProductById([FromBody] IdRequestDto dto)
     {
         var product = await _productService.GetByIdAsync(dto.Id);
         if (product == null)
@@ -57,10 +57,32 @@ public class ProductsController : BaseApiController
 
     [HttpPost("create-product")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<ProductResponseDto>> CreateProduct([FromBody] ProductUpsertDto dto)
+    public async Task<ActionResult<Product>> CreateProduct([FromBody] ProductUpsertDto dto)
     {
-        var product = await _productService.CreateAsync(dto);
-        return Ok(product);
+        try
+        {
+            var product = await _productService.CreateAsync(dto);
+            return Ok(product);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("create-product-form")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<Product>> CreateProductForm([FromForm] ProductUpsertDto dto)
+    {
+        try
+        {
+            var product = await _productService.CreateAsync(dto);
+            return Ok(product);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPost("update-product")]
@@ -72,13 +94,47 @@ public class ProductsController : BaseApiController
             return BadRequest("Product Id is required for updates.");
         }
 
-        var success = await _productService.UpdateAsync(dto.Id.Value, dto);
-        if (!success)
+        try
         {
-            return NotFound("Product not found.");
+            var success = await _productService.UpdateAsync(dto.Id.Value, dto);
+            if (!success)
+            {
+                return NotFound("Product not found.");
+            }
+
+            var updatedProduct = await _productService.GetByIdAsync(dto.Id.Value);
+            return Ok(updatedProduct);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("update-product-form")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateProductForm([FromForm] ProductUpsertDto dto)
+    {
+        if (!dto.Id.HasValue)
+        {
+            return BadRequest("Product Id is required for updates.");
         }
 
-        return NoContent();
+        try
+        {
+            var success = await _productService.UpdateAsync(dto.Id.Value, dto);
+            if (!success)
+            {
+                return NotFound("Product not found.");
+            }
+
+            var updatedProduct = await _productService.GetByIdAsync(dto.Id.Value);
+            return Ok(updatedProduct);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPost("delete-product")]
@@ -105,5 +161,13 @@ public class ProductsController : BaseApiController
         }
 
         return NoContent();
+    }
+
+    [HttpGet("/api/admin/products/search")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SearchProducts([FromQuery] string? query, [FromQuery] int limit = 20)
+    {
+        var data = await _productService.SearchAdminProductsAsync(query, limit);
+        return Ok(new { success = true, data });
     }
 }

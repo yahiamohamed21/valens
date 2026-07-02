@@ -11,7 +11,7 @@ export default function AboutPage() {
   const { homePageSettings } = useApp();
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
       <Navbar />
 
       <main className="flex-1 relative w-full overflow-hidden bg-main-bg">

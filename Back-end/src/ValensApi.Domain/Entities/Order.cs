@@ -16,11 +16,9 @@ public class Order : BaseEntity
     public string CustomerPhone { get; set; } = string.Empty;
     public string ShippingAddress { get; set; } = string.Empty;
     public string ShippingCity { get; set; } = string.Empty;
-    public string? Notes { get; set; }
     
-    public string Status { get; set; } = "New Order"; // "New Order", "Confirmed", "Preparing", "Shipped / Out for Delivery", "Delivered", "Cancelled", "Rejected", "Returned"
+    public string Status { get; set; } = "NEW ORDER"; 
     public string PaymentMethod { get; set; } = "Cash on Delivery";
-    public string ShippingMethod { get; set; } = "Standard";
     
     public decimal Subtotal { get; set; }
     public decimal ShippingCost { get; set; }

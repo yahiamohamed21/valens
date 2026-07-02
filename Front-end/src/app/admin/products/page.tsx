@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import Image from "next/image";
 import { useApp, Product } from "@/context/AppContext";
 import type { ProductVariant } from "@/types/store";
 import { Icon } from "@/components/SvgIcons";
@@ -11,6 +10,7 @@ import { Toolbar } from "@/components/pagination/Toolbar";
 import { PerPageSelect } from "@/components/pagination/PerPageSelect";
 import { LoadingSkeleton } from "@/components/pagination/LoadingSkeleton";
 import { Pagination } from "@/components/pagination/Pagination";
+import { api, resolveImageUrl } from "@/lib/api";
 
 
 
@@ -31,10 +31,40 @@ export default function AdminProductsPage() {
 
   // --- Pagination & Filter States ---
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setCurrentPage(1);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(8);
+  const [perPage, setPerPage] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
+  // --- Active categories for dropdown ---
+  const [activeCategories, setActiveCategories] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    const loadActiveCats = async () => {
+      try {
+        const data = await api.categories.listActive();
+        if (data) {
+          const mapped = data.map((c: any) => ({
+            id: String(c.id),
+            name: String(c.name),
+          }));
+          setActiveCategories(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to load active categories for dropdown:", err);
+      }
+    };
+    loadActiveCats();
+  }, []);
 
   // Simulate loading effect for UX
   useEffect(() => {
@@ -105,36 +135,53 @@ export default function AdminProductsPage() {
     return filteredProducts.slice(startIndex, startIndex + perPage);
   }, [filteredProducts, currentPage, perPage]);
 
-  // --- Handlers ---
-  const handleMainImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMainImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setProdMainImage(base64String);
-        setProdImages((prev) =>
-          prev.includes(base64String) ? prev : [base64String, ...prev]
-        );
-      };
-      reader.readAsDataURL(file);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", "products");
+        showToast("Uploading main image...", "info");
+        const res = await api.uploads.uploadFile(formData);
+        if (res && (res as any).success) {
+          const url = resolveImageUrl((res as any).data.url);
+          setProdMainImage(url);
+          setProdImages((prev) => (prev.includes(url) ? prev : [url, ...prev]));
+          showToast("Main image uploaded successfully", "success");
+        } else {
+          showToast("Failed to upload main image", "error");
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Upload failed";
+        showToast(msg, "error");
+      }
     }
   };
 
-  const handleGalleryImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGalleryImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      Array.from(files).forEach((file) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result as string;
-          setProdImages((prev) =>
-            prev.includes(base64String) ? prev : [...prev, base64String]
-          );
-          setProdMainImage((curr) => curr || base64String);
-        };
-        reader.readAsDataURL(file);
-      });
+      for (const file of Array.from(files)) {
+        try {
+          const formData = new FormData();
+          formData.append("file", file);
+          formData.append("folder", "products");
+          showToast(`Uploading ${file.name}...`, "info");
+          const res = await api.uploads.uploadFile(formData);
+          if (res && (res as any).success) {
+            const url = resolveImageUrl((res as any).data.url);
+            setProdImages((prev) => (prev.includes(url) ? prev : [...prev, url]));
+            setProdMainImage((curr) => curr || url);
+            showToast(`${file.name} uploaded successfully`, "success");
+          } else {
+            showToast(`Failed to upload ${file.name}`, "error");
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Upload failed";
+          showToast(msg, "error");
+        }
+      }
     }
   };
 
@@ -428,7 +475,7 @@ export default function AdminProductsPage() {
         </div>
         <button
           onClick={() => openProductForm(null)}
-          className="flex items-center gap-2 rounded-xl bg-primary-coral px-4 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg"
+          className="flex items-center gap-2 rounded-xl bg-primary-coral px-4 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 transition-luxury shadow-lg cursor-pointer"
         >
           <Icon name="plus" size={14} />
           {t("admin.products.add_btn")}
@@ -438,8 +485,8 @@ export default function AdminProductsPage() {
       {/* Toolbar & PerPage */}
       <div className="flex flex-col gap-4">
         <Toolbar 
-          searchQuery={searchQuery}
-          onSearchChange={handleSearchQueryChange}
+          searchQuery={searchInput}
+          onSearchChange={setSearchInput}
           selectedCategory={selectedCategory}
           onCategoryChange={handleCategoryChange}
           categories={categories}
@@ -466,11 +513,24 @@ export default function AdminProductsPage() {
                 className="group relative flex flex-col bg-card-bg border border-border-color/50 rounded-2xl overflow-hidden hover:border-primary-coral/30 transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-primary-coral/5"
               >
                 <div className="relative h-52 bg-surface-deep/30 p-4 flex items-center justify-center overflow-hidden">
-                  <ProductImage 
-                    color={product.imageColor} 
-                    type={product.imageType} 
-                    className="h-full w-auto object-contain transform group-hover:scale-110 transition-transform duration-700"
-                  />
+                  {product.mainImage ? (
+                    <img 
+                      src={product.mainImage} 
+                      alt={product.name} 
+                      className="h-full w-auto object-contain transform group-hover:scale-110 transition-transform duration-700"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100'%20height='100'%20fill='%231e1310'/%3E%3Ctext%20x='50'%20y='55'%20font-family='sans-serif'%20font-size='10'%20fill='%238d7b73'%20text-anchor='middle'%3ENo%20Image%3C/text%3E%3C/svg%3E";
+                      }}
+                    />
+                  ) : (
+                    <ProductImage 
+                      color={product.imageColor} 
+                      type={product.imageType} 
+                      className="h-full w-auto object-contain transform group-hover:scale-110 transition-transform duration-700"
+                    />
+                  )}
                   <div className="absolute top-3 left-3">
                     <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter border ${stockStatusClass(product.stockStatus)}`}>
                       {product.stockStatus}
@@ -479,7 +539,7 @@ export default function AdminProductsPage() {
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
                     <button 
                       onClick={() => openProductForm(product)}
-                      className="p-2.5 bg-white text-main-bg rounded-xl hover:bg-primary-coral hover:text-white transition-colors"
+                      className="p-2.5 bg-white text-[#180f0d] rounded-xl hover:bg-primary-coral hover:text-white transition-colors cursor-pointer"
                     >
                       <Icon name="edit" size={16} />
                     </button>
@@ -498,9 +558,13 @@ export default function AdminProductsPage() {
                   </div>
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex flex-col">
-                      <span className="text-xs font-black text-white">${product.price.toFixed(2)}</span>
+                      <span className="text-xs font-black text-white">
+                        {(product.discountPrice || product.price).toLocaleString()} {t("common.egp")}
+                      </span>
                       {product.discountPrice && (
-                        <span className="text-[10px] text-muted-text line-through">${product.discountPrice.toFixed(2)}</span>
+                        <span className="text-[10px] text-muted-text line-through">
+                          {product.price.toLocaleString()} {t("common.egp")}
+                        </span>
                       )}
                     </div>
                     <div className="flex flex-col items-end">
@@ -533,7 +597,7 @@ export default function AdminProductsPage() {
                   Product Management System v2.0
                 </span>
               </div>
-              <button onClick={() => setProductModalOpen(false)} className="p-2 text-muted-text hover:text-white transition-colors">
+              <button onClick={() => setProductModalOpen(false)} className="p-2 text-muted-text hover:text-primary-coral dark:hover:text-white transition-colors cursor-pointer">
                 <Icon name="close" size={20} />
               </button>
             </div>
@@ -570,7 +634,7 @@ export default function AdminProductsPage() {
                     <div className="sm:col-span-2">
                       <label className="block text-4xs font-extrabold uppercase tracking-widest text-muted-text mb-2">{t("admin.modal.category_sector")}</label>
                       <select value={prodCategory} onChange={(e) => setProdCategory(e.target.value)} className="w-full rounded-xl border border-border-color bg-surface-deep px-4 py-3 text-xs text-white focus:border-primary-coral focus:outline-none uppercase">
-                        {categories.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
+                        {(activeCategories.length > 0 ? activeCategories : categories.filter(c => c.visible)).map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
                       </select>
                     </div>
                     <div className="sm:col-span-2">
@@ -689,11 +753,11 @@ export default function AdminProductsPage() {
                           <div className="relative border border-dashed border-border-color hover:border-primary-coral/50 transition-luxury rounded-xl h-44 flex flex-col items-center justify-center bg-surface-deep/40 overflow-hidden group">
                             {prodMainImage ? (
                               <>
-                                <div className="relative h-full w-full p-2">
-                                  <Image src={prodMainImage} alt="Main" fill className="object-contain" />
+                                <div className="relative h-full w-full p-2 flex items-center justify-center">
+                                  <img src={prodMainImage} alt="Main" className="h-full w-full object-contain" />
                                 </div>
                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-luxury">
-                                  <label className="p-2 rounded-lg bg-primary-coral text-main-bg cursor-pointer hover:bg-gray-600 transition-luxury"><Icon name="edit" size={14} /><input type="file" accept="image/*" onChange={handleMainImageChange} className="hidden" /></label>
+                                  <label className="p-2 rounded-lg bg-primary-coral text-[#180f0d] cursor-pointer hover:bg-white hover:text-[#180f0d] transition-luxury"><Icon name="edit" size={14} /><input type="file" accept="image/*" onChange={handleMainImageChange} className="hidden" /></label>
                                   <button type="button" onClick={() => setProdMainImage("")} className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-luxury"><Icon name="trash" size={14} /></button>
                                 </div>
                               </>
@@ -708,10 +772,10 @@ export default function AdminProductsPage() {
                             <label className="border border-dashed border-border-color hover:border-primary-coral/40 transition-luxury rounded-lg py-2 flex items-center justify-center gap-2 cursor-pointer text-muted-text hover:text-gray-800 shrink-0"><Icon name="plus" size={12} /><span className="text-4xs font-bold uppercase tracking-wider">{t("admin.modal.gallery_images")}</span><input type="file" accept="image/*" multiple onChange={handleGalleryImagesChange} className="hidden" /></label>
                             <div className="grid grid-cols-4 gap-2">
                               {prodImages.map((img, idx) => (
-                                <div key={idx} className="relative group rounded-lg border border-border-color bg-surface-deep h-12 w-12 overflow-hidden shrink-0">
-                                  <Image src={img} alt={`gallery-${idx}`} fill className="object-contain" />
+                                <div key={idx} className="relative group rounded-lg border border-border-color bg-surface-deep h-12 w-12 overflow-hidden shrink-0 flex items-center justify-center">
+                                  <img src={img} alt={`gallery-${idx}`} className="h-full w-full object-contain" />
                                   <div className="absolute inset-0 bg-black/75 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 transition-luxury">
-                                    <button type="button" onClick={() => setProdMainImage(img)} className={`p-0.5 rounded ${prodMainImage === img ? "bg-primary-coral text-main-bg" : "bg-surface-sec text-white"}`}><Icon name="check" size={8} /></button>
+                                    <button type="button" onClick={() => setProdMainImage(img)} className={`p-0.5 rounded ${prodMainImage === img ? "bg-primary-coral text-[#180f0d]" : "bg-surface-sec text-white"}`}><Icon name="check" size={8} /></button>
                                     <button type="button" onClick={() => setProdImages((prev) => prev.filter((image) => image !== img))} className="p-0.5 rounded bg-red-500 text-white"><Icon name="trash" size={8} /></button>
                                   </div>
                                 </div>
@@ -755,7 +819,7 @@ export default function AdminProductsPage() {
 
                 <div className="border-t border-border-color/30 pt-4 mt-2 flex justify-between items-center">
                   <span className="text-[10px] text-muted-text font-bold">* {t("common.required")}</span>
-                  <button type="submit" className="flex items-center gap-2 rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-main-bg hover:bg-gray-600 transition-luxury shadow-lg">
+                  <button type="submit" className="flex items-center gap-2 rounded-full bg-primary-coral px-8 py-3.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 transition-luxury shadow-lg cursor-pointer">
                     {t("admin.modal.save_btn")}
                     <Icon name="check" size={14} />
                   </button>

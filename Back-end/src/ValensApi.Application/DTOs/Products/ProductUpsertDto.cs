@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 
 namespace ValensApi.Application.DTOs.Products;
 
@@ -6,8 +7,10 @@ public class ProductUpsertDto
 {
     public System.Guid? Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string NameAr { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public string DescriptionAr { get; set; } = string.Empty;
     public bool Featured { get; set; }
     public bool BestSeller { get; set; }
     public bool NewArrival { get; set; }
@@ -21,12 +24,21 @@ public class ProductUpsertDto
     public int Stock { get; set; }
     public string Sku { get; set; } = string.Empty;
     
+    // Legacy support for base64 / string URLs
     public string MainImage { get; set; } = string.Empty;
     public List<string> Images { get; set; } = new();
+
+    // Professional multipart uploads
+    public IFormFile? MainImageFile { get; set; }
+    public List<IFormFile>? ImageFiles { get; set; }
+    public List<string>? ExistingImages { get; set; } = new();
     
     public List<string> Ingredients { get; set; } = new();
+    public List<string> IngredientsAr { get; set; } = new();
     public string Usage { get; set; } = string.Empty;
+    public string UsageAr { get; set; } = string.Empty;
     public List<string> Benefits { get; set; } = new();
+    public List<string> BenefitsAr { get; set; } = new();
     
     public string ImageType { get; set; } = "powder";
     public string ImageColor { get; set; } = "#FF8A75";

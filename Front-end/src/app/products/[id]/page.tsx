@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import Image from "next/image";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useApp, Product, Review } from "@/context/AppContext";
 import { ProductImage } from "@/components/ProductCard";
@@ -9,16 +8,127 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/SvgIcons";
 import Link from "next/link";
+import { api, mapApiProductToClient } from "@/lib/api";
 
 export default function ProductDetailsPage() {
   const params = useParams();
-  const { products, addToCart, locale } = useApp();
+  const { products, addToCart, locale, showToast, currentUserEmail } = useApp();
   
   const id = params?.id as string;
-  const product = useMemo(() => products.find((p: Product) => p.id === id), [products, id]);
+  const cachedProduct = useMemo(() => products.find((p: Product) => p.id === id), [products, id]);
 
-  // Gallery tabs: "front", "label", "facts"
-  const [activeTab, setActiveTab] = useState<"front" | "label" | "facts">("front");
+  const [localProduct, setLocalProduct] = useState<Product | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  const fetchDetails = useCallback(async () => {
+    if (!id) return;
+    setLoadingDetails(true);
+    try {
+      const data = await api.products.detail(id);
+      if (data) {
+        setLocalProduct(mapApiProductToClient(data as Record<string, unknown>));
+      }
+    } catch (err) {
+      console.error("Failed to load product details from server:", err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchDetails();
+  }, [fetchDetails]);
+
+  // Review Form States
+  const [reviewName, setReviewName] = useState("");
+  const [reviewEmail, setReviewEmail] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  // Sync review email and name if logged in
+  useEffect(() => {
+    if (currentUserEmail) {
+      setReviewEmail(currentUserEmail);
+      setReviewName(currentUserEmail.split("@")[0]);
+    } else {
+      setReviewEmail("");
+      setReviewName("");
+    }
+  }, [currentUserEmail]);
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewName.trim() || !reviewEmail.trim() || !reviewComment.trim()) {
+      showToast(locale === "ar" ? "برجاء ملء جميع الحقول (الاسم، البريد والتعليق)" : "Please fill out all fields (name, email and comment).", "error");
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      const res = await api.reviews.submitReview(id, {
+        customerName: reviewName.trim(),
+        customerEmail: reviewEmail.trim(),
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+      if (res && (res as any).success) {
+        setReviewName("");
+        setReviewEmail("");
+        setReviewRating(5);
+        setReviewComment("");
+        await fetchDetails();
+        showToast(locale === "ar" ? "تم إرسال تقييمك بنجاح!" : "Review submitted successfully!", "success");
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to submit review";
+      showToast(msg, "error");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const [submittingDirectRating, setSubmittingDirectRating] = useState(false);
+
+  const handleDirectRate = async (ratingVal: number) => {
+    if (!currentUserEmail) {
+      showToast(
+        locale === "ar" ? "برجاء تسجيل الدخول أولاً لتتمكن من تقييم المنتج." : "Please log in first to rate this product.",
+        "error"
+      );
+      return;
+    }
+
+    setSubmittingDirectRating(true);
+    
+    const name = currentUserEmail.split("@")[0];
+    const email = currentUserEmail;
+
+    try {
+      const res = await api.reviews.submitReview(id, {
+        customerName: name,
+        customerEmail: email,
+        rating: ratingVal,
+        comment: "", // empty comment for direct rating
+      });
+      if (res && (res as any).success) {
+        await fetchDetails();
+        showToast(
+          locale === "ar" ? "تم تسجيل تقييمك بنجاح! شكراً لك." : "Your rating has been saved! Thank you.",
+          "success"
+        );
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to save rating";
+      showToast(msg, "error");
+    } finally {
+      setSubmittingDirectRating(false);
+    }
+  };
+
+  const product = localProduct || cachedProduct;
+
+  // Gallery tabs: "front", "label"
+  const [activeTab, setActiveTab] = useState<"front" | "label">("front");
   const [quantity, setQuantity] = useState(1);
   const [activeAccordion, setActiveAccordion] = useState<string>("benefits");
 
@@ -27,7 +137,15 @@ export default function ProductDetailsPage() {
   const [selectedFlavor, setSelectedFlavor] = useState(() => product?.variants?.[0]?.flavor || "");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // Find all unique sizes and flavors for the active product
+  // Sync selection states when product loads
+  useEffect(() => {
+    if (product?.variants?.[0]) {
+      setSelectedSize((prev) => prev || product.variants[0].size || "");
+      setSelectedFlavor((prev) => prev || product.variants[0].flavor || "");
+    }
+  }, [product]);
+
+  // All unique sizes and flavors for the active product
   const availableSizes = useMemo(() => {
     if (!product || !product.variants) return [];
     return Array.from(
@@ -41,6 +159,30 @@ export default function ProductDetailsPage() {
       new Set(product.variants.map((v) => v.flavor).filter(Boolean))
     ) as string[];
   }, [product]);
+
+  // Filtered sizes based on selected flavor
+  const filteredSizes = useMemo(() => {
+    if (!selectedFlavor) return availableSizes;
+    return (
+      product?.variants?.
+        filter((v) => v.flavor === selectedFlavor && v.size).
+        map((v) => v.size!).
+        filter(Boolean) as string[]
+    ) ?? [];
+  }, [product, selectedFlavor, availableSizes]);
+
+  // Filtered flavors based on selected size
+  const filteredFlavors = useMemo(() => {
+    if (!selectedSize) return availableFlavors;
+    return (
+      product?.variants?.
+        filter((v) => v.size === selectedSize && v.flavor).
+        map((v) => v.flavor!).
+        filter(Boolean) as string[]
+    ) ?? [];
+  }, [product, selectedSize, availableFlavors]);
+
+
 
   // Gallery images list (main image + other gallery images)
   const productImages = useMemo(() => {
@@ -67,9 +209,27 @@ export default function ProductDetailsPage() {
     );
   }, [product, selectedSize, selectedFlavor]);
 
+  if (loadingDetails) {
+    return (
+      <div className="flex min-h-screen flex-col bg-main-bg text-foreground font-sans animate-fade-in">
+        <Navbar />
+        <main className="flex-1 flex flex-col items-center justify-center py-24 text-center">
+          <span className="h-10 w-10 animate-spin rounded-full border-4 border-primary-coral border-t-transparent inline-block mb-4 shadow-[0_0_15px_rgba(255,138,117,0.4)]" />
+          <h2 className="text-sm font-black uppercase tracking-widest text-white">
+            {locale === "ar" ? "جاري تحميل تفاصيل المنتج..." : "Loading Product Details..."}
+          </h2>
+          <p className="mt-2 text-4xs text-muted-text uppercase tracking-widest">
+            {locale === "ar" ? "جاري جلب أحدث المواصفات المخبرية" : "Fetching clinical specifications..."}
+          </p>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   if (!product) {
     return (
-      <div className="flex min-h-screen flex-col bg-main-bg text-white">
+      <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
         <Navbar />
         <main className="flex-1 flex flex-col items-center justify-center py-24 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-deep border border-border-color text-primary-coral mb-4">
@@ -81,7 +241,7 @@ export default function ProductDetailsPage() {
           </p>
           <Link
             href="/products"
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-main-bg hover:bg-white transition-luxury"
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary-coral px-6 py-2.5 text-xs font-black tracking-widest text-[#180f0d] hover:bg-white hover:text-[#180f0d] transition-all duration-300"
           >
             RETURN TO SHOP
           </Link>
@@ -96,11 +256,15 @@ export default function ProductDetailsPage() {
     .filter((p: Product) => p.category === product.category && p.id !== product.id && p.visible)
     .slice(0, 3);
 
-  const isOutOfStock = matchedVariant ? matchedVariant.stockQuantity === 0 : product.stock === 0;
-  const isLowStock = matchedVariant ? (matchedVariant.stockQuantity > 0 && matchedVariant.stockQuantity <= 10) : (product.stock > 0 && product.stock <= 10);
+  const isOutOfStock = product.variantType !== "none"
+    ? (!matchedVariant || matchedVariant.stockQuantity === 0)
+    : (product.stock === 0);
+  const isLowStock = product.variantType !== "none"
+    ? (!!matchedVariant && matchedVariant.stockQuantity > 0 && matchedVariant.stockQuantity <= 10)
+    : (product.stock > 0 && product.stock <= 10);
   const stockText = isOutOfStock ? "Out of Stock" : isLowStock ? "Low Stock" : "In Stock";
   const matchedSku = matchedVariant ? matchedVariant.sku : product.sku;
-  const stockCount = matchedVariant ? matchedVariant.stockQuantity : product.stock;
+  const stockCount = matchedVariant ? matchedVariant.stockQuantity : (product.variantType !== "none" ? 0 : product.stock);
 
   const hasDiscount = matchedVariant ? !!matchedVariant.discountPrice : !!product.discountPrice;
   const currentPrice = matchedVariant 
@@ -122,7 +286,7 @@ export default function ProductDetailsPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-main-bg text-white">
+    <div className="flex min-h-screen flex-col bg-main-bg text-foreground">
       <Navbar />
 
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -144,12 +308,15 @@ export default function ProductDetailsPage() {
               {activeTab === "front" && (
                 <div className="h-full w-full flex items-center justify-center relative">
                   {(matchedVariant?.image || productImages[selectedImageIndex]) ? (
-                    <Image
+                    <img
                       src={matchedVariant?.image || productImages[selectedImageIndex]}
                       alt={product.name}
-                      width={640}
-                      height={384}
                       className="h-96 w-full object-contain drop-shadow-[0_15px_15px_rgba(0,0,0,0.6)]"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100'%20height='100'%20fill='%231e1310'/%3E%3Ctext%20x='50'%20y='55'%20font-family='sans-serif'%20font-size='10'%20fill='%238d7b73'%20text-anchor='middle'%3ENo%20Image%3C/text%3E%3C/svg%3E";
+                      }}
                     />
                   ) : (
                     <ProductImage color={product.imageColor} type={product.imageType} glow={true} className="h-96 w-full" />
@@ -177,41 +344,7 @@ export default function ProductDetailsPage() {
                 </div>
               )}
 
-              {activeTab === "facts" && (
-                <div className="w-full max-w-sm border-2 border-white bg-black p-4 text-white text-left font-sans select-none">
-                  <div className="border-b-4 border-white pb-1">
-                    <h3 className="text-xl font-black uppercase leading-none tracking-tight">Supplement Facts</h3>
-                    <span className="text-3xs">Serving Size 1 Scoop ({product.size === "120 Capsules" || product.size === "90 Capsules" ? "3-4 Capsules" : "15-30g"})</span>
-                  </div>
-                  <div className="border-b-2 border-white text-3xs py-1 flex justify-between font-bold">
-                    <span>Amount Per Serving</span>
-                    <span>% Daily Value*</span>
-                  </div>
-                  <div className="border-b border-white py-1 flex justify-between text-2xs font-semibold">
-                    <span>Calories</span>
-                    <span>{product.category === "Protein" ? "120" : "15"}</span>
-                  </div>
-                  <div className="border-b border-white py-1 flex justify-between text-2xs">
-                    <span>Total Fat {product.category === "Protein" ? "0.5g" : "0g"}</span>
-                    <span>{product.category === "Protein" ? "1%" : "0%"}</span>
-                  </div>
-                  <div className="border-b border-white py-1 flex justify-between text-2xs">
-                    <span>Total Carbohydrates {product.category === "Protein" ? "1g" : "0g"}</span>
-                    <span>{product.category === "Protein" ? "<1%" : "0%"}</span>
-                  </div>
-                  <div className="border-b border-white py-1 flex justify-between text-2xs">
-                    <span>Sodium 120mg</span>
-                    <span>5%</span>
-                  </div>
-                  <div className="border-b-4 border-white py-1 flex justify-between text-2xs font-bold">
-                    <span>Protein {product.category === "Protein" ? "26g" : "0g"}</span>
-                    <span>{product.category === "Protein" ? "52%" : "0%"}</span>
-                  </div>
-                  <p className="text-4xs pt-2 leading-none">
-                    * Percent Daily Values are based on a 2,000 calorie diet. Your daily values may be higher or lower depending on your calorie needs.
-                  </p>
-                </div>
-              )}
+
             </div>
 
             {/* Custom Gallery Image Thumbnails */}
@@ -225,26 +358,28 @@ export default function ProductDetailsPage() {
                       selectedImageIndex === idx ? "border-primary-coral scale-105" : "border-border-color hover:border-white"
                     }`}
                   >
-                    <Image
+                    <img
                       src={img}
                       alt={`Product variation ${idx + 1}`}
-                      width={160}
-                      height={192}
                       className="h-full w-full object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.onerror = null;
+                        target.src = "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100'%20height='100'%20fill='%231e1310'/%3E%3Ctext%20x='50'%20y='55'%20font-family='sans-serif'%20font-size='10'%20fill='%238d7b73'%20text-anchor='middle'%3ENo%20Image%3C/text%3E%3C/svg%3E";
+                      }}
                     />
                   </button>
                 ))}
               </div>
             )}
 
-            {/* Gallery Thumbnail Toggles */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => setActiveTab("front")}
                 className={`rounded-xl border p-3 text-xs font-bold uppercase tracking-wider transition-luxury flex flex-col items-center gap-1.5 ${
                   activeTab === "front"
                     ? "border-primary-coral bg-primary-coral/5 text-primary-coral"
-                    : "border-border-color bg-card-bg text-muted-text hover:text-gray-800"
+                    : "border-border-color bg-card-bg text-muted-text hover:text-primary-coral hover:border-primary-coral/40 dark:hover:text-white"
                 }`}
               >
                 <Icon name="box" size={14} />
@@ -255,22 +390,11 @@ export default function ProductDetailsPage() {
                 className={`rounded-xl border p-3 text-xs font-bold uppercase tracking-wider transition-luxury flex flex-col items-center gap-1.5 ${
                   activeTab === "label"
                     ? "border-primary-coral bg-primary-coral/5 text-primary-coral"
-                    : "border-border-color bg-card-bg text-muted-text hover:text-gray-800"
+                    : "border-border-color bg-card-bg text-muted-text hover:text-primary-coral hover:border-primary-coral/40 dark:hover:text-white"
                 }`}
               >
                 <Icon name="tag" size={14} />
                 Ingredients
-              </button>
-              <button
-                onClick={() => setActiveTab("facts")}
-                className={`rounded-xl border p-3 text-xs font-bold uppercase tracking-wider transition-luxury flex flex-col items-center gap-1.5 ${
-                  activeTab === "facts"
-                    ? "border-primary-coral bg-primary-coral/5 text-primary-coral"
-                    : "border-border-color bg-card-bg text-muted-text hover:text-gray-800"
-                }`}
-              >
-                <Icon name="report" size={14} />
-                Nutrition facts
               </button>
             </div>
           </div>
@@ -282,13 +406,37 @@ export default function ProductDetailsPage() {
             
             {/* Rating summary */}
             <div className="mt-4 flex items-center gap-2 border-b border-border-color pb-4">
-              <div className="flex text-primary-coral">
-                {[...Array(5)].map((_, i) => (
-                  <Icon key={i} name="star" size={14} className={i < Math.floor(product.rating) ? "text-primary-coral" : "text-border-color"} />
+              <div className="flex text-primary-coral gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    disabled={submittingDirectRating}
+                    onClick={() => {
+                      handleDirectRate(star);
+                    }}
+                    className="text-primary-coral hover:scale-125 transition-transform duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={locale === "ar" ? `تقييم ${star} نجوم` : `Rate ${star} Stars`}
+                  >
+                    <Icon
+                      name="star"
+                      size={14}
+                      className={star <= Math.round(product.rating) ? "text-primary-coral fill-primary-coral" : "text-border-color"}
+                    />
+                  </button>
                 ))}
               </div>
               <span className="text-xs font-bold text-white">{product.rating.toFixed(1)}</span>
-              <span className="text-2xs text-muted-text font-bold">({product.reviews.length || 3} verified customer reviews)</span>
+              <button
+                onClick={() => {
+                  const reviewsSection = document.getElementById("reviews-section");
+                  if (reviewsSection) {
+                    reviewsSection.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+                className="text-2xs text-muted-text font-bold hover:text-primary-coral transition-colors cursor-pointer"
+              >
+                ({product.reviews.length} {locale === "ar" ? "تقييمات عملاء موثقة" : "verified customer reviews"})
+              </button>
             </div>
 
             {/* Pricing Panel */}
@@ -322,19 +470,25 @@ export default function ProductDetailsPage() {
                       Select Serving Size
                     </h4>
                     <div className="flex flex-wrap gap-2.5">
-                      {availableSizes.map((size) => (
-                        <button
-                          key={size}
-                          onClick={() => setSelectedSize(size)}
-                          className={`rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-luxury ${
-                            selectedSize === size
-                              ? "border-primary-coral bg-primary-coral/10 text-primary-coral"
-                              : "border-border-color bg-card-bg text-white hover:text-gray-800"
-                          }`}
-                        >
-                          {size}
-                        </button>
-                      ))}
+                      {availableSizes.map((size) => {
+                        const isAvailable = filteredSizes.includes(size);
+                        return (
+                          <button
+                            key={size}
+                            onClick={() => isAvailable && setSelectedSize(size)}
+                            disabled={!isAvailable}
+                            className={`rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-luxury ${
+                              selectedSize === size
+                                ? "border-primary-coral bg-primary-coral/10 text-primary-coral"
+                                : !isAvailable
+                                ? "border-border-color/30 bg-card-bg/30 text-muted-text/40 cursor-not-allowed opacity-40 line-through"
+                                : "border-border-color bg-card-bg text-white hover:text-gray-800"
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -346,19 +500,25 @@ export default function ProductDetailsPage() {
                       Select Flavor Option
                     </h4>
                     <div className="flex flex-wrap gap-2.5">
-                      {availableFlavors.map((flavor) => (
-                        <button
-                          key={flavor}
-                          onClick={() => setSelectedFlavor(flavor)}
-                          className={`rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-luxury ${
-                            selectedFlavor === flavor
-                              ? "border-primary-coral bg-primary-coral/10 text-primary-coral"
-                              : "border-border-color bg-card-bg text-white hover:text-gray-800"
-                          }`}
-                        >
-                          {flavor}
-                        </button>
-                      ))}
+                      {availableFlavors.map((flavor) => {
+                        const isAvailable = filteredFlavors.includes(flavor);
+                        return (
+                          <button
+                            key={flavor}
+                            onClick={() => isAvailable && setSelectedFlavor(flavor)}
+                            disabled={!isAvailable}
+                            className={`rounded-xl border px-4 py-2.5 text-xs font-bold uppercase tracking-wider transition-luxury ${
+                              selectedFlavor === flavor
+                                ? "border-primary-coral bg-primary-coral/10 text-primary-coral"
+                                : !isAvailable
+                                ? "border-border-color/30 bg-card-bg/30 text-muted-text/40 cursor-not-allowed opacity-40 line-through"
+                                : "border-border-color bg-card-bg text-white hover:text-gray-800"
+                            }`}
+                          >
+                            {flavor}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -412,7 +572,7 @@ export default function ProductDetailsPage() {
                   className={`flex flex-1 items-center justify-center gap-2 rounded-full py-4 text-sm font-black tracking-widest transition-luxury shadow-xl ${
                     isOutOfStock
                       ? "bg-border-color text-muted-text cursor-not-allowed"
-                      : "bg-primary-coral text-main-bg hover:bg-white hover:scale-102 hover:shadow-[0_0_20px_rgba(255,138,117,0.3)]"
+                      : "bg-primary-coral text-[#180f0d] hover:bg-white hover:text-[#180f0d] hover:scale-102 hover:shadow-[0_0_20px_rgba(255,255,255,0.45)] cursor-pointer"
                   }`}
                 >
                   <Icon name="cart" size={18} />
@@ -468,40 +628,149 @@ export default function ProductDetailsPage() {
         </div>
 
         {/* Reviews Modules */}
-        <section className="border-t border-border-color pt-12 mb-16">
-          <h3 className="text-xl font-black uppercase tracking-wider text-white mb-8">Verified Customer Reviews</h3>
+        <section id="reviews-section" className="border-t border-border-color pt-12 mb-16">
+          <h3 className="text-xl font-black uppercase tracking-wider text-white mb-8">
+            {locale === "ar" ? "تقييمات العملاء الموثقة" : "Verified Customer Reviews"}
+          </h3>
           
-          {product.reviews.length > 0 ? (
-            <div className="flex flex-col gap-4">
-              {product.reviews.map((rev: Review) => (
-                <div key={rev.id} className="rounded-2xl border border-border-color bg-card-bg p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary-coral/10 border border-primary-coral/30 flex items-center justify-center font-bold text-primary-coral text-xs">
-                        {rev.author[0]}
-                      </div>
-                      <div>
-                        <span className="block text-xs font-bold text-white">{rev.author}</span>
-                        <div className="flex text-primary-coral mt-0.5 gap-0.5">
-                          {[...Array(5)].map((_, i) => (
-                            <Icon key={i} name="star" size={10} className={i < rev.rating ? "text-primary-coral" : "text-border-color"} />
-                          ))}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Reviews List Column */}
+            <div className="lg:col-span-7">
+              {product.reviews && product.reviews.length > 0 ? (
+                <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                  {product.reviews.map((rev: Review) => (
+                    <div key={rev.id} className="rounded-2xl border border-border-color bg-card-bg p-6 transition-luxury hover:border-primary-coral/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-primary-coral/10 border border-primary-coral/30 flex items-center justify-center font-bold text-primary-coral text-xs uppercase">
+                            {rev.author ? rev.author[0] : "C"}
+                          </div>
+                          <div>
+                            <span className="block text-xs font-bold text-white">{rev.author}</span>
+                            {rev.rating > 0 && (
+                              <div className="flex text-primary-coral mt-0.5 gap-0.5">
+                                {[...Array(5)].map((_, i) => (
+                                  <Icon key={i} name="star" size={10} className={i < rev.rating ? "text-primary-coral fill-primary-coral" : "text-border-color"} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
+                        <span className="text-3xs text-muted-text font-bold uppercase">
+                          {new Date(rev.date).toLocaleDateString(locale === "ar" ? "ar-EG" : "en-US", { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white leading-relaxed font-bold">
+                        {rev.comment}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-border-color border-dashed bg-card-bg/20 py-12 text-center text-xs text-muted-text">
+                  {locale === "ar" 
+                    ? "لا توجد تقييمات لهذا المنتج بعد. كن أول من يكتب تقييماً!"
+                    : "No reviews written for this formulation yet. Try this product and be the first to write review!"}
+                </div>
+              )}
+            </div>
+
+            {/* Write a Review Column */}
+            <div className="lg:col-span-5">
+              {!currentUserEmail ? (
+                <div className="rounded-2xl border border-border-color bg-card-bg/40 p-8 glass-panel text-center py-10 sticky top-4">
+                  <Icon name="lock" size={32} className="text-primary-coral mb-4 mx-auto animate-pulse" />
+                  <h4 className="text-sm font-black uppercase tracking-wider text-white mb-2">
+                    {locale === "ar" ? "تسجيل الدخول مطلوب" : "Authentication Required"}
+                  </h4>
+                  <p className="text-xs text-muted-text mb-6 uppercase font-bold tracking-wide">
+                    {locale === "ar" 
+                      ? "يجب عليك تسجيل الدخول بحسابك لتتمكن من كتابة مراجعة أو تقييم هذا المنتج." 
+                      : "You must be logged in to write a review or rate this product."}
+                  </p>
+                  <Link
+                    href="/login"
+                    className="inline-flex w-full justify-center items-center rounded-xl bg-primary-coral py-3 text-xs font-black uppercase tracking-wider text-main-bg hover:opacity-90 transition-luxury shadow-lg shadow-primary-coral/25"
+                  >
+                    {locale === "ar" ? "تسجيل الدخول الآن" : "LOG IN NOW"}
+                  </Link>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-border-color bg-card-bg/40 p-6 glass-panel sticky top-4">
+                  <h4 className="text-sm font-black uppercase tracking-wider text-white mb-4">
+                    {locale === "ar" ? "شاركنا تجربتك ورأيك" : "Share Your Experience"}
+                  </h4>
+                  <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
+                    {/* Stars input */}
+                    <div>
+                      <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
+                        {locale === "ar" ? "تقييمك بالنجوم" : "Your Rating"}
+                      </label>
+                      <div className="flex gap-1.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setReviewRating(star)}
+                            className="text-primary-coral focus:outline-none transition-transform duration-200 hover:scale-125 cursor-pointer"
+                          >
+                            <Icon
+                              name="star"
+                              size={20}
+                              className={star <= reviewRating ? "text-primary-coral fill-primary-coral" : "text-border-color"}
+                            />
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    <span className="text-3xs text-muted-text font-bold uppercase">{rev.date}</span>
-                  </div>
-                  <p className="text-xs text-white leading-relaxed font-bold">
-                    {rev.comment}
-                  </p>
+
+                    {/* Name Input */}
+                    <div>
+                      <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
+                        {locale === "ar" ? "الاسم" : "Your Name"}
+                      </label>
+                      <input
+                        id="review-name-input"
+                        type="text"
+                        required
+                        value={reviewName}
+                        onChange={(e) => setReviewName(e.target.value)}
+                        placeholder={locale === "ar" ? "أدخل اسمك الكريم" : "Enter your name"}
+                        className="w-full rounded-xl border border-border-color bg-surface-deep/80 px-4 py-2.5 text-xs text-white placeholder-muted-text/50 focus:border-primary-coral focus:outline-none transition-luxury"
+                      />
+                    </div>
+
+                    {/* Comment Input */}
+                    <div>
+                      <label className="block text-3xs font-bold uppercase tracking-wider text-muted-text mb-1.5">
+                        {locale === "ar" ? "تعليقك" : "Comment"}
+                      </label>
+                      <textarea
+                        required
+                        rows={4}
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder={locale === "ar" ? "ما هو رأيك في المنتج؟" : "Write your review details here..."}
+                        className="w-full rounded-xl border border-border-color bg-surface-deep/80 px-4 py-2.5 text-xs text-white placeholder-muted-text/50 focus:border-primary-coral focus:outline-none transition-luxury resize-none"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submittingReview}
+                      className="w-full rounded-xl bg-primary-coral py-3 text-xs font-black uppercase tracking-wider text-main-bg hover:opacity-90 active:scale-98 transition-luxury disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-primary-coral/25"
+                    >
+                      {submittingReview ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-main-bg border-t-transparent" />
+                      ) : (
+                        locale === "ar" ? "إرسال التقييم" : "Submit Review"
+                      )}
+                    </button>
+                  </form>
                 </div>
-              ))}
+              )}
             </div>
-          ) : (
-            <div className="rounded-2xl border border-border-color border-dashed bg-card-bg/20 py-10 text-center text-xs text-muted-text">
-              No reviews written for this formulation yet. Try this product and be the first to write review!
-            </div>
-          )}
+          </div>
         </section>
 
         {/* Related Products Grid */}
@@ -513,11 +782,9 @@ export default function ProductDetailsPage() {
                 <div key={prod.id} className="group relative flex flex-col rounded-2xl border border-border-color bg-card-bg p-4 transition-luxury hover:border-primary-coral/40 hover:bg-surface-sec">
                   <div className="mb-4 mt-2 h-44 overflow-hidden flex items-center justify-center bg-surface-deep/40 rounded-xl">
                     {prod.mainImage ? (
-                      <Image
+                      <img
                         src={prod.mainImage}
                         alt={prod.name}
-                        width={240}
-                        height={176}
                         className="h-full w-full object-contain"
                       />
                     ) : (

@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={cn("h-full antialiased", "font-sans", geist.variable)}>
-      <body suppressHydrationWarning className="min-h-full flex flex-col bg-main-bg text-white">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-main-bg text-foreground">
        <LanguageProvider>
         <ThemeProvider>
           <AppContextProvider>

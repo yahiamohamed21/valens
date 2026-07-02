@@ -108,6 +108,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     // Apply dataset attribute for mode
     document.documentElement.setAttribute("data-theme", theme.mode);
+    if (theme.mode === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
     
     // Inject CSS variables
     if (theme.mode === "light") {

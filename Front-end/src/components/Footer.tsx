@@ -159,7 +159,7 @@ export const Footer: React.FC = () => {
             }
           </div>
           <div className="flex items-center gap-6">
-            <span className="hover:text-gray-800 transition-luxury cursor-pointer">
+            <span className="hover:text-primary-coral transition-luxury cursor-pointer">
               {locale === "ar" ? "تم التطوير بواسطة يحيى محمد" : "Created By Yahia Mohamed"}
             </span>
           </div>

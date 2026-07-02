@@ -14,10 +14,10 @@ export const useCouponActions = ({ coupons, setCoupons }: CouponActionDeps) => {
     try {
       const created = await api.coupons.create({
         code: coupData.code,
-        discountType: coupData.discountType,
+        discountType: coupData.discountType === "fixed" ? "Fixed" : "Percentage",
         discountValue: Number(coupData.discountValue),
         expiryDate: coupData.expiryDate,
-        usageLimit: Number(coupData.usageLimit),
+        maxUsage: Number(coupData.usageLimit),
         minOrderAmount: Number(coupData.minOrderAmount),
         isActive: coupData.active,
       });
@@ -50,10 +50,10 @@ export const useCouponActions = ({ coupons, setCoupons }: CouponActionDeps) => {
         await api.coupons.update({
           id: couponId,
           code: merged.code,
-          discountType: merged.discountType,
+          discountType: merged.discountType === "fixed" ? "Fixed" : "Percentage",
           discountValue: Number(merged.discountValue),
           expiryDate: merged.expiryDate,
-          usageLimit: Number(merged.usageLimit),
+          maxUsage: Number(merged.usageLimit),
           minOrderAmount: Number(merged.minOrderAmount),
           isActive: merged.active,
         });

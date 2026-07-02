@@ -1,5 +1,8 @@
+using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using ValensApi.Application.DTOs.Auth;
 using ValensApi.Application.Interfaces;
 using ValensApi.Domain.Common;
@@ -12,12 +15,14 @@ public class AuthService : IAuthService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IJwtService _jwtService;
     private readonly IEmailService _emailService;
+    private readonly IConfiguration _configuration;
 
-    public AuthService(IUnitOfWork unitOfWork, IJwtService jwtService, IEmailService emailService)
+    public AuthService(IUnitOfWork unitOfWork, IJwtService jwtService, IEmailService emailService, IConfiguration configuration)
     {
         _unitOfWork = unitOfWork;
         _jwtService = jwtService;
         _emailService = emailService;
+        _configuration = configuration;
     }
 
     public async Task<AuthResponseDto?> RegisterAsync(RegisterDto dto)
@@ -28,6 +33,9 @@ public class AuthService : IAuthService
             return null;
         }
 
+        var refreshToken = GenerateRefreshTokenString();
+        var expiryDays = double.TryParse(_configuration["JwtSettings:RefreshTokenExpiryDays"], out var days) ? days : 7;
+
         var user = new User
         {
             Email = dto.Email,
@@ -36,7 +44,9 @@ public class AuthService : IAuthService
             Role = "Customer",
             Phone = dto.Phone,
             Address = dto.Address,
-            City = dto.City
+            City = dto.City,
+            RefreshToken = refreshToken,
+            RefreshTokenExpiryTime = DateTimeOffset.UtcNow.AddDays(expiryDays)
         };
 
         await _unitOfWork.Users.AddAsync(user);
@@ -61,6 +71,7 @@ public class AuthService : IAuthService
         return new AuthResponseDto
         {
             Token = token,
+            RefreshToken = user.RefreshToken ?? string.Empty,
             Email = user.Email,
             FullName = user.FullName,
             Role = user.Role,
@@ -92,11 +103,10 @@ public class AuthService : IAuthService
         await _unitOfWork.Users.AddAsync(user);
         await _unitOfWork.SaveChangesAsync();
 
-        var token = _jwtService.GenerateToken(user);
-
         return new AuthResponseDto
         {
-            Token = token,
+            Token = string.Empty,
+            RefreshToken = string.Empty,
             Email = user.Email,
             FullName = user.FullName,
             Role = user.Role,
@@ -105,7 +115,6 @@ public class AuthService : IAuthService
             City = user.City
         };
     }
-
     public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
     {
         var users = await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == dto.Email.ToLower());
@@ -116,11 +125,21 @@ public class AuthService : IAuthService
             return null;
         }
 
+        var refreshToken = GenerateRefreshTokenString();
+        var expiryDays = double.TryParse(_configuration["JwtSettings:RefreshTokenExpiryDays"], out var days) ? days : 7;
+
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiryTime = DateTimeOffset.UtcNow.AddDays(expiryDays);
+
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync();
+
         var token = _jwtService.GenerateToken(user);
 
         return new AuthResponseDto
         {
             Token = token,
+            RefreshToken = user.RefreshToken ?? string.Empty,
             Email = user.Email,
             FullName = user.FullName,
             Role = user.Role,
@@ -215,5 +234,74 @@ public class AuthService : IAuthService
         _unitOfWork.Users.Update(user);
         await _unitOfWork.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<AuthResponseDto?> RefreshTokenAsync(TokenRequestDto dto)
+    {
+        var principal = _jwtService.GetPrincipalFromExpiredToken(dto.AccessToken);
+        if (principal == null)
+        {
+            return null;
+        }
+
+        var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return null;
+        }
+
+        var user = await _unitOfWork.Users.GetByIdAsync(userId);
+        if (user == null || user.RefreshToken != dto.RefreshToken || user.RefreshTokenExpiryTime <= DateTimeOffset.UtcNow)
+        {
+            return null;
+        }
+
+        var newAccessToken = _jwtService.GenerateToken(user);
+        var newRefreshToken = GenerateRefreshTokenString();
+
+        var expiryDays = double.TryParse(_configuration["JwtSettings:RefreshTokenExpiryDays"], out var days) ? days : 7;
+
+        user.RefreshToken = newRefreshToken;
+        user.RefreshTokenExpiryTime = DateTimeOffset.UtcNow.AddDays(expiryDays);
+
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync();
+
+        return new AuthResponseDto
+        {
+            Token = newAccessToken,
+            RefreshToken = newRefreshToken,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = user.Role,
+            Phone = user.Phone,
+            Address = user.Address,
+            City = user.City
+        };
+    }
+
+    public async Task<bool> RevokeTokenAsync(RevokeTokenDto dto)
+    {
+        var users = await _unitOfWork.Users.FindAsync(u => u.RefreshToken == dto.RefreshToken);
+        var user = users.FirstOrDefault();
+        if (user == null)
+        {
+            return false;
+        }
+
+        user.RefreshToken = null;
+        user.RefreshTokenExpiryTime = null;
+
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveChangesAsync();
+        return true;
+    }
+
+    private string GenerateRefreshTokenString()
+    {
+        var randomNumber = new byte[64];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
     }
 }

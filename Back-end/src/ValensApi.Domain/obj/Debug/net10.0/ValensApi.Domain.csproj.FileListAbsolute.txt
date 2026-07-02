@@ -21,14 +21,4 @@ C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Domain\obj\Debug\ne
 C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\refint\ValensApi.Domain.dll
 C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.pdb
 C:\Users\ZaRZoR\Desktop\Valens\valens\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ref\ValensApi.Domain.dll
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\bin\Debug\net10.0\ValensApi.Domain.deps.json
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\bin\Debug\net10.0\ValensApi.Domain.dll
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\bin\Debug\net10.0\ValensApi.Domain.pdb
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.AssemblyInfoInputs.cache
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.AssemblyInfo.cs
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.csproj.CoreCompileInputs.cache
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.dll
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\refint\ValensApi.Domain.dll
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.pdb
-C:\Users\3mr\Downloads\valens-main\valens-main\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ref\ValensApi.Domain.dll
+D:\Valens Project\Back-end\src\ValensApi.Domain\obj\Debug\net10.0\ValensApi.Domain.sourcelink.json

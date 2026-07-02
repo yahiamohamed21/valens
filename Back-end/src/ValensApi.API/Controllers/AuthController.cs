@@ -28,18 +28,7 @@ public class AuthController : BaseApiController
         return Ok(result);
     }
 
-    [HttpPost("register-new-admin")]
-    [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> RegisterNewAdmin([FromBody] RegisterDto dto)
-    {
-        var result = await _authService.RegisterAdminAsync(dto);
-        if (result == null)
-        {
-            return BadRequest("Email is already registered.");
-        }
 
-        return Ok(result);
-    }
 
     [HttpPost("login-user")]
     public async Task<IActionResult> LoginUser([FromBody] LoginDto dto)
@@ -113,5 +102,29 @@ public class AuthController : BaseApiController
         }
 
         return Ok(new { Message = "Admin password updated successfully." });
+    }
+
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken([FromBody] TokenRequestDto dto)
+    {
+        var result = await _authService.RefreshTokenAsync(dto);
+        if (result == null)
+        {
+            return BadRequest("Invalid access token or refresh token.");
+        }
+
+        return Ok(result);
+    }
+
+    [HttpPost("revoke-token")]
+    public async Task<IActionResult> RevokeToken([FromBody] RevokeTokenDto dto)
+    {
+        var success = await _authService.RevokeTokenAsync(dto);
+        if (!success)
+        {
+            return BadRequest("Invalid refresh token.");
+        }
+
+        return Ok(new { Message = "Refresh token revoked successfully." });
     }
 }

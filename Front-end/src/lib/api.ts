@@ -1,7 +1,24 @@
-import type { Product, Category, Coupon, Customer, Expense, Order, Review, HomePageSettings, StoreSettings } from "@/types/store";
+import type { Product, Category, Coupon, Customer, Expense, Order, Review, HomePageSettings, StoreSettings, OrderReturn, HomeBanner, HomeStory, HomeCuratedProduct } from "@/types/store";
 
-const BASE_URL = "http://valens-api.runasp.net";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://valens-api.runasp.net";
 
+// Resolve a possibly‑relative image URL to an absolute URL for Next.js Image component
+export const resolveImageUrl = (url: string): string => {
+  if (!url) return "";
+  // Rewrite /uploads/, /home/, or /products/ URLs on any host to the current BASE_URL
+  const uploadMatch = url.match(/^https?:\/\/[^\/]+(\/(uploads|home|products)\/.*)$/i);
+  if (uploadMatch) {
+    const path = uploadMatch[1];
+    return `${BASE_URL.replace(/\/+$/, '')}${path}`;
+  }
+  // Return if already absolute
+  if (/^https?:\/\//i.test(url)) return url;
+  // Ensure leading slash
+  const path = url.startsWith('/') ? url : `/${url}`;
+  // Remove trailing slash from BASE_URL then concatenate
+  return `${BASE_URL.replace(/\/+$/, '')}${path}`;
+};
+ 
 /**
  * Interface for JWT Payload
  */
@@ -97,12 +114,38 @@ export const objectToFormData = (obj: Record<string, unknown>): FormData => {
 };
 
 /**
+ * Refreshes the JWT token pair on the backend.
+ */
+async function performTokenRefresh(accessToken: string, refreshToken: string): Promise<{ token: string; refreshToken: string } | null> {
+  try {
+    const response = await fetch(`${BASE_URL}/api/auth/refresh-token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ accessToken, refreshToken }),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        token: data.token,
+        refreshToken: data.refreshToken,
+      };
+    }
+  } catch (err) {
+    console.error("Failed to refresh token:", err);
+  }
+  return null;
+}
+
+/**
  * Base request function with generics and strict typing.
  */
 async function request<T>(
   path: string,
-  method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
-  body?: unknown
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "GET",
+  body?: unknown,
+  requireAuth = true
 ): Promise<T> {
   const url = `${BASE_URL}${path}`;
   const headers: HeadersInit = {};
@@ -111,10 +154,29 @@ async function request<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("valens_jwt_token");
+  if (requireAuth && typeof window !== "undefined") {
+    let token = localStorage.getItem("valens_jwt_token");
     if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+      const claims = decodeJwt(token);
+      const isExpired = claims && claims.exp * 1000 < Date.now();
+      if (isExpired && path !== "/api/auth/refresh-token" && path !== "/api/auth/revoke-token") {
+        const refreshToken = localStorage.getItem("valens_refresh_token");
+        if (refreshToken) {
+          const newTokens = await performTokenRefresh(token, refreshToken);
+          if (newTokens) {
+            localStorage.setItem("valens_jwt_token", newTokens.token);
+            localStorage.setItem("valens_refresh_token", newTokens.refreshToken);
+            token = newTokens.token;
+          } else {
+            localStorage.removeItem("valens_jwt_token");
+            localStorage.removeItem("valens_refresh_token");
+            token = null;
+          }
+        }
+      }
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
     }
   }
 
@@ -128,7 +190,22 @@ async function request<T>(
   }
 
   try {
-    const response = await fetch(url, options);
+    let response = await fetch(url, options);
+
+    if (response.status === 401 && requireAuth && typeof window !== "undefined" && path !== "/api/auth/refresh-token" && path !== "/api/auth/revoke-token") {
+      const token = localStorage.getItem("valens_jwt_token");
+      const refreshToken = localStorage.getItem("valens_refresh_token");
+      if (token && refreshToken) {
+        const newTokens = await performTokenRefresh(token, refreshToken);
+        if (newTokens) {
+          localStorage.setItem("valens_jwt_token", newTokens.token);
+          localStorage.setItem("valens_refresh_token", newTokens.refreshToken);
+          headers["Authorization"] = `Bearer ${newTokens.token}`;
+          options.headers = headers;
+          response = await fetch(url, options);
+        }
+      }
+    }
 
     if (!response.ok) {
       // Construct a more informative error message
@@ -136,6 +213,7 @@ async function request<T>(
       // Attempt to extract error details from response body
       try {
         const responseText = await response.text();
+        console.warn(`[API ERROR] ${method} ${path} → ${response.status}`, responseText);
         if (responseText) {
           try {
             const errorData = JSON.parse(responseText) as ApiErrorResponse;
@@ -215,16 +293,13 @@ const orderStatuses = [
   "Returned",
 ] as const;
 const expenseCategories = [
-  "Product purchasing cost",
-  "Shipping expenses",
-  "Marketing and ads",
-  "Packaging",
-  "Website maintenance",
-  "Staff salaries",
-  "Storage / warehouse",
-  "Delivery company fees",
-  "Miscellaneous expenses",
+  "Advertising",
+  "Salaries",
+  "Shipping",
+  "Rent",
+  "Other",
 ] as const;
+
 const couponDiscountTypes = ["percentage", "fixed"] as const;
 
 const isProductImageType = (value: unknown): value is Product["imageType"] =>
@@ -266,13 +341,15 @@ const mapApiReviewToClient = (review: Record<string, unknown>): Review => ({
  */
 export const api = {
   auth: {
-    login: (body: Record<string, unknown>) => request<{ token: string }>("/api/auth/login-user", "POST", body),
+    login: (body: Record<string, unknown>) => request<{ token: string; refreshToken?: string; role?: string; email?: string; fullName?: string }>("/api/auth/login-user", "POST", body, false),
     registerCustomer: (body: Record<string, unknown>) =>
-      request<{ token?: string }>("/api/auth/register-customer", "POST", body),
+      request<{ token?: string; refreshToken?: string }>("/api/auth/register-customer", "POST", body, false),
+    registerNewAdmin: (body: Record<string, unknown>) =>
+      request<{ token: string; refreshToken?: string }>("/api/auth/register-new-admin", "POST", body),
     forgotPassword: (body: { email: string }) =>
-      request<unknown>("/api/auth/forgot-password", "POST", body),
+      request<unknown>("/api/auth/forgot-password", "POST", body, false),
     resetPasswordOtp: (body: Record<string, unknown>) =>
-      request<unknown>("/api/auth/reset-password-otp", "POST", body),
+      request<unknown>("/api/auth/reset-password-otp", "POST", body, false),
     changeCustomerPassword: (body: Record<string, unknown>) =>
       request<void>("/api/auth/change-customer-password", "POST", body),
     changeAdminPassword: (body: Record<string, unknown>) =>
@@ -285,7 +362,7 @@ export const api = {
 
   categories: {
     listActive: () =>
-      request<unknown[]>("/api/categories/list-active-product-categories", "GET"),
+      request<unknown[]>("/api/categories/list-active-product-categories", "GET", undefined, false),
     listAdmin: () =>
       request<unknown[]>("/api/categories/list-admin-product-categories", "GET"),
     create: (body: Record<string, unknown>) =>
@@ -332,6 +409,13 @@ export const api = {
       request<void>("/api/expenses/delete-expense", "POST", { id }),
   },
 
+  returns: {
+    create: (body: Record<string, unknown>) =>
+      request<unknown>("/api/returns/create", "POST", body),
+    list: () =>
+      request<unknown[]>("/api/returns/list", "GET"),
+  },
+
   orders: {
     checkout: (body: Record<string, unknown>) =>
       request<Record<string, unknown>>("/api/orders/checkout-order", "POST", body),
@@ -351,19 +435,21 @@ export const api = {
 
   products: {
     list: (body: Record<string, unknown> = {}) =>
-      request<unknown>("/api/products/list-products", "POST", body),
+      request<unknown>("/api/products/list-products", "POST", body, false),
     listHomepageSections: () =>
-      request<unknown>("/api/products/list-homepage-sections", "POST"),
+      request<unknown>("/api/products/list-homepage-sections", "POST", undefined, false),
     detail: (id: string) =>
-      request<unknown>("/api/products/detail-product", "POST", { id }),
-    create: (body: Record<string, unknown> | FormData) =>
-      request<{ id?: string; stock?: number }>("/api/products/create-product", "POST", body),
-    update: (body: Record<string, unknown> | FormData) =>
-      request<void>("/api/products/update-product", "POST", body),
+      request<unknown>("/api/products/detail-product", "POST", { id }, false),
+    create: (body: Record<string, unknown>) =>
+      request<unknown>("/api/products/create-product", "POST", body),
+    update: (body: Record<string, unknown>) =>
+      request<unknown>("/api/products/update-product", "POST", body),
     delete: (id: string) =>
       request<void>("/api/products/delete-product", "POST", { id }),
     toggle: (id: string) =>
       request<void>("/api/products/toggle-product", "POST", { id }),
+    searchAdmin: (query: string, limit = 20) =>
+      request<unknown>(`/api/admin/products/search?query=${encodeURIComponent(query)}&limit=${limit}`, "GET"),
   },
 
   reports: {
@@ -372,21 +458,61 @@ export const api = {
   },
 
   settings: {
-    storeConfig: () => request<StoreSettings>("/api/settings/store-config", "GET"),
-    homepageConfig: () => request<HomePageSettings>("/api/settings/homepage-config", "GET"),
+    storeConfig: () => request<StoreSettings>("/api/settings/store-config", "GET", undefined, false),
+    homepageConfig: () => request<HomePageSettings>("/api/settings/homepage-config", "GET", undefined, false),
     updateStoreConfig: (body: StoreSettings | Record<string, unknown>) =>
       request<void>("/api/settings/update-store-config", "PUT", body),
     updateHomepageConfig: (body: HomePageSettings | Record<string, unknown> | FormData) =>
       request<void>("/api/settings/update-homepage-config", "PUT", body instanceof FormData ? body : objectToFormData(body as Record<string, unknown>)),
     homepageOverview: () =>
-      request<Record<string, unknown>>("/api/settings/homepage-overview", "POST", {}),
-    governorates: () => request<{ id: string; governorateName: string }[]>("/api/settings/governorates", "GET"),
+      request<Record<string, unknown>>("/api/settings/homepage-overview", "POST", {}, false),
+    governorates: () => request<{ id: string; governorateName: string }[]>("/api/settings/governorates", "GET", undefined, false),
     updateGovernorateShipping: (body: Record<string, unknown>) =>
       request<void>("/api/settings/update-governorate-shipping", "PUT", body),
     createGovernorateShipping: (body: Record<string, unknown>) =>
       request<unknown>("/api/settings/create-governorate-shipping", "POST", body),
     createAdminAccount: (body: Record<string, unknown>) =>
       request<unknown>("/api/settings/create-admin-account", "POST", body),
+  },
+
+  homeControl: {
+    getOverview: () => request<unknown>("/api/home", "GET", undefined, false),
+    banners: {
+      list: () => request<unknown>("/api/admin/home-control/hero-banners", "GET"),
+      create: (body: Record<string, unknown>) => request<unknown>("/api/admin/home-control/hero-banners", "POST", body),
+      update: (id: string, body: Record<string, unknown>) => request<unknown>(`/api/admin/home-control/hero-banners/${id}`, "PATCH", body),
+      delete: (id: string) => request<unknown>(`/api/admin/home-control/hero-banners/${id}`, "DELETE"),
+      toggle: (id: string, isActive: boolean) => request<unknown>(`/api/admin/home-control/hero-banners/${id}/toggle`, "PATCH", { isActive }),
+      reorder: (items: { id: string; displayOrder: number }[]) => request<unknown>("/api/admin/home-control/hero-banners/reorder", "PATCH", { items }),
+    },
+    sections: {
+      listProducts: (sectionKey: string) => request<unknown>(`/api/admin/home-control/sections/${sectionKey}/products`, "GET"),
+      addProduct: (sectionKey: string, body: Record<string, unknown>) => request<unknown>(`/api/admin/home-control/sections/${sectionKey}/products`, "POST", body),
+      updateProduct: (id: string, body: Record<string, unknown>) => request<unknown>(`/api/admin/home-control/section-products/${id}`, "PATCH", body),
+      deleteProduct: (id: string) => request<unknown>(`/api/admin/home-control/section-products/${id}`, "DELETE"),
+      toggleProduct: (id: string, isActive: boolean) => request<unknown>(`/api/admin/home-control/section-products/${id}/toggle`, "PATCH", { isActive }),
+      reorder: (sectionKey: string, items: { id: string; displayOrder: number }[]) => request<unknown>(`/api/admin/home-control/sections/${sectionKey}/products/reorder`, "PATCH", { items }),
+    },
+    stories: {
+      list: () => request<unknown>("/api/admin/home-control/stories", "GET"),
+      create: (body: Record<string, unknown>) => request<unknown>("/api/admin/home-control/stories", "POST", body),
+      update: (id: string, body: Record<string, unknown>) => request<unknown>(`/api/admin/home-control/stories/${id}`, "PATCH", body),
+      delete: (id: string) => request<unknown>(`/api/admin/home-control/stories/${id}`, "DELETE"),
+      toggle: (id: string, isActive: boolean) => request<unknown>(`/api/admin/home-control/stories/${id}/toggle`, "PATCH", { isActive }),
+      reorder: (items: { id: string; displayOrder: number }[]) => request<unknown>("/api/admin/home-control/stories/reorder", "PATCH", { items }),
+    }
+  },
+
+  reviews: {
+    submitReview: (productId: string, body: Record<string, unknown>) =>
+      request<unknown>(`/api/reviews/products/${productId}`, "POST", body),
+    listAdmin: () => request<unknown>("/api/reviews/admin", "GET"),
+    toggleApprove: (id: string) => request<unknown>(`/api/reviews/admin/${id}/toggle-approve`, "PATCH"),
+    delete: (id: string) => request<unknown>(`/api/reviews/admin/${id}`, "DELETE"),
+  },
+
+  uploads: {
+    uploadFile: (formData: FormData) => request<unknown>("/api/admin/uploads", "POST", formData),
   },
 };
 
@@ -407,7 +533,7 @@ export const mapApiProductToClient = (p: Record<string, unknown>): Product => ({
       : undefined,
   size: toStringValue(p.size),
   variants: safeArray<Record<string, unknown>>(p.variants).map((v) => ({
-    id: toStringValue(v.id),
+    id: toStringValue(v.variantId ?? v.id),
     size: toStringValue(v.size),
     flavor: toStringValue(v.flavor),
     price: toNumberValue(v.price),
@@ -417,7 +543,7 @@ export const mapApiProductToClient = (p: Record<string, unknown>): Product => ({
         : undefined,
     stockQuantity: toNumberValue(v.stockQuantity),
     sku: toStringValue(v.sku),
-    image: toStringValue(v.image),
+    image: resolveImageUrl(toStringValue(v.image)),
     isAvailable: v.isAvailable !== undefined ? Boolean(v.isAvailable) : true,
   })),
   stock: toNumberValue(p.stock),
@@ -447,8 +573,8 @@ export const mapApiProductToClient = (p: Record<string, unknown>): Product => ({
       : true,
   imageColor: toStringValue(p.imageColor, "#FF8A75"),
   imageType: isProductImageType(p.imageType) ? p.imageType : "powder",
-  images: safeArray<string>(p.images),
-  mainImage: toStringValue(p.mainImage),
+  images: safeArray<string>(p.images).map(resolveImageUrl),
+  mainImage: resolveImageUrl(toStringValue(p.mainImage)),
   variantType: isProductVariantType(p.variantType) ? p.variantType : "none",
   name_ar: toStringValue((p as Record<string, unknown>).nameAr ?? (p as Record<string, unknown>).name_ar),
   description_ar: toStringValue((p as Record<string, unknown>).descriptionAr ?? (p as Record<string, unknown>).description_ar),
@@ -473,10 +599,10 @@ export const mapApiCategoryToClient = (cat: Record<string, unknown>): Category =
 export const mapApiCouponToClient = (c: Record<string, unknown>): Coupon => ({
   id: toStringValue(c.id),
   code: toStringValue(c.code),
-  discountType: isCouponDiscountType(c.discountType) ? c.discountType : "percentage",
+  discountType: String(c.discountType).toLowerCase() === "fixed" ? "fixed" : "percentage",
   discountValue: toNumberValue(c.discountValue),
   expiryDate: toStringValue(c.expiryDate),
-  usageLimit: toNumberValue(c.usageLimit),
+  usageLimit: toNumberValue((c as Record<string, unknown>).maxUsage ?? c.usageLimit),
   usageCount: toNumberValue(c.usageCount),
   minOrderAmount: toNumberValue(c.minOrderAmount),
   active:
@@ -494,7 +620,7 @@ export const mapApiCustomerToClient = (c: Record<string, unknown>): Customer => 
   phone: toStringValue(c.phone),
   address: toStringValue((c as Record<string, unknown>).address ?? (c as Record<string, unknown>).shippingAddress),
   city: toStringValue((c as Record<string, unknown>).city ?? (c as Record<string, unknown>).shippingCity),
-  orderCount: toNumberValue((c as Record<string, unknown>).orderCount ?? (c as Record<string, unknown>).ordersCount),
+  orderCount: toNumberValue((c as Record<string, unknown>).totalOrders ?? (c as Record<string, unknown>).orderCount ?? (c as Record<string, unknown>).ordersCount),
   totalSpent: toNumberValue(c.totalSpent),
   joinDate: toStringValue((c as Record<string, unknown>).joinDate ?? (c as Record<string, unknown>).createdAt, new Date().toISOString().split("T")[0]),
 });
@@ -543,7 +669,7 @@ export const mapApiOrderToClient = (ord: Record<string, unknown>): Order => ({
           : isProductImageType(productObj?.imageType)
           ? productObj.imageType
           : "powder",
-      image: toStringValue(item.image ?? productObj?.mainImage),
+      image: resolveImageUrl(toStringValue(item.image ?? productObj?.mainImage)),
     };
   }),
   totalPrice:
@@ -552,9 +678,69 @@ export const mapApiOrderToClient = (ord: Record<string, unknown>): Order => ({
       : toNumberValue((ord as Record<string, unknown>).total),
   paymentMethod: toStringValue(ord.paymentMethod, "Cash On Delivery"),
   shippingMethod: toStringValue(ord.shippingMethod, "Standard Shipping"),
-  status: isOrderStatus(ord.status) ? ord.status : "New Order",
+  status: ((): Order["status"] => {
+    const raw = toStringValue(ord.status);
+    // Normalize backend "NEW ORDER" to frontend "New Order", etc.
+    const statusMap: Record<string, Order["status"]> = {
+      "new order": "New Order",
+      "confirmed": "Confirmed",
+      "preparing": "Preparing",
+      "shipped / out for delivery": "Shipped / Out for Delivery",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled",
+      "rejected": "Rejected",
+      "returned": "Returned",
+    };
+    return statusMap[raw.toLowerCase()] || (isOrderStatus(raw) ? raw : "New Order");
+  })(),
   shippingCost: toNumberValue((ord as Record<string, unknown>).shippingCost),
   discountAmount: toNumberValue((ord as Record<string, unknown>).discountAmount),
   couponCode: toStringValue((ord as Record<string, unknown>).couponCode),
   orderDate: toStringValue((ord as Record<string, unknown>).orderDate ?? (ord as Record<string, unknown>).createdAt, new Date().toISOString()),
+});
+
+export const mapApiReturnToClient = (ret: Record<string, unknown>): OrderReturn => ({
+  id: toStringValue(ret.id),
+  orderId: toStringValue(ret.orderId),
+  orderNumber: toStringValue(ret.orderNumber),
+  returnDate: toStringValue(ret.returnDate, new Date().toISOString()),
+  customerName: toStringValue(ret.customerName),
+  returnedFormulations: toStringValue(ret.returnedFormulations),
+  returnReason: toStringValue(ret.returnReason),
+  isRestoredToStock: toBooleanValue(ret.isRestoredToStock ?? ret.isRestoredToStock),
+  refundAmount: toNumberValue(ret.refundAmount),
+  notes: toStringValue(ret.notes),
+  createdAt: toStringValue(ret.createdAt, new Date().toISOString()),
+  updatedAt: toStringValue(ret.updatedAt, new Date().toISOString()),
+});
+
+export const mapApiBannerToClient = (b: Record<string, unknown>): HomeBanner => ({
+  id: toStringValue(b.id),
+  title: toStringValue(b.title),
+  subtitle: toStringValue(b.subtitle),
+  image: resolveImageUrl(toStringValue(b.desktopImage ?? b.image)),
+  mobileImage: b.mobileImage ? resolveImageUrl(toStringValue(b.mobileImage)) : undefined,
+  ctaText: toStringValue(b.ctaText),
+  ctaLink: toStringValue(b.ctaLink),
+  isActive: toBooleanValue(b.isActive ?? b.active, true),
+  displayOrder: toNumberValue(b.displayOrder),
+  altText: b.altText ? toStringValue(b.altText) : undefined,
+});
+
+export const mapApiStoryToClient = (s: Record<string, unknown>): HomeStory => ({
+  id: toStringValue(s.id),
+  title: toStringValue(s.title),
+  description: toStringValue(s.description),
+  image: resolveImageUrl(toStringValue(s.image)),
+  link: s.link ? toStringValue(s.link) : undefined,
+  isActive: toBooleanValue(s.isActive ?? s.active, true),
+  displayOrder: toNumberValue(s.displayOrder),
+  altText: s.altText ? toStringValue(s.altText) : undefined,
+});
+
+export const mapApiSectionProductToClient = (sp: Record<string, unknown>): HomeCuratedProduct => ({
+  id: toStringValue(sp.id),
+  productId: toStringValue(sp.productId),
+  isActive: toBooleanValue(sp.isActive ?? sp.active, true),
+  displayOrder: toNumberValue(sp.displayOrder),
 });
